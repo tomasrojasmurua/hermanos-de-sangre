@@ -5,7 +5,7 @@ Juego para navegador inspirado en *Hermanos de sangre* de Stephen E. Ambrose. Pe
 ## Cómo abrirlo
 
 - **Bastogne (juego principal):** abre `hermanos-de-sangre.html` en el navegador. Es un único archivo autocontenido; solo necesita internet para las fuentes de Google.
-- **Día D, modo soldado (prototipo):** abre `dia-d/index.html`. Usa `dia-d/lib/three-runtime.js` y el paquete compilado `dia-d/dia-d.js`, que ya viene incluido.
+- **Día D, modo soldado (prototipo):** abre `dia-d.html`. También es un único archivo autocontenido, así que se puede descargar y abrir en el celular. (`dia-d/index.html` es la versión de desarrollo y necesita los archivos de su carpeta al lado.)
 
 Si el repositorio tiene GitHub Pages activado, `index.html` en la raíz enlaza a ambos.
 
@@ -19,6 +19,8 @@ El código fuente modular está en `dia-d/src/` (punto de entrada `main.js`). Tr
 cd dia-d
 npx esbuild src/main.js --bundle --format=iife --outfile=dia-d.js
 ```
+
+Después regenera `dia-d.html` (un solo archivo) incrustando `lib/three-runtime.js` y `dia-d.js` en lugar de sus etiquetas `<script src>` de `dia-d/index.html`.
 
 Three.js no se importa como módulo: lo carga `lib/three-runtime.js` como script global antes de `dia-d.js`.
 
