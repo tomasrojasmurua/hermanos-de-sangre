@@ -94,6 +94,7 @@ export class Column {
     const L = cfg.leader;
     if (L) {
       const a = this.route.at(this.s);
+      L.faceAlong = [a.dx * this.dir, a.dz * this.dir];
       G.moveTo(L, a.x, a.z, dt, (pace / L.speed) * 1.35, 0.15);
       L.st.move = clamp(pace / 3.6, 0, 1);
     }
@@ -129,6 +130,7 @@ export class Column {
       const tx = target.x + nx * m.lane + Math.sin(G.t * 0.7 + m.wob) * 0.12, tz = target.z + nz * m.lane;
       const d = Math.hypot(tx - m.sol.x, tz - m.sol.z);
       const want = pace * (m.state === "flag" ? 0.55 : 1) + d * 1.6;
+      m.sol.faceAlong = [target.dx * this.dir, target.dz * this.dir];
       G.moveTo(m.sol, tx, tz, dt, clamp(want / m.sol.speed, 0, 1.6), 0.05);
       m.sol.st.move = clamp(want / 3.6, 0, 1.1) * (m.state === "flag" ? 0.75 : 1);
     }

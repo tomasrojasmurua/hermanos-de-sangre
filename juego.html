@@ -48,7 +48,7 @@ button{font:inherit;color:inherit}
 .mk.ping{font-size:24px;color:#e3c27a;text-shadow:0 0 10px #000;animation:ping 1s ease-out infinite}
 @keyframes ping{0%{opacity:1;transform:translateY(0)}100%{opacity:.2}}
 .mk.objm .pin{display:block;width:14px;height:14px;border:2px solid #e3c27a;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 0 8px rgba(0,0,0,.6)}
-#sub{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(214px + var(--safe-b));max-width:min(90vw,480px);background:rgba(242,235,219,.95);color:#1f1a14;border:1px solid rgba(35,29,22,.5);border-radius:10px;padding:7px 12px;font-family:'Special Elite',monospace;font-size:14px;line-height:1.32;box-shadow:0 6px 16px rgba(0,0,0,.4);text-align:left}
+#sub{position:absolute;z-index:15;left:50%;transform:translateX(-50%);bottom:calc(214px + var(--safe-b));max-width:min(90vw,480px);background:rgba(242,235,219,.95);color:#1f1a14;border:1px solid rgba(35,29,22,.5);border-radius:10px;padding:7px 12px;font-family:'Special Elite',monospace;font-size:14px;line-height:1.32;box-shadow:0 6px 16px rgba(0,0,0,.4);text-align:left}
 #sub b{display:block;font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#7b2a22;margin-bottom:1px}
 #sub.pop{animation:subIn .3s ease}
 @keyframes subIn{from{opacity:0;transform:translate(-50%,6px)}to{opacity:1;transform:translate(-50%,0)}}
@@ -5967,7 +5967,6 @@ void main(){
       <button id="pauseBtn" class="round" aria-label="Pausa">${ICON.pause}</button>
       <div id="obj"><span class="arrow">\u27A4</span><span class="txt"></span><span class="m"></span></div>
       <div id="marks"></div>
-      <div id="sub" class="hidden"><b></b><span></span></div>
       <div id="btns">
         <button class="b act hidden" data-b="act"><span class="lbl"></span></button>
         <button class="b call hidden" data-b="call">${ICON.call}<small>Chicharra</small></button>
@@ -5980,6 +5979,7 @@ void main(){
       <div id="qte" class="hidden"><div class="lbl"><span></span><i class="bar"></i></div><button class="b" data-b="qte"><span class="t2"></span></button></div>
       <div class="ghost"><i></i><span>Arrastra para moverte</span></div>
     </div>
+    <div id="sub" class="hidden"><b></b><span></span></div>
     <div id="cards"></div>
     <div id="fade"></div>`;
       this.hud = $("#hud", root);
@@ -7267,7 +7267,11 @@ void main(){
         s.z = cz;
         s.stuckTotal = Math.max(0, (s.stuckTotal || 0) - dt * 0.5);
       }
-      if (!(s.aimT > 0)) s.face(x, z, dt, 8);
+      if (!(s.aimT > 0)) {
+        const fa = s.faceAlong;
+        if (fa) s.face(s.x + fa[0] * 4, s.z + fa[1] * 4, dt, 8);
+        else s.face(x, z, dt, 8);
+      }
       s.st.move = damp(s.st.move, speedK * (s.crouch ? 0.7 : 1), 10, dt);
       return false;
     }
@@ -8835,6 +8839,7 @@ void main(){
       const L = cfg.leader;
       if (L) {
         const a = this.route.at(this.s);
+        L.faceAlong = [a.dx * this.dir, a.dz * this.dir];
         G.moveTo(L, a.x, a.z, dt, pace / L.speed * 1.35, 0.15);
         L.st.move = clamp(pace / 3.6, 0, 1);
       }
@@ -8867,6 +8872,7 @@ void main(){
         const tx = target.x + nx * m.lane + Math.sin(G.t * 0.7 + m.wob) * 0.12, tz = target.z + nz * m.lane;
         const d = Math.hypot(tx - m.sol.x, tz - m.sol.z);
         const want = pace * (m.state === "flag" ? 0.55 : 1) + d * 1.6;
+        m.sol.faceAlong = [target.dx * this.dir, target.dz * this.dir];
         G.moveTo(m.sol, tx, tz, dt, clamp(want / m.sol.speed, 0, 1.6), 0.05);
         m.sol.st.move = clamp(want / 3.6, 0, 1.1) * (m.state === "flag" ? 0.75 : 1);
       }
@@ -8960,6 +8966,35 @@ void main(){
     "\xA1El que suba a la ambulancia, se va hoy mismo!",
     "\xA1Arriba esas rodillas, Compa\xF1\xEDa E!"
   ];
+  var GASP = {
+    up: [
+      "No siento las piernas\u2026",
+      "\xBFCu\xE1nto falta para la cima?",
+      "Me arde el pecho.",
+      "Un paso m\xE1s. Uno m\xE1s.",
+      "Si paro, no vuelvo a arrancar.",
+      "Ese hombre no se cansa nunca\u2026",
+      "Respira\u2026 respira\u2026",
+      "Dar\xEDa la paga del mes por un trago de agua.",
+      "Tengo los pulmones en la garganta.",
+      "Mira arriba no\u2026 mira tus botas."
+    ],
+    down: [
+      "Cuidado, en la bajada se te van las rodillas.",
+      "Ya se ve el campamento\u2026",
+      "Bajar duele m\xE1s que subir.",
+      "No te caigas ahora, que nos arrastras a todos.",
+      "Tres millas m\xE1s\u2026 solo tres."
+    ],
+    sick: [
+      "Los espaguetis\u2026 me vuelven a subir.",
+      "No deb\xED repetir plato.",
+      "Sab\xEDa que hab\xEDa trampa. Lo sab\xEDa.",
+      "Si vomito, que sea fuera de la ambulancia."
+    ],
+    fading: ["No puedo m\xE1s\u2026", "Las piernas no me responden\u2026", "Sigan\u2026 ya los alcanzo\u2026", "Dame un segundo\u2026 solo uno\u2026"],
+    winters: ["Sigue. No pares.", "Respira con la cadencia.", "Que no te vean flaquear."]
+  };
   function hud(ui, input) {
     let el2 = document.getElementById("runhud");
     if (el2) el2.remove();
@@ -9060,6 +9095,7 @@ void main(){
         audio.breath(1, 0);
         m.sol.noLabel = true;
         if (!flagged.has(m.id)) ui.toast(`${m.sol.short} se est\xE1 quedando atr\xE1s`, 1800);
+        if (!ui.talking) ui.say(m.sol.short, pickG("fading"), 1.8);
         flagged.add(m.id);
       },
       onRecover: (m) => {
@@ -9128,6 +9164,12 @@ void main(){
     else ui.toast("Que no suba nadie de tu pelot\xF3n a la ambulancia.", 3200);
     let lastLine = null, windT = 0, bag = [], tutHelp = false, ambT = 0, fadeAt = opts.variant === "first" ? [110, 190] : [], silentT = 0, nextLine = 6, phaseUp = true, summitDone = false, behindT = 0, stepT = 0, lastBreathOk = false, tipsShown = 0;
     let failed = false;
+    let gaspT = 9;
+    const gBag = {};
+    const pickG = (k) => {
+      if (!gBag[k] || !gBag[k].length) gBag[k] = GASP[k].slice().sort(() => r() - 0.5);
+      return gBag[k].pop();
+    };
     const tick = (dt, rdt) => {
       if (dt <= 0) return;
       if (input.axis().l > 0.2) ui.ghostOff();
@@ -9178,6 +9220,19 @@ void main(){
         const line = bag.pop();
         lastLine = line;
         ui.say("Sobel", line, 2.2);
+      }
+      gaspT -= dt;
+      if (gaspT <= 0 && !ui.talking && nextLine > 3) {
+        gaspT = 7 + r() * 6;
+        if (P2.stam < 0.3 && r() < 0.5) ui.say("Winters", pickG("winters"), 1.8);
+        else {
+          const near2 = col.men.filter((m) => m.state === "ok" && Math.hypot(m.sol.x - win.x, m.sol.z - win.z) < 11).sort((a, b2) => a.stam - b2.stam)[0];
+          if (near2) {
+            const kind = opts.variant === "spaghetti" && r() < 0.45 ? "sick" : phaseUp ? "up" : "down";
+            ui.say(near2.sol.short, pickG(kind), 2);
+            audio.breath(0.7, 0);
+          }
+        }
       }
       if (fadeAt.length && col.s > fadeAt[0]) {
         fadeAt.shift();
@@ -9287,6 +9342,8 @@ void main(){
         G.paused = false;
       }
     } finally {
+      for (const m of col.men) if (m.sol) m.sol.faceAlong = null;
+      sobel.faceAlong = null;
       unhook();
       music.onBeat = null;
       G.quietSteps = false;
@@ -9653,6 +9710,9 @@ void main(){
         shell.hooks.clear();
         shell.music.onBeat = null;
         shell.ui.cards.innerHTML = "";
+        shell.ui.subQ = [];
+        shell.ui.subT = 0;
+        shell.ui.sub.classList.add("hidden");
         document.getElementById("runhud")?.remove();
         delete document.body.dataset.run;
         shell.audio.pauseMix(false);

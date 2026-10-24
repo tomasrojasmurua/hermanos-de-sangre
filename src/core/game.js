@@ -623,7 +623,12 @@ export class Game {
       s.z = cz;
       s.stuckTotal = Math.max(0, (s.stuckTotal || 0) - dt * 0.5);
     }
-    if (!(s.aimT > 0)) s.face(x, z, dt, 8);
+    // a man running in a column looks down the road, not at the exact spot he is closing on
+    if (!(s.aimT > 0)) {
+      const fa = s.faceAlong;
+      if (fa) s.face(s.x + fa[0] * 4, s.z + fa[1] * 4, dt, 8);
+      else s.face(x, z, dt, 8);
+    }
     s.st.move = damp(s.st.move, speedK * (s.crouch ? 0.7 : 1), 10, dt);
     return false;
   }

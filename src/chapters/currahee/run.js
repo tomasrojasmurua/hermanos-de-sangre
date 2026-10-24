@@ -16,6 +16,37 @@ const SOBEL_LINES = [
   "¡Arriba esas rodillas, Compañía E!",
 ];
 
+// panting in the ranks (invented, see docs/inventado.md): said by the most tired man near you
+const GASP = {
+  up: [
+    "No siento las piernas…",
+    "¿Cuánto falta para la cima?",
+    "Me arde el pecho.",
+    "Un paso más. Uno más.",
+    "Si paro, no vuelvo a arrancar.",
+    "Ese hombre no se cansa nunca…",
+    "Respira… respira…",
+    "Daría la paga del mes por un trago de agua.",
+    "Tengo los pulmones en la garganta.",
+    "Mira arriba no… mira tus botas.",
+  ],
+  down: [
+    "Cuidado, en la bajada se te van las rodillas.",
+    "Ya se ve el campamento…",
+    "Bajar duele más que subir.",
+    "No te caigas ahora, que nos arrastras a todos.",
+    "Tres millas más… solo tres.",
+  ],
+  sick: [
+    "Los espaguetis… me vuelven a subir.",
+    "No debí repetir plato.",
+    "Sabía que había trampa. Lo sabía.",
+    "Si vomito, que sea fuera de la ambulancia.",
+  ],
+  fading: ["No puedo más…", "Las piernas no me responden…", "Sigan… ya los alcanzo…", "Dame un segundo… solo uno…"],
+  winters: ["Sigue. No pares.", "Respira con la cadencia.", "Que no te vean flaquear."],
+};
+
 function hud(ui, input) {
   let el = document.getElementById("runhud");
   if (el) el.remove();
@@ -123,6 +154,7 @@ export async function currahee(ctx, opts) {
       audio.breath(1, 0);
       m.sol.noLabel = true;
       if (!flagged.has(m.id)) ui.toast(`${m.sol.short} se está quedando atrás`, 1800);
+      if (!ui.talking) ui.say(m.sol.short, pickG("fading"), 1.8);
       flagged.add(m.id);
     },
     onRecover: (m) => {
@@ -195,6 +227,12 @@ export async function currahee(ctx, opts) {
   else ui.toast("Que no suba nadie de tu pelotón a la ambulancia.", 3200);
   let lastLine = null, windT = 0, bag = [], tutHelp = false, ambT = 0, fadeAt = opts.variant === "first" ? [110, 190] : [], silentT = 0, nextLine = 6, phaseUp = true, summitDone = false, behindT = 0, stepT = 0, lastBreathOk = false, tipsShown = 0;
   let failed = false;
+  let gaspT = 9;
+  const gBag = {};
+  const pickG = (k) => {
+    if (!gBag[k] || !gBag[k].length) gBag[k] = GASP[k].slice().sort(() => r() - 0.5);
+    return gBag[k].pop();
+  };
   const tick = (dt, rdt) => {
     if (dt <= 0) return;
     if (input.axis().l > 0.2) ui.ghostOff();
@@ -252,6 +290,20 @@ export async function currahee(ctx, opts) {
       const line = bag.pop();
       lastLine = line;
       ui.say("Sobel", line, 2.2);
+    }
+    // tired men: a gasp from the most spent man near Winters, between Sobel's shouts, never over them
+    gaspT -= dt;
+    if (gaspT <= 0 && !ui.talking && nextLine > 3) {
+      gaspT = 7 + r() * 6;
+      if (P.stam < 0.3 && r() < 0.5) ui.say("Winters", pickG("winters"), 1.8);
+      else {
+        const near = col.men.filter((m) => m.state === "ok" && Math.hypot(m.sol.x - win.x, m.sol.z - win.z) < 11).sort((a, b) => a.stam - b.stam)[0];
+        if (near) {
+          const kind = opts.variant === "spaghetti" && r() < 0.45 ? "sick" : phaseUp ? "up" : "down";
+          ui.say(near.sol.short, pickG(kind), 2);
+          audio.breath(0.7, 0);
+        }
+      }
     }
     // the first run teaches helping: the two weakest recruits fade at set points
     if (fadeAt.length && col.s > fadeAt[0]) {
@@ -373,6 +425,8 @@ export async function currahee(ctx, opts) {
       G.paused = false;
     }
   } finally {
+    for (const m of col.men) if (m.sol) m.sol.faceAlong = null;
+    sobel.faceAlong = null;
     unhook();
     music.onBeat = null;
     G.quietSteps = false;

@@ -42,7 +42,6 @@ export class UI {
       <button id="pauseBtn" class="round" aria-label="Pausa">${ICON.pause}</button>
       <div id="obj"><span class="arrow">➤</span><span class="txt"></span><span class="m"></span></div>
       <div id="marks"></div>
-      <div id="sub" class="hidden"><b></b><span></span></div>
       <div id="btns">
         <button class="b act hidden" data-b="act"><span class="lbl"></span></button>
         <button class="b call hidden" data-b="call">${ICON.call}<small>Chicharra</small></button>
@@ -55,6 +54,7 @@ export class UI {
       <div id="qte" class="hidden"><div class="lbl"><span></span><i class="bar"></i></div><button class="b" data-b="qte"><span class="t2"></span></button></div>
       <div class="ghost"><i></i><span>Arrastra para moverte</span></div>
     </div>
+    <div id="sub" class="hidden"><b></b><span></span></div>
     <div id="cards"></div>
     <div id="fade"></div>`;
     this.hud = $("#hud", root);

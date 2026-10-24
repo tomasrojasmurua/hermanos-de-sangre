@@ -135,6 +135,9 @@ shell.ui.onPause = async () => {
       shell.hooks.clear();
       shell.music.onBeat = null;
       shell.ui.cards.innerHTML = "";
+      shell.ui.subQ = [];
+      shell.ui.subT = 0;
+      shell.ui.sub.classList.add("hidden");
       document.getElementById("runhud")?.remove();
       delete document.body.dataset.run;
       shell.audio.pauseMix(false);

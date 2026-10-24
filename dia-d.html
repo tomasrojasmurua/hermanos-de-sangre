@@ -5622,7 +5622,6 @@ void main(){
       <button id="pauseBtn" class="round" aria-label="Pausa">${ICON.pause}</button>
       <div id="obj"><span class="arrow">\u27A4</span><span class="txt"></span><span class="m"></span></div>
       <div id="marks"></div>
-      <div id="sub" class="hidden"><b></b><span></span></div>
       <div id="btns">
         <button class="b act hidden" data-b="act"><span class="lbl"></span></button>
         <button class="b call hidden" data-b="call">${ICON.call}<small>Chicharra</small></button>
@@ -5635,6 +5634,7 @@ void main(){
       <div id="qte" class="hidden"><div class="lbl"><span></span><i class="bar"></i></div><button class="b" data-b="qte"><span class="t2"></span></button></div>
       <div class="ghost"><i></i><span>Arrastra para moverte</span></div>
     </div>
+    <div id="sub" class="hidden"><b></b><span></span></div>
     <div id="cards"></div>
     <div id="fade"></div>`;
       this.hud = $("#hud", root);
@@ -6792,7 +6792,11 @@ void main(){
         s.z = cz;
         s.stuckTotal = Math.max(0, (s.stuckTotal || 0) - dt * 0.5);
       }
-      if (!(s.aimT > 0)) s.face(x, z, dt, 8);
+      if (!(s.aimT > 0)) {
+        const fa = s.faceAlong;
+        if (fa) s.face(s.x + fa[0] * 4, s.z + fa[1] * 4, dt, 8);
+        else s.face(x, z, dt, 8);
+      }
       s.st.move = damp(s.st.move, speedK * (s.crouch ? 0.7 : 1), 10, dt);
       return false;
     }

@@ -27,6 +27,8 @@ Sin errores de consola en el capítulo completo.
 
 **Primera prueba en teléfono (iPhone):** los pinos del cerro se movían como figuras sueltas. Dos causas: el balanceo del viento usaba la altura sobre el nivel del mar (en el cerro, decenas de metros) y no la altura del árbol, y el círculo de transparencia tramaba cualquier copa cercana aunque no tapara a nadie. Ahora los pinos fusionados usan el material `canopy`, que guarda por vértice la altura sobre su suelo (`aSway`) y se mece poco. La transparencia solo afecta lo que está entre la cámara y el soldado (`uFocusD`, profundidad) y el radio de la carrera bajó de 230 a 120 px.
 
+**Segunda prueba en teléfono:** (1) en la columna los hombres miraban al punto exacto al que iban, y cuando ese punto quedaba al lado o detrás corrían de lado o de espaldas; ahora miran a lo largo del camino (`faceAlong`). (2) En las escenas narrativas la interfaz se oculta y los subtítulos vivían dentro de ella: se oía la voz sin texto. Ahora los subtítulos están fuera de la interfaz. (3) Frases de cansancio en las carreras: el hombre más cansado cerca de Winters jadea una frase entre los gritos de Sobel (subida, bajada, espaguetis), y el que se queda atrás dice la suya.
+
 **Pendiente menor:** el balbuceo de las voces sigue sonando sintético; el título podría mostrar a la compañía formada; probar en un teléfono real (las pruebas usan Chromium sin GPU a ~4 fps).
 
 **Cambio de regla en el Día D:** Winters sobrevive a la guerra en el libro, así que si cae en Brécourt se vuelve al punto de control. Se quitó la rama «Lipton toma el mando».
