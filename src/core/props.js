@@ -1,7 +1,7 @@
 // Props for Normandy: bocage, orchards, stone farms, the Brécourt guns, trenches, paratrooper debris.
 // Everything is low-poly with painted vertex colour, merged into a handful of meshes per category.
-import { T, rng, lerp } from "./util.js";
-import { Builder } from "./geo.js";
+import { T, rng, lerp } from "../engine/util.js";
+import { Builder } from "../engine/geo.js";
 
 const GREENS = [0x3f5a2c, 0x46622f, 0x354e27, 0x4e6a33, 0x2f4824, 0x557238];
 const DARKGREEN = [0x2c4021, 0x33492a, 0x283a1f];

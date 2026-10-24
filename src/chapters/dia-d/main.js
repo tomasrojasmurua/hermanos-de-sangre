@@ -1,16 +1,16 @@
 // Boot: title, part runner, checkpoints (autosave), death handling, frame loop.
-import { T, clamp, damp } from "./util.js";
-import { U, Builder, meshFrom } from "./geo.js";
-import { Renderer, pickQuality } from "./render.js";
-import { FX } from "./fx.js";
-import { Audio } from "./audio.js";
-import { Input } from "./input.js";
-import { UI, esc } from "./ui.js";
-import { Game } from "./game.js";
+import { T, clamp, damp } from "../../engine/util.js";
+import { U, Builder, meshFrom } from "../../engine/geo.js";
+import { Renderer, pickQuality } from "../../engine/render.js";
+import { FX } from "../../engine/fx.js";
+import { Audio } from "../../engine/audio.js";
+import { Input } from "../../engine/input.js";
+import { UI, esc } from "../../engine/ui.js";
+import { Game } from "../../core/game.js";
 import { buildNight, buildBrecourt, gradeNight, gradeDawn, W } from "./dday.js";
 import { nightScript, brecourtScript, OUTRO, nightAmbience } from "./story.js";
-import * as P from "./props.js";
-import { Cones } from "./cones.js";
+import * as P from "../../core/props.js";
+import { Cones } from "../../engine/cones.js";
 
 const SAVE_KEY = "hds_dia_d_v1";
 const loadSave = () => {
