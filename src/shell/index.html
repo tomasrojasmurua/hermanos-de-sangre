@@ -208,9 +208,11 @@ body[data-run] #btns .act{bottom:26px;right:0;height:52px;font-size:17px}
 body[data-run] #who{display:none!important}
 body[data-run] #obj{top:calc(10px + var(--safe-t));left:auto;right:calc(64px + env(safe-area-inset-right,0px));transform:none;max-width:min(46vw,380px)}
 body[data-run] #obj.new{animation:none}
-body[data-run] #toast{top:calc(98px + var(--safe-t))}
+body[data-run] #toast{top:calc(64px + var(--safe-t));left:auto;right:calc(64px + env(safe-area-inset-right,0px));transform:none;max-width:min(42vw,360px)}
+body[data-run] #toast.on{transform:none}
 .mk.strag{font-size:13px;font-weight:700;color:#ffd7c9;background:rgba(122,40,32,.85);padding:3px 8px;border-radius:10px;border:1px solid rgba(255,160,130,.5);animation:blink 1s infinite}
-body[data-run] #sub{top:calc(138px + var(--safe-t));bottom:auto;left:50%;max-width:min(50vw,420px)}
+body[data-run] #sub{top:calc(98px + var(--safe-t));bottom:auto;left:calc(12px + env(safe-area-inset-left,0px));transform:none;max-width:min(40vw,340px)}
+body[data-run] #sub.pop{animation:none}
 body[data-run] .ghost{bottom:calc(64px + var(--safe-b))}
 @media (pointer:fine){.ghost{display:none}}
 /* narrative mode: no HUD, cards and subtitles only */

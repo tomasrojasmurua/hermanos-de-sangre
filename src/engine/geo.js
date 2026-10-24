@@ -182,8 +182,8 @@ float bayer4(vec2 p){ vec2 q = mod(floor(p), 4.0); float i = q.x + q.y * 4.0;
     float dpx = length(gl_FragCoord.xy - uFocus.xy);
     if (vWP.y > uFocus.z + 2.3 && dpx < uFocus.w) {
       float k = 1.0 - smoothstep(uFocus.w * 0.5, uFocus.w, dpx);
-      float n = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
-      if (k * 0.85 > n) discard;
+      // ordered 4×4 screen door: an even veil instead of noisy speckle
+      if (k * 0.8 > bayer4(gl_FragCoord.xy)) discard;
     }
   }` : ""}
   // painted breakup: broad brush value shifts + fine bristle grain, in world space so it never swims

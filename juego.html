@@ -208,9 +208,11 @@ body[data-run] #btns .act{bottom:26px;right:0;height:52px;font-size:17px}
 body[data-run] #who{display:none!important}
 body[data-run] #obj{top:calc(10px + var(--safe-t));left:auto;right:calc(64px + env(safe-area-inset-right,0px));transform:none;max-width:min(46vw,380px)}
 body[data-run] #obj.new{animation:none}
-body[data-run] #toast{top:calc(98px + var(--safe-t))}
+body[data-run] #toast{top:calc(64px + var(--safe-t));left:auto;right:calc(64px + env(safe-area-inset-right,0px));transform:none;max-width:min(42vw,360px)}
+body[data-run] #toast.on{transform:none}
 .mk.strag{font-size:13px;font-weight:700;color:#ffd7c9;background:rgba(122,40,32,.85);padding:3px 8px;border-radius:10px;border:1px solid rgba(255,160,130,.5);animation:blink 1s infinite}
-body[data-run] #sub{top:calc(138px + var(--safe-t));bottom:auto;left:50%;max-width:min(50vw,420px)}
+body[data-run] #sub{top:calc(98px + var(--safe-t));bottom:auto;left:calc(12px + env(safe-area-inset-left,0px));transform:none;max-width:min(40vw,340px)}
+body[data-run] #sub.pop{animation:none}
 body[data-run] .ghost{bottom:calc(64px + var(--safe-b))}
 @media (pointer:fine){.ghost{display:none}}
 /* narrative mode: no HUD, cards and subtitles only */
@@ -4363,8 +4365,8 @@ float bayer4(vec2 p){ vec2 q = mod(floor(p), 4.0); float i = q.x + q.y * 4.0;
     float dpx = length(gl_FragCoord.xy - uFocus.xy);
     if (vWP.y > uFocus.z + 2.3 && dpx < uFocus.w) {
       float k = 1.0 - smoothstep(uFocus.w * 0.5, uFocus.w, dpx);
-      float n = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
-      if (k * 0.85 > n) discard;
+      // ordered 4\xD74 screen door: an even veil instead of noisy speckle
+      if (k * 0.8 > bayer4(gl_FragCoord.xy)) discard;
     }
   }` : ""}
   // painted breakup: broad brush value shifts + fine bristle grain, in world space so it never swims
@@ -7662,7 +7664,7 @@ void main(){
       }
       if (G.player && G.player.alive && !G.noFocus) {
         const [sx, sy] = G.project(G.player.x, G.player.y + 1, G.player.z);
-        U.focus.value.set(sx / innerWidth * R.w, (1 - sy / innerHeight) * R.h, G.player.y, 95 * (R.h / innerHeight));
+        U.focus.value.set(sx / innerWidth * R.w, (1 - sy / innerHeight) * R.h, G.player.y, (G.focusR || 95) * (R.h / innerHeight));
       } else U.focus.value.set(-9999, -9999, 0, 0);
       R.render(this.scene, this.camera, now / 1e3);
       R.adapt(real);
@@ -9163,6 +9165,7 @@ void main(){
     };
     const unhook = shell2.hook(tick);
     G.quietSteps = true;
+    G.focusR = Math.min(innerHeight * 0.55, 230);
     music.onBeat = (t, b, spb) => {
       if (G.paused) return;
       const P2 = col.p, mv = win.st.move;
@@ -9181,6 +9184,7 @@ void main(){
     unhook();
     music.onBeat = null;
     G.quietSteps = false;
+    G.focusR = 0;
     G.objective = null;
     ui.setAct(null);
     H.remove();

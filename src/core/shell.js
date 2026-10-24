@@ -118,7 +118,7 @@ export class Shell {
     }
     if (G.player && G.player.alive && !G.noFocus) {
       const [sx, sy] = G.project(G.player.x, G.player.y + 1, G.player.z);
-      U.focus.value.set((sx / innerWidth) * R.w, (1 - sy / innerHeight) * R.h, G.player.y, 95 * (R.h / innerHeight));
+      U.focus.value.set((sx / innerWidth) * R.w, (1 - sy / innerHeight) * R.h, G.player.y, (G.focusR || 95) * (R.h / innerHeight));
     } else U.focus.value.set(-9999, -9999, 0, 0);
     R.render(this.scene, this.camera, now / 1000);
     R.adapt(real);
