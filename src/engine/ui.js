@@ -175,7 +175,10 @@ export class UI {
   // world-anchored markers: key -> {x,y (screen), text, cls}
   ghostOff() {
     const g = this.root.querySelector(".ghost");
-    if (g && !g.classList.contains("off")) g.classList.add("off");
+    if (g && !g.classList.contains("off")) {
+      g.classList.add("off");
+      setTimeout(() => g.remove(), 900); // learned once, gone for the session
+    }
   }
   mark(key, sx, sy, html, cls = "") {
     if (cls.startsWith("ally")) sx = Math.max(34, Math.min(innerWidth - 34, sx));

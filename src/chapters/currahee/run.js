@@ -306,13 +306,16 @@ export async function currahee(ctx, opts) {
       let [sx, sy] = G.project(m.sol.x, m.sol.y + 2.3, m.sol.z);
       const off = sx < 30 || sx > innerWidth - 30 || sy < 70 || sy > innerHeight - 30;
       sx = clamp(sx, 40, innerWidth - 40);
-      sy = clamp(sy, 84, innerHeight - 40);
+      sy = clamp(sy, 108, innerHeight - 40); // below the position bar
       ui.mark("st" + m.id, sx, sy, `<span>${off ? "◀ " : ""}${esc(m.sol.short)}</span>`, "strag");
     }
     // the action button when a fading man is within reach
     const near = col.flagged().find((m) => Math.hypot(m.sol.x - win.x, m.sol.z - win.z) < 2.6);
     ui.setAct(near ? `Empujar a ${near.sol.short}` : null);
-    if (near && input.consume("act")) col.helpNearest(2.6);
+    if (near && input.consume("act")) {
+      col.helpNearest(2.6);
+      ui.setAct(null);
+    }
     // too far behind: the ambulances are right behind you
     if (rel < 0.02) {
       behindT += dt;
@@ -345,7 +348,8 @@ export async function currahee(ctx, opts) {
       // a checkpoint at the summit: the way down is replayed, not the whole run
       G.paused = true;
       await ui.card({ kicker: "Currahee", title: "La ambulancia te alcanza", text: "Winters no puede quedarse atrás: sus hombres lo miran. Vuelves a la cima para la bajada.", next: "Desde la cima" });
-      col.s = summitS + 4;
+      // restart with the whole column, ambulance included, already on the way down
+      col.s = summitS + (col.s - col.ambS()) + 8;
       for (const m of col.men) {
         if (m.state === "lost") continue;
         const sl = col.slot(m.rank, m.lane);

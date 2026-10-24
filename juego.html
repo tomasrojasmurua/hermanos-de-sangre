@@ -153,7 +153,7 @@ button{font:inherit;color:inherit}
 /* ===== Juego unificado: siempre apaisado, dos pulgares ===== */
 /* title: left column the name, right column the chapters */
 .title{flex-direction:row;align-items:stretch;justify-content:space-between;text-align:left;gap:18px;padding:calc(18px + var(--safe-t)) calc(22px + env(safe-area-inset-right,0px)) calc(16px + var(--safe-b)) calc(22px + env(safe-area-inset-left,0px));background:linear-gradient(90deg,rgba(6,8,11,.78) 0%,rgba(6,8,11,.25) 46%,rgba(6,8,11,.1) 60%,rgba(6,8,11,.8) 100%)}
-.title .tleft{display:flex;flex-direction:column;justify-content:center;max-width:52%}
+.title .tleft{display:flex;flex-direction:column;justify-content:center;max-width:52%;padding-top:24px}
 .title .tleft h1{font-size:clamp(44px,9.5vh + 2vw,96px);margin:6px 0 10px}
 .title .tleft blockquote{margin:6px 0 0;padding:0}
 .title .tright{display:flex;flex-direction:column;justify-content:center;align-self:center;gap:10px;width:min(300px,42vw)}
@@ -6083,7 +6083,10 @@ void main(){
     // world-anchored markers: key -> {x,y (screen), text, cls}
     ghostOff() {
       const g = this.root.querySelector(".ghost");
-      if (g && !g.classList.contains("off")) g.classList.add("off");
+      if (g && !g.classList.contains("off")) {
+        g.classList.add("off");
+        setTimeout(() => g.remove(), 900);
+      }
     }
     mark(key, sx, sy, html, cls = "") {
       if (cls.startsWith("ally")) sx = Math.max(34, Math.min(innerWidth - 34, sx));
@@ -9200,12 +9203,15 @@ void main(){
         let [sx, sy] = G.project(m.sol.x, m.sol.y + 2.3, m.sol.z);
         const off = sx < 30 || sx > innerWidth - 30 || sy < 70 || sy > innerHeight - 30;
         sx = clamp(sx, 40, innerWidth - 40);
-        sy = clamp(sy, 84, innerHeight - 40);
+        sy = clamp(sy, 108, innerHeight - 40);
         ui.mark("st" + m.id, sx, sy, `<span>${off ? "\u25C0 " : ""}${esc(m.sol.short)}</span>`, "strag");
       }
       const near = col.flagged().find((m) => Math.hypot(m.sol.x - win.x, m.sol.z - win.z) < 2.6);
       ui.setAct(near ? `Empujar a ${near.sol.short}` : null);
-      if (near && input.consume("act")) col.helpNearest(2.6);
+      if (near && input.consume("act")) {
+        col.helpNearest(2.6);
+        ui.setAct(null);
+      }
       if (rel < 0.02) {
         behindT += dt;
         if (behindT > 0.4 && behindT - dt <= 0.4) ui.toast("\xA1La ambulancia te alcanza! Corre.", 1600);
@@ -9233,7 +9239,7 @@ void main(){
         if (!(failed && summitDone)) break;
         G.paused = true;
         await ui.card({ kicker: "Currahee", title: "La ambulancia te alcanza", text: "Winters no puede quedarse atr\xE1s: sus hombres lo miran. Vuelves a la cima para la bajada.", next: "Desde la cima" });
-        col.s = summitS + 4;
+        col.s = summitS + (col.s - col.ambS()) + 8;
         for (const m of col.men) {
           if (m.state === "lost") continue;
           const sl = col.slot(m.rank, m.lane);
