@@ -112,8 +112,11 @@ export function buildToccoa(ctx) {
     i++;
     // pines are tall: keep them back from the road so they never wall off the column from the camera
     const rd = roadDist(x, z);
-    if (r() < 0.75 && rd > (roadSide > 0 ? 17 : 8)) TP.pine(world, B, Fo, x, z, 0.8 + r() * 0.45, r);
-    else TP.scrub(world, Fo, x, z, 0.7 + r() * 0.8, r);
+    const far = rd > (roadSide > 0 ? 19 : 13);
+    if (far && r() < 0.75) TP.pine(world, B, Fo, x, z, 0.8 + r() * 0.45, r);
+    else if (far) TP.scrub(world, Fo, x, z, 0.7 + r() * 0.8, r);
+    // near the road only low scrub, and none right on the camera side of it
+    else if (rd > (roadSide > 0 ? 9 : 5)) TP.scrub(world, Fo, x, z, 0.45 + r() * 0.3, r);
   }
   // shade pines inside the camp, a few spared by the bulldozers
   for (const [u, v] of [[-118, 12], [-104, -30], [-60, 30], [-40, -38], [-122, -36], [-76, 40]]) TP.pine(world, B, Fo, ...W(u, v), 1.05);
