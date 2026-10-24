@@ -14,7 +14,7 @@ export class Audio {
     }
     const c = this.ctx;
     this.master = c.createGain();
-    this.master.gain.value = 3.0; // measured: master sat near −36 dB RMS on a phone-quiet mix; the compressor catches the peaks
+    this.master.gain.value = 4.0; // measured: master sat near −36 dB RMS on a phone-quiet mix; the compressor catches the peaks
     const comp = c.createDynamicsCompressor();
     comp.threshold.value = -16;
     comp.ratio.value = 5;
@@ -98,6 +98,14 @@ export class Audio {
   duck(sec = 2, depth = 0.5, tc = 0.08) {
     if (!this.on) return;
     const t = this.ctx.currentTime, g = this.duckGain.gain;
+    // overlapping ducks keep the deepest one until the longest one ends (a line can't break a silence)
+    if (this.duckUntil > t) {
+      depth = Math.min(depth, this.duckDepth);
+      sec = Math.max(sec, this.duckUntil - t);
+    }
+    this.duckUntil = t + sec;
+    this.duckDepth = depth;
+    if (this.paused) return;
     g.cancelScheduledValues(t);
     g.setTargetAtTime(depth, t, tc);
     g.setTargetAtTime(1, t + sec, 0.3);
@@ -108,7 +116,12 @@ export class Audio {
     this.paused = on;
     const t = this.ctx.currentTime, g = this.duckGain.gain;
     g.cancelScheduledValues(t);
-    g.setTargetAtTime(on ? 0.3 : 1, t, 0.15);
+    if (on) g.setTargetAtTime(0.3, t, 0.15);
+    else if (this.duckUntil > t) {
+      // back from pause inside a duck: return to the duck, then up
+      g.setTargetAtTime(this.duckDepth, t, 0.15);
+      g.setTargetAtTime(1, this.duckUntil, 0.3);
+    } else g.setTargetAtTime(1, t, 0.15);
   }
   // rhythm feedback: a soft thump and a buzz when you hit the beat, a sour drop when you miss
   hit(ok) {

@@ -122,7 +122,7 @@ export class Music {
     // the bugle only calls over chords its notes belong to (a G–C–E–G call over B♭ or A clashes)
     const bugleOk = cur.name !== "drive" || bar % 8 === 0 || bar % 8 === 4;
     if (L.lead && inBar === 0 && bar % 2 === 0 && bugleOk) {
-      // bugle calls: only the natural harmonics G–C–E–G (a real field bugle has no valves),
+      // bugle calls: only natural harmonics (a field bugle has no valves); in drive, open fifths over D,
       // a different call each time so it never loops the same four notes
       const CALLS = cur.name === "drive" ? [[57, 62, 69, 62], [62, 69, 74, 69], [57, 57, 62, 69], [69, 62, 57, 62]] : [[55, 60, 64, 60], [60, 64, 67, 64], [55, 55, 60, 64], [67, 64, 60, 55]];
       const ph = CALLS[(bar / 2) % 4 | 0];

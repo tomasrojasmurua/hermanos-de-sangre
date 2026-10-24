@@ -4909,7 +4909,7 @@ void main(){
       }
       const c = this.ctx;
       this.master = c.createGain();
-      this.master.gain.value = 3;
+      this.master.gain.value = 4;
       const comp = c.createDynamicsCompressor();
       comp.threshold.value = -16;
       comp.ratio.value = 5;
@@ -4986,6 +4986,13 @@ void main(){
     duck(sec = 2, depth = 0.5, tc = 0.08) {
       if (!this.on) return;
       const t = this.ctx.currentTime, g = this.duckGain.gain;
+      if (this.duckUntil > t) {
+        depth = Math.min(depth, this.duckDepth);
+        sec = Math.max(sec, this.duckUntil - t);
+      }
+      this.duckUntil = t + sec;
+      this.duckDepth = depth;
+      if (this.paused) return;
       g.cancelScheduledValues(t);
       g.setTargetAtTime(depth, t, tc);
       g.setTargetAtTime(1, t + sec, 0.3);
@@ -4996,7 +5003,11 @@ void main(){
       this.paused = on;
       const t = this.ctx.currentTime, g = this.duckGain.gain;
       g.cancelScheduledValues(t);
-      g.setTargetAtTime(on ? 0.3 : 1, t, 0.15);
+      if (on) g.setTargetAtTime(0.3, t, 0.15);
+      else if (this.duckUntil > t) {
+        g.setTargetAtTime(this.duckDepth, t, 0.15);
+        g.setTargetAtTime(1, this.duckUntil, 0.3);
+      } else g.setTargetAtTime(1, t, 0.15);
     }
     // rhythm feedback: a soft thump and a buzz when you hit the beat, a sour drop when you miss
     hit(ok) {
@@ -9083,12 +9094,12 @@ void main(){
     await G.wait(1.4);
     G.lockMove = false;
     music.set("drive", 0.45);
-    audio.setBed(0.4);
+    audio.setBed(0.32);
     G.setObjective(opts.variant === "first" ? "Corre con la columna hasta la cima" : "Que nadie de tu pelot\xF3n suba a la ambulancia", ...lvl.summit);
     const touch = matchMedia("(pointer: coarse)").matches;
     if (opts.variant === "first") ui.toast(touch ? "Arrastra a la izquierda para correr. Toca \xABRespirar\xBB cuando el anillo llegue al aro." : "WASD para correr \xB7 Espacio para respirar cuando el anillo llegue al aro \xB7 E para empujar", 4800);
     else ui.toast("Que no suba nadie de tu pelot\xF3n a la ambulancia.", 3200);
-    let bag = [], tutHelp = false, ambT = 0, fadeAt = opts.variant === "first" ? [110, 190] : [], silentT = 0, nextLine = 6, phaseUp = true, summitDone = false, behindT = 0, stepT = 0, lastBreathOk = false, tipsShown = 0;
+    let lastLine = null, windT = 0, bag = [], tutHelp = false, ambT = 0, fadeAt = opts.variant === "first" ? [110, 190] : [], silentT = 0, nextLine = 6, phaseUp = true, summitDone = false, behindT = 0, stepT = 0, lastBreathOk = false, tipsShown = 0;
     let failed = false;
     const tick = (dt, rdt) => {
       if (dt <= 0) return;
@@ -9133,8 +9144,12 @@ void main(){
       nextLine -= dt;
       if (nextLine <= 0) {
         nextLine = 14 + r() * 6;
-        if (!bag.length) bag = SOBEL_LINES.slice().sort(() => r() - 0.5);
+        if (!bag.length) {
+          bag = SOBEL_LINES.slice().sort(() => r() - 0.5);
+          if (bag[bag.length - 1] === lastLine) bag.unshift(bag.pop());
+        }
         const line = bag.pop();
+        lastLine = line;
         ui.say("Sobel", line, 2.2);
       }
       if (fadeAt.length && col.s > fadeAt[0]) {
@@ -9173,7 +9188,7 @@ void main(){
         audio.duck(4, 0.05, 0.3);
         audio.startWind(0.05);
         audio.setWind(0.3);
-        setTimeout(() => audio.setWind(0.08), 5e3);
+        windT = setTimeout(() => audio.setWind(0.08), 5e3);
         G.camSpan = 22;
         setTimeout(() => G.camSpan = 15, 3500);
         audio.chant("currahee", 10, sobel.x, sobel.z);
@@ -9246,6 +9261,7 @@ void main(){
       music.onBeat = null;
       G.quietSteps = false;
       G.focusR = 0;
+      clearTimeout(windT);
       audio.setWind(0);
     }
     G.objective = null;
