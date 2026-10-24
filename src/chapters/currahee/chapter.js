@@ -105,6 +105,7 @@ export const CURRAHEE = {
       id: "semanas",
       mode: "narrative",
       place: "toccoa",
+      bed: "georgia",
       music: { theme: "camp", level: 0.3 },
       async run(ctx) {
         const { G, ui, roster, flags, audio } = ctx;
@@ -132,6 +133,7 @@ export const CURRAHEE = {
       id: "espaguetis",
       mode: "narrative",
       place: "toccoa",
+      bed: "mess",
       music: { theme: "camp", level: 0.35 },
       async run(ctx) {
         const { G, ui, audio, flags } = ctx;
@@ -159,6 +161,7 @@ export const CURRAHEE = {
       id: "subida-2",
       mode: "action",
       place: "toccoa",
+      bed: "georgia",
       music: { theme: "drive", level: 0.55 },
       async run(ctx) {
         const res = await currahee(ctx, { variant: "spaghetti", pace: 3.15, drain: 1.0, ate: ctx.flags.ate });

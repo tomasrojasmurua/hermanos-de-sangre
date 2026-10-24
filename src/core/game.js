@@ -236,7 +236,7 @@ export class Game {
       p.stepT = (p.stepT || 0) - dt * sp;
       if (p.stepT <= 0) {
         p.stepT = 1.6;
-        this.audio.footstep(p.crouch ? 0.4 : 1);
+        if (!this.quietSteps) this.audio.footstep(p.crouch ? 0.4 : 1);
         if (!p.crouch && ax.l > 0.6) this.noise(p.x, p.z, 7, p);
       }
       const last = this.trail[this.trail.length - 1];

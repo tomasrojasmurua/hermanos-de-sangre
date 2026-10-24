@@ -10,7 +10,7 @@ const NOTE = (n) => 440 * Math.pow(2, (n - 69) / 12);
 const THEMES = {
   calm: { bpm: 66, prog: [[50, "m"], [46, "M"], [53, "M"], [48, "M"]], layers: { pad: [0, 0.55], lead: [0.2, 0.5] } },
   camp: { bpm: 84, prog: [[50, "M"], [55, "M"], [50, "M"], [57, "M"]], layers: { pad: [0, 0.4], bass: [0.1, 0.4], lead: [0, 0.45], snare: [0.6, 0.2] } },
-  drive: { bpm: 96, prog: [[50, "m"], [46, "M"], [53, "M"], [48, "M"]], layers: { pad: [0, 0.35], bass: [0.15, 0.55], snare: [0, 0.6], timp: [0.45, 0.6], trem: [0.6, 0.35], lead: [0.8, 0.35] } },
+  drive: { bpm: 96, prog: [[50, "m"], [50, "m"], [46, "M"], [48, "M"], [50, "m"], [53, "M"], [45, "M"], [45, "M"]], layers: { pad: [0, 0.35], bass: [0.15, 0.55], snare: [0, 0.6], timp: [0.45, 0.6], trem: [0.6, 0.35], lead: [0.8, 0.35] } },
   tension: { bpm: 72, prog: [[45, "m"], [45, "m"], [46, "M"], [44, "dim"]], layers: { pad: [0, 0.35], trem: [0.1, 0.45], timp: [0.4, 0.5], bass: [0.6, 0.4] } },
   combat: { bpm: 120, prog: [[45, "m"], [41, "M"], [43, "M"], [40, "M"]], layers: { pad: [0, 0.3], bass: [0, 0.6], snare: [0, 0.6], timp: [0, 0.7], trem: [0.3, 0.45] } },
   silence: { bpm: 60, prog: [[50, "m"]], layers: {} },
@@ -77,6 +77,12 @@ export class Music {
       const on = Math.max(0, Math.min(1, (this.level - from) / 0.25));
       g.gain.setTargetAtTime(on * vol * 0.5, t, 0.4);
     }
+    // after a long frame hitch, skip the beats already in the past instead of firing them all at once
+    if (cur.next < t) {
+      const n = Math.ceil((t - cur.next) / cur.spb);
+      cur.next += n * cur.spb;
+      cur.beat += n;
+    }
     // schedule ahead on the audio clock
     while (cur.next < t + 0.25) {
       this._beat(cur, cur.next);
@@ -86,6 +92,8 @@ export class Music {
   }
   _beat(cur, t) {
     const b = cur.beat, bar = Math.floor(b / 4), inBar = b % 4;
+    // gameplay listeners (footsteps on the beat, the guide pulse): (time, beat index, seconds per beat)
+    if (this.onBeat) this.onBeat(t, b, cur.spb);
     const [root, q] = cur.def.prog[bar % cur.def.prog.length];
     const chord = CH[q].map((i) => root + i);
     const L = cur.layers;
@@ -97,7 +105,10 @@ export class Music {
     }
     if (L.snare) {
       // military cadence: ta . ta-ta | ta . trrr
-      const pat = cur.name === "camp" ? [1, 0, 0.5, 0] : [1, 0.35, 0.7, 0.35];
+      // two patterns that alternate every four bars, with a flam now and then
+      const alt = Math.floor(bar / 4) % 2;
+      const pat = cur.name === "camp" ? [1, 0, 0.5, 0] : alt ? [1, 0.3, 0.8, 0.5] : [1, 0.35, 0.7, 0.35];
+      if (alt && inBar === 0) this._snare(L.snare, t - 0.025, 0.35);
       this._snare(L.snare, t, pat[inBar]);
       if (inBar === 3 && bar % 2 === 1) for (let i = 1; i < 4; i++) this._snare(L.snare, t + (spb / 4) * i, 0.3);
       if (inBar === 1 || inBar === 3) this._snare(L.snare, t + spb / 2, 0.25);
@@ -105,9 +116,11 @@ export class Music {
     if (L.timp && (inBar === 0 || (cur.name === "combat" && inBar === 2))) this._timp(L.timp, t, NOTE(root - 12));
     if (L.trem && inBar === 0) this._trem(L.trem, t, spb * 4, NOTE(chord[2] + 24));
     if (L.lead && inBar === 0 && bar % 2 === 0) {
-      // bugle-like phrase built from the chord tones (a horn call, never a melody that tires)
-      const ph = [chord[0] + 24, chord[1] + 24, chord[2] + 24, chord[1] + 24];
-      ph.forEach((n, i) => this._horn(L.lead, t + i * spb * 0.5, spb * (i === 3 ? 1.4 : 0.45), NOTE(n)));
+      // bugle calls: only the natural harmonics G–C–E–G (a real field bugle has no valves),
+      // a different call each time so it never loops the same four notes
+      const CALLS = [[55, 60, 64, 60], [60, 64, 67, 64], [55, 55, 60, 64], [67, 64, 60, 55]];
+      const ph = CALLS[(bar / 2) % 4 | 0];
+      ph.forEach((n, i) => this._horn(L.lead, t + i * spb * 0.5, spb * (i === 3 ? 1.4 : 0.45), NOTE(n + 12)));
     }
   }
   _pad(dest, t, dur, f) {
@@ -118,11 +131,11 @@ export class Music {
     g.gain.linearRampToValueAtTime(0.0001, t + dur);
     const lp = c.createBiquadFilter();
     lp.type = "lowpass";
-    lp.frequency.value = 900;
+    lp.frequency.value = 600;
     lp.connect(g).connect(dest);
     for (const d of [-6, 6]) {
       const o = c.createOscillator();
-      o.type = "sawtooth";
+      o.type = "triangle";
       o.frequency.value = f;
       o.detune.value = d;
       o.connect(lp);
@@ -241,7 +254,9 @@ export class Music {
       const ph = (t % per) / per;
       return { phase: ph, err: Math.min(ph, 1 - ph) * per, period: per };
     }
-    const t = this.a.ctx.currentTime;
+    // what the ear hears now: the audio clock minus the output latency (Bluetooth can be 150 ms+)
+    const ctx = this.a.ctx;
+    const t = ctx.currentTime - (ctx.outputLatency || 0) - (ctx.baseLatency || 0);
     const per = cur.spb * 2;
     // beat index cur.beat is scheduled at cur.next; even beats are breaths
     const nextBeatT = cur.next, nextBeat = cur.beat;

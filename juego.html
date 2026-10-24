@@ -4901,7 +4901,16 @@ void main(){
       const comp = c.createDynamicsCompressor();
       comp.threshold.value = -16;
       comp.ratio.value = 5;
-      this.master.connect(comp).connect(c.destination);
+      comp.attack.value = 3e-3;
+      comp.knee.value = 6;
+      comp.release.value = 0.15;
+      const lim = c.createDynamicsCompressor();
+      lim.threshold.value = -2;
+      lim.ratio.value = 20;
+      lim.knee.value = 0;
+      lim.attack.value = 1e-3;
+      lim.release.value = 0.08;
+      this.master.connect(comp).connect(lim).connect(c.destination);
       this.sfxBus = c.createGain();
       this.musicBus = c.createGain();
       this.voiceBus = c.createGain();
@@ -4909,7 +4918,7 @@ void main(){
       for (const b2 of [this.sfxBus, this.musicBus, this.voiceBus, this.ambBus]) b2.connect(this.master);
       this.ambBus.gain.value = 0.5;
       this.meters = {};
-      for (const [k, b2] of Object.entries({ sfx: this.sfxBus, music: this.musicBus, voice: this.voiceBus, amb: this.ambBus, master: comp })) {
+      for (const [k, b2] of Object.entries({ sfx: this.sfxBus, music: this.musicBus, voice: this.voiceBus, amb: this.ambBus, master: lim })) {
         const an = c.createAnalyser();
         an.fftSize = 1024;
         b2.connect(an);
@@ -4936,8 +4945,60 @@ void main(){
       this.verbGain = c.createGain();
       this.verbGain.gain.value = 0.35;
       this.verb.connect(this.verbGain).connect(this.sfxBus);
+      this.echo = c.createDelay(1);
+      this.echo.delayTime.value = 0.32;
+      const fb = c.createGain();
+      fb.gain.value = 0.22;
+      const elp = c.createBiquadFilter();
+      elp.type = "lowpass";
+      elp.frequency.value = 2200;
+      this.echo.connect(elp).connect(fb).connect(this.echo);
+      this.echoOut = c.createGain();
+      this.echoOut.gain.value = 0;
+      elp.connect(this.echoOut).connect(this.sfxBus);
+      this.space("open");
       this.on = true;
       if (this.wantBed) this.startBed(this.wantBed);
+    }
+    // acoustic space of the current place: "open" (fields, hills: slap echo, little tail) or "room"
+    space(kind) {
+      if (!this.ctx) return;
+      const t = this.ctx.currentTime;
+      this.spaceKind = kind;
+      this.verbGain.gain.setTargetAtTime(kind === "room" ? 0.35 : 0.12, t, 0.3);
+      this.echoOut.gain.setTargetAtTime(kind === "room" ? 0 : 0.5, t, 0.3);
+    }
+    // music steps aside while someone talks
+    duck(sec = 2, depth = 0.5) {
+      if (!this.on) return;
+      const t = this.ctx.currentTime, lv = this.levels.music;
+      this.musicBus.gain.cancelScheduledValues(t);
+      this.musicBus.gain.setTargetAtTime(lv * depth, t, 0.08);
+      this.musicBus.gain.setTargetAtTime(lv, t + sec, 0.3);
+    }
+    // rhythm feedback: a soft thump and a buzz when you hit the beat, a sour drop when you miss
+    hit(ok) {
+      if (!this.on) return;
+      const t = this.ctx.currentTime;
+      if (ok) {
+        this._tone(this.sfxBus, t, 0.08, 180, { gain: 0.15 });
+        this.vibrate(12);
+      } else {
+        this._tone(this.sfxBus, t, 0.14, 300, { type: "triangle", f1: 200, gain: 0.08 });
+        this.vibrate([20, 30, 20]);
+      }
+    }
+    // the guide pulse of the cadence lives on the effects bus: you hear it even with the music muted
+    tick(t, v = 0.8) {
+      if (!this.on) return;
+      this._noise(this.sfxBus, t, 0.05, { type: "bandpass", f0: 2400, q: 1.4, gain: 0.08 * v });
+      this._tone(this.sfxBus, t, 0.05, 210, { f1: 140, gain: 0.07 * v });
+    }
+    heartAt(v = 0.6, t) {
+      if (!this.on) return;
+      t = t ?? this.ctx.currentTime;
+      this._tone(this.sfxBus, t, 0.12, 62, { f1: 48, gain: 0.22 * v });
+      this._tone(this.sfxBus, t + 0.18, 0.1, 58, { f1: 46, gain: 0.15 * v });
     }
     resume() {
       this.ctx && this.ctx.state !== "running" && this.ctx.resume();
@@ -4958,6 +5019,11 @@ void main(){
       const send = c.createGain();
       send.gain.value = Math.min(0.9, 0.15 + dist * 0.015);
       g.connect(send).connect(this.verb);
+      if (this.echo && dist > 4) {
+        const es = c.createGain();
+        es.gain.value = Math.min(0.6, dist * 0.012) * (this._bus === this.voiceBus ? this.levels.voice / 0.9 : 1);
+        g.connect(es).connect(this.echo);
+      }
       return g;
     }
     _pos(x, z) {
@@ -5240,7 +5306,7 @@ void main(){
     }
     // a spoken line as formant babble: the vowels of the first words, with the consonants' colour.
     // Not words, just the shape and pitch of a voice under the subtitle (no recorded dialogue).
-    speak(text, { x, z, pitch = 150, gain = 0.15, max = 9 } = {}) {
+    speak(text, { x, z, pitch = 150, gain = 0.26, max = 9 } = {}) {
       if (!this.on || !text) return;
       const shout = /[¡!]/.test(text), quiet = /^\(/.test(text);
       const clean = text.replace(/\([^)]*\)/g, "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -5301,18 +5367,18 @@ void main(){
       trill.stop(t + dur + 0.05);
       this._noise(o, t, dur, { type: "highpass", f0: 5e3, gain: 0.03 });
     }
-    breath(k = 0.5, pan = 0) {
+    breath(k = 0.5, pan = 0, loud = 1) {
       if (!this.on) return;
       this._bus = this.voiceBus;
       const o = this._out(0, pan);
       this._bus = null;
       const t = this.ctx.currentTime;
-      this._noise(o, t, 0.28 + k * 0.12, { type: "bandpass", f0: 1100 + k * 500, f1: 700, q: 1.2, gain: 0.05 + k * 0.09, attack: 0.04 });
+      this._noise(o, t, 0.28 + k * 0.12, { type: "bandpass", f0: 1100 + k * 500, f1: 700, q: 1.2, gain: (0.08 + k * 0.12) * loud, attack: 0.04 });
     }
-    stride(soft = 1, pan = 0) {
+    stride(soft = 1, pan = 0, at) {
       if (!this.on) return;
       const o = this._out(0, pan);
-      const t = this.ctx.currentTime;
+      const t = at ?? this.ctx.currentTime;
       this._noise(o, t, 0.07, { f0: 700 + Math.random() * 300, type: "lowpass", gain: 0.18 * soft });
       this._noise(o, t + 0.01, 0.05, { f0: 2600, type: "bandpass", q: 1, gain: 0.05 * soft });
     }
@@ -5357,11 +5423,41 @@ void main(){
           amg.gain.value = lv * 0.5;
           am.connect(amg).connect(sg.gain);
           s2.connect(bp).connect(sg).connect(g);
-          s2.start(0, Math.random());
+          s2.start(0, Math.random() * 1.9);
           lfo.start();
           am.start();
           nodes.push(s2, lfo, am);
         }
+      }
+      if (kind === "mess") {
+        for (const [f, lv, rt] of [[420, 0.09, 0.7], [760, 0.05, 0.9]]) {
+          const m = c.createBufferSource();
+          m.buffer = this.noise;
+          m.loop = true;
+          m.playbackRate.value = rt;
+          const bp = c.createBiquadFilter();
+          bp.type = "bandpass";
+          bp.frequency.value = f;
+          bp.Q.value = 1.6;
+          const mg = c.createGain();
+          mg.gain.value = lv;
+          const lfo = c.createOscillator();
+          lfo.frequency.value = 2.7 + Math.random();
+          const lg = c.createGain();
+          lg.gain.value = lv * 0.5;
+          lfo.connect(lg).connect(mg.gain);
+          m.connect(bp).connect(mg).connect(g);
+          m.start(0, Math.random() * 1.9);
+          lfo.start();
+          nodes.push(m, lfo);
+        }
+        const clink = () => {
+          if (!this.bed || this.bedKind !== "mess") return;
+          const t = this.ctx.currentTime;
+          this._tone(g, t, 0.18, 2200 + Math.random() * 1800, { type: "triangle", gain: 0.02 + Math.random() * 0.02 });
+          setTimeout(clink, 300 + Math.random() * 1400);
+        };
+        setTimeout(clink, 500);
       }
       const s = c.createBufferSource();
       s.buffer = this.noise;
@@ -5420,7 +5516,7 @@ void main(){
   var THEMES = {
     calm: { bpm: 66, prog: [[50, "m"], [46, "M"], [53, "M"], [48, "M"]], layers: { pad: [0, 0.55], lead: [0.2, 0.5] } },
     camp: { bpm: 84, prog: [[50, "M"], [55, "M"], [50, "M"], [57, "M"]], layers: { pad: [0, 0.4], bass: [0.1, 0.4], lead: [0, 0.45], snare: [0.6, 0.2] } },
-    drive: { bpm: 96, prog: [[50, "m"], [46, "M"], [53, "M"], [48, "M"]], layers: { pad: [0, 0.35], bass: [0.15, 0.55], snare: [0, 0.6], timp: [0.45, 0.6], trem: [0.6, 0.35], lead: [0.8, 0.35] } },
+    drive: { bpm: 96, prog: [[50, "m"], [50, "m"], [46, "M"], [48, "M"], [50, "m"], [53, "M"], [45, "M"], [45, "M"]], layers: { pad: [0, 0.35], bass: [0.15, 0.55], snare: [0, 0.6], timp: [0.45, 0.6], trem: [0.6, 0.35], lead: [0.8, 0.35] } },
     tension: { bpm: 72, prog: [[45, "m"], [45, "m"], [46, "M"], [44, "dim"]], layers: { pad: [0, 0.35], trem: [0.1, 0.45], timp: [0.4, 0.5], bass: [0.6, 0.4] } },
     combat: { bpm: 120, prog: [[45, "m"], [41, "M"], [43, "M"], [40, "M"]], layers: { pad: [0, 0.3], bass: [0, 0.6], snare: [0, 0.6], timp: [0, 0.7], trem: [0.3, 0.45] } },
     silence: { bpm: 60, prog: [[50, "m"]], layers: {} }
@@ -5484,6 +5580,11 @@ void main(){
         const on = Math.max(0, Math.min(1, (this.level - from) / 0.25));
         g.gain.setTargetAtTime(on * vol * 0.5, t, 0.4);
       }
+      if (cur.next < t) {
+        const n = Math.ceil((t - cur.next) / cur.spb);
+        cur.next += n * cur.spb;
+        cur.beat += n;
+      }
       while (cur.next < t + 0.25) {
         this._beat(cur, cur.next);
         cur.next += cur.spb;
@@ -5492,6 +5593,7 @@ void main(){
     }
     _beat(cur, t) {
       const b = cur.beat, bar = Math.floor(b / 4), inBar = b % 4;
+      if (this.onBeat) this.onBeat(t, b, cur.spb);
       const [root, q] = cur.def.prog[bar % cur.def.prog.length];
       const chord = CH[q].map((i) => root + i);
       const L = cur.layers;
@@ -5502,7 +5604,9 @@ void main(){
         else if (inBar === 0 || inBar === 2) this._pluck(L.bass, t, spb * 1.8, NOTE(root - 12), 0.6);
       }
       if (L.snare) {
-        const pat = cur.name === "camp" ? [1, 0, 0.5, 0] : [1, 0.35, 0.7, 0.35];
+        const alt = Math.floor(bar / 4) % 2;
+        const pat = cur.name === "camp" ? [1, 0, 0.5, 0] : alt ? [1, 0.3, 0.8, 0.5] : [1, 0.35, 0.7, 0.35];
+        if (alt && inBar === 0) this._snare(L.snare, t - 0.025, 0.35);
         this._snare(L.snare, t, pat[inBar]);
         if (inBar === 3 && bar % 2 === 1) for (let i = 1; i < 4; i++) this._snare(L.snare, t + spb / 4 * i, 0.3);
         if (inBar === 1 || inBar === 3) this._snare(L.snare, t + spb / 2, 0.25);
@@ -5510,8 +5614,9 @@ void main(){
       if (L.timp && (inBar === 0 || cur.name === "combat" && inBar === 2)) this._timp(L.timp, t, NOTE(root - 12));
       if (L.trem && inBar === 0) this._trem(L.trem, t, spb * 4, NOTE(chord[2] + 24));
       if (L.lead && inBar === 0 && bar % 2 === 0) {
-        const ph = [chord[0] + 24, chord[1] + 24, chord[2] + 24, chord[1] + 24];
-        ph.forEach((n, i) => this._horn(L.lead, t + i * spb * 0.5, spb * (i === 3 ? 1.4 : 0.45), NOTE(n)));
+        const CALLS = [[55, 60, 64, 60], [60, 64, 67, 64], [55, 55, 60, 64], [67, 64, 60, 55]];
+        const ph = CALLS[bar / 2 % 4 | 0];
+        ph.forEach((n, i) => this._horn(L.lead, t + i * spb * 0.5, spb * (i === 3 ? 1.4 : 0.45), NOTE(n + 12)));
       }
     }
     _pad(dest, t, dur, f) {
@@ -5522,11 +5627,11 @@ void main(){
       g.gain.linearRampToValueAtTime(1e-4, t + dur);
       const lp = c.createBiquadFilter();
       lp.type = "lowpass";
-      lp.frequency.value = 900;
+      lp.frequency.value = 600;
       lp.connect(g).connect(dest);
       for (const d of [-6, 6]) {
         const o = c.createOscillator();
-        o.type = "sawtooth";
+        o.type = "triangle";
         o.frequency.value = f;
         o.detune.value = d;
         o.connect(lp);
@@ -5645,7 +5750,8 @@ void main(){
         const ph2 = t2 % per2 / per2;
         return { phase: ph2, err: Math.min(ph2, 1 - ph2) * per2, period: per2 };
       }
-      const t = this.a.ctx.currentTime;
+      const ctx = this.a.ctx;
+      const t = ctx.currentTime - (ctx.outputLatency || 0) - (ctx.baseLatency || 0);
       const per = cur.spb * 2;
       const nextBeatT = cur.next, nextBeat = cur.beat;
       const lastEvenIdx = nextBeat % 2 === 0 ? nextBeat - 2 : nextBeat - 1;
@@ -6721,7 +6827,7 @@ void main(){
         p.stepT = (p.stepT || 0) - dt * sp;
         if (p.stepT <= 0) {
           p.stepT = 1.6;
-          this.audio.footstep(p.crouch ? 0.4 : 1);
+          if (!this.quietSteps) this.audio.footstep(p.crouch ? 0.4 : 1);
           if (!p.crouch && ax.l > 0.6) this.noise(p.x, p.z, 7, p);
         }
         const last = this.trail[this.trail.length - 1];
@@ -7462,6 +7568,7 @@ void main(){
         const s = this.G && this.G.soldiers.find((o) => o.short === who);
         let h = 0;
         for (const c of who) h = (h * 31 + c.charCodeAt(0)) % 997;
+        this.audio.duck(Math.min(4, 0.6 + text.length * 0.05), 0.55);
         this.audio.speak(text, { pitch: PITCH[who] || 118 + h % 50, x: s?.x, z: s?.z });
       };
       this.camera = new T.OrthographicCamera(-10, 10, 10, -10, 1, 260);
@@ -7478,11 +7585,15 @@ void main(){
         document.body.appendChild(this.fpsEl);
       }
       const unlock = () => {
+        try {
+          if (navigator.audioSession) navigator.audioSession.type = "playback";
+        } catch {
+        }
         this.audio.init();
         this.audio.resume();
         this.music.start();
       };
-      window.addEventListener("pointerdown", unlock, { passive: true });
+      for (const ev of ["pointerdown", "touchend", "click"]) window.addEventListener(ev, unlock, { passive: true });
       window.addEventListener("keydown", unlock);
       requestAnimationFrame((t) => this.frame(t));
       window.__shell = this;
@@ -8883,6 +8994,7 @@ void main(){
         m.sol.st.move = 0;
         audio.engine(m.sol.x, m.sol.z, 2);
         music.sting("wash");
+        audio.duck(3, 0.5);
         ui.toast(`${m.sol.short} sube a la ambulancia. Esa misma tarde lo echan.`, 3200);
         setTimeout(() => m.sol.remove(), 900);
       }
@@ -8919,7 +9031,7 @@ void main(){
     audio.startBed && audio.setBed(0.6);
     G.setObjective("Corre con la columna hasta la cima", ...lvl.summit);
     if (opts.variant === "first") ui.toast("Arrastra a la izquierda para correr. Toca \xABRespirar\xBB cuando el anillo se cierre.", 4200);
-    let nextLine = 6, phaseUp = true, summitDone = false, behindT = 0, stepT = 0, lastBreathOk = false, tipsShown = 0;
+    let silentT = 0, nextLine = 6, phaseUp = true, summitDone = false, behindT = 0, stepT = 0, lastBreathOk = false, tipsShown = 0;
     let failed = false;
     const tick = (dt, rdt) => {
       if (dt <= 0) return;
@@ -8931,7 +9043,8 @@ void main(){
       H.btn.classList.toggle("window", b.err < 0.16);
       if (input.consume("breath") || input.consume("fire")) {
         const ok = col.breathe(b.err < 0.16);
-        audio.breath(ok ? 0.35 : 0.9, 0);
+        audio.breath(ok ? 0.35 : 0.9, 0, 1.6);
+        audio.hit(ok);
         H.btn.classList.remove("ok", "miss");
         void H.btn.offsetWidth;
         H.btn.classList.add(ok ? "ok" : "miss");
@@ -8947,14 +9060,9 @@ void main(){
       const rel = clamp(P2.rel ?? 0.5, -0.15, 1.15);
       H.me.style.left = `${(clamp(rel, 0, 1) * 100).toFixed(1)}%`;
       H.pace.classList.toggle("warn", rel < 0.12);
-      stepT -= dt * (0.6 + win.st.move * 2.2);
-      if (stepT <= 0) {
-        stepT = 0.33;
-        audio.stride(0.8 + win.st.move * 0.4, 0);
-        if (r() < 0.6) audio.stride(0.45, (r() - 0.5) * 1.2);
-      }
       if (P2.stam < 0.35 && r() < dt * (1.6 - P2.stam * 2)) audio.breath(1 - P2.stam, 0);
-      music.intensity(0.45 + (1 - P2.stam) * 0.3 + (phaseUp ? 0.1 : 0) + col.flagged().length * 0.05);
+      silentT = Math.max(0, silentT - dt);
+      if (!silentT) music.intensity(0.45 + (1 - P2.stam) * 0.3 + (phaseUp ? 0.1 : 0) + col.flagged().length * 0.05);
       nextLine -= dt;
       if (nextLine <= 0) {
         nextLine = 9 + r() * 6;
@@ -8981,6 +9089,9 @@ void main(){
         col.dir = 1;
         summitDone = true;
         music.sting("summit");
+        music.intensity(0.05);
+        silentT = 4;
+        audio.setBed(0.5);
         G.camSpan = 22;
         setTimeout(() => G.camSpan = 15, 3500);
         audio.chant("currahee", 10, sobel.x, sobel.z);
@@ -9006,8 +9117,25 @@ void main(){
       win.speed *= 1;
     };
     const unhook = shell2.hook(tick);
+    G.quietSteps = true;
+    music.onBeat = (t, b, spb) => {
+      if (G.paused) return;
+      const P2 = col.p, mv = win.st.move;
+      if (mv > 0.2) {
+        audio.stride(0.7 + mv * 0.4 + (b % 2 === 0 ? 0.3 : 0), 0, t);
+        audio.stride(0.6 + mv * 0.3, 0, t + spb / 2);
+      }
+      audio.stride(0.35, -0.5, t + 0.04);
+      audio.stride(0.3, 0.5, t + spb / 2 + 0.03);
+      if (b % 2 === 0) {
+        audio.tick(t, 0.8);
+        if (P2.stam < 0.35) audio.heartAt(0.6, t);
+      }
+    };
     await G.until(() => failed || col.s >= route.total - 2);
     unhook();
+    music.onBeat = null;
+    G.quietSteps = false;
     G.objective = null;
     ui.setAct(null);
     H.remove();
@@ -9143,6 +9271,7 @@ void main(){
         id: "semanas",
         mode: "narrative",
         place: "toccoa",
+        bed: "georgia",
         music: { theme: "camp", level: 0.3 },
         async run(ctx) {
           const { G, ui, roster, flags, audio } = ctx;
@@ -9170,6 +9299,7 @@ void main(){
         id: "espaguetis",
         mode: "narrative",
         place: "toccoa",
+        bed: "mess",
         music: { theme: "camp", level: 0.35 },
         async run(ctx) {
           const { G, ui, audio, flags } = ctx;
@@ -9197,6 +9327,7 @@ void main(){
         id: "subida-2",
         mode: "action",
         place: "toccoa",
+        bed: "georgia",
         music: { theme: "drive", level: 0.55 },
         async run(ctx) {
           const res = await currahee(ctx, { variant: "spaghetti", pace: 3.15, drain: 1, ate: ctx.flags.ate });
@@ -9314,29 +9445,60 @@ void main(){
       };
     });
   }
+  function applySettings() {
+    const st = save && save.settings || freshSave().settings;
+    shell.audio.setLevels({ music: st.music, sfx: st.sfx, voice: st.voice });
+    shell.audio.vibrateOn = st.vibrate !== false;
+  }
+  applySettings();
+  var STEPS = [1, 0.7, 0.4, 0];
+  var pct = (v) => v > 0 ? `${Math.round(v * 100)} %` : "apagado";
   shell.ui.onPause = async () => {
     const G = shell.G;
-    if (!G) return;
+    if (!G || G.paused) return;
     G.paused = true;
-    const a = shell.audio;
-    const lv = a.levels || { music: 0.8, sfx: 0.9, voice: 0.9 };
-    const v = await shell.ui.card({
-      kicker: "Pausa",
-      title: "Hermanos de sangre",
-      text: `M\xFAsica ${Math.round(lv.music * 100)} % \xB7 Efectos ${Math.round(lv.sfx * 100)} % \xB7 Voces ${Math.round(lv.voice * 100)} %`,
-      choices: [
-        { label: "Seguir", value: "go" },
-        { label: lv.music > 0.05 ? "Silenciar la m\xFAsica" : "Activar la m\xFAsica", value: "music" },
-        { label: "Salir al t\xEDtulo", value: "title" }
-      ]
-    });
-    if (v === "music") a.setLevels({ music: lv.music > 0.05 ? 0 : 0.8 });
-    if (v === "title") {
-      G.abortScripts();
-      shell.hooks.clear();
-      shell.ui.cards.innerHTML = "";
-      title();
-      return;
+    if (!save) save = freshSave();
+    const st = save.settings;
+    for (; ; ) {
+      const v = await shell.ui.card({
+        kicker: "Pausa",
+        title: "Hermanos de sangre",
+        text: "Toca una opci\xF3n para cambiarla.",
+        choices: [
+          { label: "Seguir", value: "go" },
+          { label: `M\xFAsica: ${pct(st.music)}`, value: "music" },
+          { label: `Efectos: ${pct(st.sfx)}`, value: "sfx" },
+          { label: `Voces: ${pct(st.voice)}`, value: "voice" },
+          { label: `Vibraci\xF3n: ${st.vibrate !== false ? "s\xED" : "no"}`, value: "vibrate" },
+          { label: "Salir al t\xEDtulo", value: "title" }
+        ]
+      });
+      if (v === "music" || v === "sfx" || v === "voice") {
+        const i = STEPS.findIndex((x) => Math.abs(x - st[v]) < 0.05);
+        st[v] = STEPS[(i + 1) % STEPS.length];
+        applySettings();
+        writeSave(save);
+        shell.audio.paper();
+        continue;
+      }
+      if (v === "vibrate") {
+        st.vibrate = st.vibrate === false;
+        applySettings();
+        writeSave(save);
+        shell.audio.vibrate(30);
+        continue;
+      }
+      if (v === "title") {
+        G.abortScripts();
+        shell.hooks.clear();
+        shell.music.onBeat = null;
+        shell.ui.cards.innerHTML = "";
+        document.getElementById("runhud")?.remove();
+        delete document.body.dataset.run;
+        title();
+        return;
+      }
+      break;
     }
     G.paused = false;
   };

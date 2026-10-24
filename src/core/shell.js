@@ -29,6 +29,7 @@ export class Shell {
       const s = this.G && this.G.soldiers.find((o) => o.short === who);
       let h = 0;
       for (const c of who) h = (h * 31 + c.charCodeAt(0)) % 997;
+      this.audio.duck(Math.min(4, 0.6 + text.length * 0.05), 0.55);
       this.audio.speak(text, { pitch: PITCH[who] || 118 + (h % 50), x: s?.x, z: s?.z });
     };
     this.camera = new T.OrthographicCamera(-10, 10, 10, -10, 1, 260);
@@ -46,11 +47,15 @@ export class Shell {
     }
     // audio needs a user gesture: the first touch anywhere unlocks it
     const unlock = () => {
+      // iOS: play through the silent switch like a game, not like a ringtone
+      try {
+        if (navigator.audioSession) navigator.audioSession.type = "playback";
+      } catch {}
       this.audio.init();
       this.audio.resume();
       this.music.start();
     };
-    window.addEventListener("pointerdown", unlock, { passive: true });
+    for (const ev of ["pointerdown", "touchend", "click"]) window.addEventListener(ev, unlock, { passive: true });
     window.addEventListener("keydown", unlock);
     requestAnimationFrame((t) => this.frame(t));
     window.__shell = this;

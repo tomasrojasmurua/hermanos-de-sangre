@@ -83,30 +83,63 @@ function title() {
   });
 }
 
-// pause menu: settings (separate volumes) and exit
+// settings live in the general save and apply before the first sound
+function applySettings() {
+  const st = (save && save.settings) || freshSave().settings;
+  shell.audio.setLevels({ music: st.music, sfx: st.sfx, voice: st.voice });
+  shell.audio.vibrateOn = st.vibrate !== false;
+}
+applySettings();
+
+// pause menu: separate volumes for music, effects and voices, vibration, and exit
+const STEPS = [1, 0.7, 0.4, 0];
+const pct = (v) => (v > 0 ? `${Math.round(v * 100)} %` : "apagado");
 shell.ui.onPause = async () => {
   const G = shell.G;
-  if (!G) return;
+  if (!G || G.paused) return;
   G.paused = true;
-  const a = shell.audio;
-  const lv = a.levels || { music: 0.8, sfx: 0.9, voice: 0.9 };
-  const v = await shell.ui.card({
-    kicker: "Pausa",
-    title: "Hermanos de sangre",
-    text: `Música ${Math.round(lv.music * 100)} % · Efectos ${Math.round(lv.sfx * 100)} % · Voces ${Math.round(lv.voice * 100)} %`,
-    choices: [
-      { label: "Seguir", value: "go" },
-      { label: lv.music > 0.05 ? "Silenciar la música" : "Activar la música", value: "music" },
-      { label: "Salir al título", value: "title" },
-    ],
-  });
-  if (v === "music") a.setLevels({ music: lv.music > 0.05 ? 0 : 0.8 });
-  if (v === "title") {
-    G.abortScripts();
-    shell.hooks.clear();
-    shell.ui.cards.innerHTML = "";
-    title();
-    return;
+  if (!save) save = freshSave();
+  const st = save.settings;
+  for (;;) {
+    const v = await shell.ui.card({
+      kicker: "Pausa",
+      title: "Hermanos de sangre",
+      text: "Toca una opción para cambiarla.",
+      choices: [
+        { label: "Seguir", value: "go" },
+        { label: `Música: ${pct(st.music)}`, value: "music" },
+        { label: `Efectos: ${pct(st.sfx)}`, value: "sfx" },
+        { label: `Voces: ${pct(st.voice)}`, value: "voice" },
+        { label: `Vibración: ${st.vibrate !== false ? "sí" : "no"}`, value: "vibrate" },
+        { label: "Salir al título", value: "title" },
+      ],
+    });
+    if (v === "music" || v === "sfx" || v === "voice") {
+      const i = STEPS.findIndex((x) => Math.abs(x - st[v]) < 0.05);
+      st[v] = STEPS[(i + 1) % STEPS.length];
+      applySettings();
+      writeSave(save);
+      shell.audio.paper();
+      continue;
+    }
+    if (v === "vibrate") {
+      st.vibrate = st.vibrate === false;
+      applySettings();
+      writeSave(save);
+      shell.audio.vibrate(30);
+      continue;
+    }
+    if (v === "title") {
+      G.abortScripts();
+      shell.hooks.clear();
+      shell.music.onBeat = null;
+      shell.ui.cards.innerHTML = "";
+      document.getElementById("runhud")?.remove();
+      delete document.body.dataset.run;
+      title();
+      return;
+    }
+    break;
   }
   G.paused = false;
 };

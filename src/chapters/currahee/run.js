@@ -141,6 +141,7 @@ export async function currahee(ctx, opts) {
       m.sol.st.move = 0;
       audio.engine(m.sol.x, m.sol.z, 2);
       music.sting("wash");
+      audio.duck(3, 0.5);
       ui.toast(`${m.sol.short} sube a la ambulancia. Esa misma tarde lo echan.`, 3200);
       setTimeout(() => m.sol.remove(), 900);
     },
@@ -180,7 +181,7 @@ export async function currahee(ctx, opts) {
   audio.startBed && audio.setBed(0.6);
   G.setObjective("Corre con la columna hasta la cima", ...lvl.summit);
   if (opts.variant === "first") ui.toast("Arrastra a la izquierda para correr. Toca «Respirar» cuando el anillo se cierre.", 4200);
-  let nextLine = 6, phaseUp = true, summitDone = false, behindT = 0, stepT = 0, lastBreathOk = false, tipsShown = 0;
+  let silentT = 0, nextLine = 6, phaseUp = true, summitDone = false, behindT = 0, stepT = 0, lastBreathOk = false, tipsShown = 0;
   let failed = false;
   const tick = (dt, rdt) => {
     if (dt <= 0) return;
@@ -193,7 +194,8 @@ export async function currahee(ctx, opts) {
     H.btn.classList.toggle("window", b.err < 0.16);
     if (input.consume("breath") || input.consume("fire")) {
       const ok = col.breathe(b.err < 0.16);
-      audio.breath(ok ? 0.35 : 0.9, 0);
+      audio.breath(ok ? 0.35 : 0.9, 0, 1.6);
+      audio.hit(ok);
       H.btn.classList.remove("ok", "miss");
       void H.btn.offsetWidth;
       H.btn.classList.add(ok ? "ok" : "miss");
@@ -212,14 +214,9 @@ export async function currahee(ctx, opts) {
     H.me.style.left = `${(clamp(rel, 0, 1) * 100).toFixed(1)}%`;
     H.pace.classList.toggle("warn", rel < 0.12);
     // footsteps of the column, the player's own breath
-    stepT -= dt * (0.6 + win.st.move * 2.2);
-    if (stepT <= 0) {
-      stepT = 0.33;
-      audio.stride(0.8 + win.st.move * 0.4, 0);
-      if (r() < 0.6) audio.stride(0.45, (r() - 0.5) * 1.2);
-    }
     if (P.stam < 0.35 && r() < dt * (1.6 - P.stam * 2)) audio.breath(1 - P.stam, 0);
-    music.intensity(0.45 + (1 - P.stam) * 0.3 + (phaseUp ? 0.1 : 0) + col.flagged().length * 0.05);
+    silentT = Math.max(0, silentT - dt);
+    if (!silentT) music.intensity(0.45 + (1 - P.stam) * 0.3 + (phaseUp ? 0.1 : 0) + col.flagged().length * 0.05);
     // Sobel shouts
     nextLine -= dt;
     if (nextLine <= 0) {
@@ -249,6 +246,10 @@ export async function currahee(ctx, opts) {
       col.dir = 1; // route already loops back down: keep advancing along it
       summitDone = true;
       music.sting("summit");
+      // silence as a tool: the music drops away and leaves the wind and the men shouting the name
+      music.intensity(0.05);
+      silentT = 4;
+      audio.setBed(0.5);
       G.camSpan = 22;
       setTimeout(() => (G.camSpan = 15), 3500);
       audio.chant("currahee", 10, sobel.x, sobel.z);
@@ -277,9 +278,28 @@ export async function currahee(ctx, opts) {
     win.speed *= 1; // set by column
   };
   const unhook = shell.hook(tick);
+  // the column's boots fall on the cadence (two steps a beat), the breath beats carry a guide pulse
+  // on the effects bus, and a heartbeat comes in when Winters is running out of air
+  G.quietSteps = true;
+  music.onBeat = (t, b, spb) => {
+    if (G.paused) return;
+    const P = col.p, mv = win.st.move;
+    if (mv > 0.2) {
+      audio.stride(0.7 + mv * 0.4 + (b % 2 === 0 ? 0.3 : 0), 0, t);
+      audio.stride(0.6 + mv * 0.3, 0, t + spb / 2);
+    }
+    audio.stride(0.35, -0.5, t + 0.04);
+    audio.stride(0.3, 0.5, t + spb / 2 + 0.03);
+    if (b % 2 === 0) {
+      audio.tick(t, 0.8);
+      if (P.stam < 0.35) audio.heartAt(0.6, t);
+    }
+  };
   // the run ends back at the parade ground
   await G.until(() => failed || col.s >= route.total - 2);
   unhook();
+  music.onBeat = null;
+  G.quietSteps = false;
   G.objective = null;
   ui.setAct(null);
   H.remove();

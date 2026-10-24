@@ -18,7 +18,17 @@ export class Audio {
     const comp = c.createDynamicsCompressor();
     comp.threshold.value = -16;
     comp.ratio.value = 5;
-    this.master.connect(comp).connect(c.destination);
+    comp.attack.value = 0.003;
+    comp.knee.value = 6;
+    comp.release.value = 0.15;
+    // brick-wall-ish limiter after the glue compressor: nothing reaches 0 dBFS
+    const lim = c.createDynamicsCompressor();
+    lim.threshold.value = -2;
+    lim.ratio.value = 20;
+    lim.knee.value = 0;
+    lim.attack.value = 0.001;
+    lim.release.value = 0.08;
+    this.master.connect(comp).connect(lim).connect(c.destination);
     // separate buses so music, effects and voice have their own volume (settings)
     this.sfxBus = c.createGain();
     this.musicBus = c.createGain();
@@ -27,7 +37,7 @@ export class Audio {
     for (const b of [this.sfxBus, this.musicBus, this.voiceBus, this.ambBus]) b.connect(this.master);
     this.ambBus.gain.value = 0.5; // cicadas sat 8 dB over the music: the bed sits under, not over
     this.meters = {};
-    for (const [k, b] of Object.entries({ sfx: this.sfxBus, music: this.musicBus, voice: this.voiceBus, amb: this.ambBus, master: comp })) {
+    for (const [k, b] of Object.entries({ sfx: this.sfxBus, music: this.musicBus, voice: this.voiceBus, amb: this.ambBus, master: lim })) {
       const an = c.createAnalyser();
       an.fftSize = 1024;
       b.connect(an);
@@ -56,9 +66,62 @@ export class Audio {
     this.verbGain = c.createGain();
     this.verbGain.gain.value = 0.35;
     this.verb.connect(this.verbGain).connect(this.sfxBus);
+    // open air: a short tail plus one clear slap-back off the hillside (no hall)
+    this.echo = c.createDelay(1);
+    this.echo.delayTime.value = 0.32;
+    const fb = c.createGain();
+    fb.gain.value = 0.22;
+    const elp = c.createBiquadFilter();
+    elp.type = "lowpass";
+    elp.frequency.value = 2200;
+    this.echo.connect(elp).connect(fb).connect(this.echo);
+    this.echoOut = c.createGain();
+    this.echoOut.gain.value = 0;
+    elp.connect(this.echoOut).connect(this.sfxBus);
+    this.space("open");
     this.on = true;
     // a bed asked for before the first touch starts now
     if (this.wantBed) this.startBed(this.wantBed);
+  }
+  // acoustic space of the current place: "open" (fields, hills: slap echo, little tail) or "room"
+  space(kind) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this.spaceKind = kind;
+    this.verbGain.gain.setTargetAtTime(kind === "room" ? 0.35 : 0.12, t, 0.3);
+    this.echoOut.gain.setTargetAtTime(kind === "room" ? 0 : 0.5, t, 0.3);
+  }
+  // music steps aside while someone talks
+  duck(sec = 2, depth = 0.5) {
+    if (!this.on) return;
+    const t = this.ctx.currentTime, lv = this.levels.music;
+    this.musicBus.gain.cancelScheduledValues(t);
+    this.musicBus.gain.setTargetAtTime(lv * depth, t, 0.08);
+    this.musicBus.gain.setTargetAtTime(lv, t + sec, 0.3);
+  }
+  // rhythm feedback: a soft thump and a buzz when you hit the beat, a sour drop when you miss
+  hit(ok) {
+    if (!this.on) return;
+    const t = this.ctx.currentTime;
+    if (ok) {
+      this._tone(this.sfxBus, t, 0.08, 180, { gain: 0.15 });
+      this.vibrate(12);
+    } else {
+      this._tone(this.sfxBus, t, 0.14, 300, { type: "triangle", f1: 200, gain: 0.08 });
+      this.vibrate([20, 30, 20]);
+    }
+  }
+  // the guide pulse of the cadence lives on the effects bus: you hear it even with the music muted
+  tick(t, v = 0.8) {
+    if (!this.on) return;
+    this._noise(this.sfxBus, t, 0.05, { type: "bandpass", f0: 2400, q: 1.4, gain: 0.08 * v });
+    this._tone(this.sfxBus, t, 0.05, 210, { f1: 140, gain: 0.07 * v });
+  }
+  heartAt(v = 0.6, t) {
+    if (!this.on) return;
+    t = t ?? this.ctx.currentTime;
+    this._tone(this.sfxBus, t, 0.12, 62, { f1: 48, gain: 0.22 * v });
+    this._tone(this.sfxBus, t + 0.18, 0.1, 58, { f1: 46, gain: 0.15 * v });
   }
   resume() {
     this.ctx && this.ctx.state !== "running" && this.ctx.resume();
@@ -79,6 +142,12 @@ export class Audio {
     const send = c.createGain();
     send.gain.value = Math.min(0.9, 0.15 + dist * 0.015);
     g.connect(send).connect(this.verb);
+    if (this.echo && dist > 4) {
+      // far sounds come back off the hill
+      const es = c.createGain();
+      es.gain.value = Math.min(0.6, dist * 0.012) * (this._bus === this.voiceBus ? this.levels.voice / 0.9 : 1);
+      g.connect(es).connect(this.echo);
+    }
     return g;
   }
   _pos(x, z) {
@@ -365,7 +434,7 @@ export class Audio {
   }
   // a spoken line as formant babble: the vowels of the first words, with the consonants' colour.
   // Not words, just the shape and pitch of a voice under the subtitle (no recorded dialogue).
-  speak(text, { x, z, pitch = 150, gain = 0.15, max = 9 } = {}) {
+  speak(text, { x, z, pitch = 150, gain = 0.26, max = 9 } = {}) {
     if (!this.on || !text) return;
     const shout = /[¡!]/.test(text), quiet = /^\(/.test(text);
     const clean = text.replace(/\([^)]*\)/g, "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -426,20 +495,20 @@ export class Audio {
     trill.stop(t + dur + 0.05);
     this._noise(o, t, dur, { type: "highpass", f0: 5000, gain: 0.03 });
   }
-  breath(k = 0.5, pan = 0) {
+  breath(k = 0.5, pan = 0, loud = 1) {
     // ragged breathing; k 0..1 exhaustion
     if (!this.on) return;
     this._bus = this.voiceBus;
     const o = this._out(0, pan);
     this._bus = null;
     const t = this.ctx.currentTime;
-    this._noise(o, t, 0.28 + k * 0.12, { type: "bandpass", f0: 1100 + k * 500, f1: 700, q: 1.2, gain: 0.05 + k * 0.09, attack: 0.04 });
+    this._noise(o, t, 0.28 + k * 0.12, { type: "bandpass", f0: 1100 + k * 500, f1: 700, q: 1.2, gain: (0.08 + k * 0.12) * loud, attack: 0.04 });
   }
-  stride(soft = 1, pan = 0) {
-    // boots on dry red clay
+  stride(soft = 1, pan = 0, at) {
+    // boots on dry red clay; `at` schedules it on the audio clock (in step with the cadence)
     if (!this.on) return;
     const o = this._out(0, pan);
-    const t = this.ctx.currentTime;
+    const t = at ?? this.ctx.currentTime;
     this._noise(o, t, 0.07, { f0: 700 + Math.random() * 300, type: "lowpass", gain: 0.18 * soft });
     this._noise(o, t + 0.01, 0.05, { f0: 2600, type: "bandpass", q: 1, gain: 0.05 * soft });
   }
@@ -486,11 +555,42 @@ export class Audio {
         amg.gain.value = lv * 0.5;
         am.connect(amg).connect(sg.gain);
         s.connect(bp).connect(sg).connect(g);
-        s.start(0, Math.random());
+        s.start(0, Math.random() * 1.9); // random loop offset per layer so the 2 s buffer never lines up
         lfo.start();
         am.start();
         nodes.push(s, lfo, am);
       }
+    }
+    if (kind === "mess") {
+      // a mess hall: low murmur of a hundred men, and now and then a fork on a tin tray
+      for (const [f, lv, rt] of [[420, 0.09, 0.7], [760, 0.05, 0.9]]) {
+        const m = c.createBufferSource();
+        m.buffer = this.noise;
+        m.loop = true;
+        m.playbackRate.value = rt;
+        const bp = c.createBiquadFilter();
+        bp.type = "bandpass";
+        bp.frequency.value = f;
+        bp.Q.value = 1.6;
+        const mg = c.createGain();
+        mg.gain.value = lv;
+        const lfo = c.createOscillator();
+        lfo.frequency.value = 2.7 + Math.random();
+        const lg = c.createGain();
+        lg.gain.value = lv * 0.5;
+        lfo.connect(lg).connect(mg.gain);
+        m.connect(bp).connect(mg).connect(g);
+        m.start(0, Math.random() * 1.9);
+        lfo.start();
+        nodes.push(m, lfo);
+      }
+      const clink = () => {
+        if (!this.bed || this.bedKind !== "mess") return;
+        const t = this.ctx.currentTime;
+        this._tone(g, t, 0.18, 2200 + Math.random() * 1800, { type: "triangle", gain: 0.02 + Math.random() * 0.02 });
+        setTimeout(clink, 300 + Math.random() * 1400);
+      };
+      setTimeout(clink, 500);
     }
     const s = c.createBufferSource();
     s.buffer = this.noise;
