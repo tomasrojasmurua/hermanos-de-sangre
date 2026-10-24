@@ -47,7 +47,7 @@ window.__autobot = function (mode = "good") {
   setInterval(() => {
     if (window.__run && window.__run !== last) {
       last = window.__run;
-      window.__G().slow = 3;
+      window.__G().slow = window.__botSlow || 3;
       if (!window.__botOn) { window.__botOn = 1; window.__bot(mode); }
     }
   }, 500);

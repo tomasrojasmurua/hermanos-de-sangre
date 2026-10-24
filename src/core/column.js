@@ -139,7 +139,10 @@ export class Column {
   updatePlayer(dt, pace, ctx) {
     const p = this.cfg.player, G = this.G, P = this.p;
     if (!p) return;
-    const pr = this.route.project(p.x, p.z, P.s);
+    // track along the route continuously: a narrow window around last frame's arc length, so the
+    // two legs that meet at the summit never get confused; widen only if the player left the road
+    let pr = this.route.project(p.x, p.z, P.s, 6);
+    if (pr.off > 6) pr = this.route.project(p.x, p.z, P.s, 30);
     P.s = pr.s;
     // stamina: speed above an easy jog costs, climbing costs, being far off the road costs
     const v = p.st.move * p.speed;

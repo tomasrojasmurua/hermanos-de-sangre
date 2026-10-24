@@ -8641,7 +8641,8 @@ void main(){
     updatePlayer(dt, pace, ctx) {
       const p = this.cfg.player, G = this.G, P2 = this.p;
       if (!p) return;
-      const pr = this.route.project(p.x, p.z, P2.s);
+      let pr = this.route.project(p.x, p.z, P2.s, 6);
+      if (pr.off > 6) pr = this.route.project(p.x, p.z, P2.s, 30);
       P2.s = pr.s;
       const v = p.st.move * p.speed;
       const climb = Math.max(0, this.cfg.grade ? this.cfg.grade(P2.s, this.dir) : 0);
