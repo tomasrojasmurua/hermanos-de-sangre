@@ -30,13 +30,16 @@ export class Route {
       const L = this.len[i] - this.len[i - 1] || 1;
       const t = clamp(((x - a[0]) * (b[0] - a[0]) + (z - a[1]) * (b[1] - a[1])) / (L * L), 0, 1);
       const px = a[0] + (b[0] - a[0]) * t, pz = a[1] + (b[1] - a[1]) * t;
-      const d = (x - px) ** 2 + (z - pz) ** 2;
+      const sa = this.len[i - 1] + t * L;
+      // the way down is the same road as the way up: on identical points keep continuity with last frame (and lean forward)
+      const d = (x - px) ** 2 + (z - pz) ** 2 + (hint != null ? 0.02 * (sa - hint) ** 2 + 0.01 * Math.max(0, hint - sa) : 0);
       if (d < bd) {
         bd = d;
-        best = this.len[i - 1] + t * L;
+        best = sa;
       }
     }
-    return { s: best, off: Math.sqrt(bd) };
+    const a = this.at(best);
+    return { s: best, off: Math.hypot(x - a.x, z - a.z) };
   }
 }
 

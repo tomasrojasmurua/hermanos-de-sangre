@@ -8534,17 +8534,19 @@ void main(){
       let best = hint ?? 0, bd = 1e9;
       for (let i = 1; i < this.p.length; i++) {
         if (hint != null && (this.len[i] < hint - win || this.len[i - 1] > hint + win)) continue;
-        const a = this.p[i - 1], b = this.p[i];
+        const a2 = this.p[i - 1], b = this.p[i];
         const L = this.len[i] - this.len[i - 1] || 1;
-        const t = clamp(((x - a[0]) * (b[0] - a[0]) + (z - a[1]) * (b[1] - a[1])) / (L * L), 0, 1);
-        const px = a[0] + (b[0] - a[0]) * t, pz = a[1] + (b[1] - a[1]) * t;
-        const d = (x - px) ** 2 + (z - pz) ** 2;
+        const t = clamp(((x - a2[0]) * (b[0] - a2[0]) + (z - a2[1]) * (b[1] - a2[1])) / (L * L), 0, 1);
+        const px = a2[0] + (b[0] - a2[0]) * t, pz = a2[1] + (b[1] - a2[1]) * t;
+        const sa = this.len[i - 1] + t * L;
+        const d = (x - px) ** 2 + (z - pz) ** 2 + (hint != null ? 0.02 * (sa - hint) ** 2 + 0.01 * Math.max(0, hint - sa) : 0);
         if (d < bd) {
           bd = d;
-          best = this.len[i - 1] + t * L;
+          best = sa;
         }
       }
-      return { s: best, off: Math.sqrt(bd) };
+      const a = this.at(best);
+      return { s: best, off: Math.hypot(x - a.x, z - a.z) };
     }
   };
   var Column = class {
