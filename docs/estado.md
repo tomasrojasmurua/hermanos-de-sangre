@@ -17,6 +17,16 @@
 - En la carrera eres Winters dentro de la columna de Sobel: respira al compás de la cadencia para recuperar aliento, no dejes que te alcance la ambulancia y vuelve por los hombres que flaquean.
 - Los hombres con nombre nunca son expulsados (los lleva un compañero); los reclutas inventados que alcanza la ambulancia se van ese mismo día.
 
+**Crítica (subagentes, Playwright apaisado 844×390 táctil):**
+| Crítico | Ronda 1 | Ronda 2 | Ronda 3 |
+|---|---|---|---|
+| QA, arte y jugabilidad móvil | 5,5 | 7,8 | **8,2** |
+| Música y sonido | 6 | 7 | **8** |
+| Fidelidad histórica | 6,5 (correcciones aplicadas) | | |
+Sin errores de consola en el capítulo completo.
+
+**Pendiente menor:** el balbuceo de las voces sigue sonando sintético; el título podría mostrar a la compañía formada; probar en un teléfono real (las pruebas usan Chromium sin GPU a ~4 fps).
+
 **Cambio de regla en el Día D:** Winters sobrevive a la guerra en el libro, así que si cae en Brécourt se vuelve al punto de control. Se quitó la rama «Lipton toma el mando».
 
 **Pendiente en el Capítulo I (rondas siguientes):** base (horario semanal, permisos y tensión con Sobel), pista de obstáculos y campo de tiro, maniobras nocturnas (sigilo), casa de prácticas (asalto), ejercicios de defensa (línea), marcha a Atlanta y salto en Fort Benning.
