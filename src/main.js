@@ -47,7 +47,7 @@ function title() {
     <div class="tleft">
       <div class="eyebrow">Compañía E · 506.º Regimiento de Infantería Paracaidista</div>
       <h1>Hermanos<br><span>de sangre</span></h1>
-      <blockquote>«Nosotros estamos solos juntos».<cite>Coronel Robert Sink, Toccoa</cite></blockquote>
+      <blockquote>«Nosotros estamos solos juntos».<cite>Coronel Robert Sink, Fort Benning, diciembre de 1942</cite></blockquote>
     </div>
     <div class="tright">
       ${cont ? `<button class="btn big cont" id="t-cont">Continuar</button>` : ""}

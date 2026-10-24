@@ -6,7 +6,6 @@ El juego respeta los hechos del libro de Ambrose en lo grande: quién está, qui
 | Elemento | Qué dice el libro | Qué hace el juego |
 |---|---|---|
 | Frases exactas de Sobel en la formación y en la carrera | Sobel gritaba y castigaba sin parar; el libro no transcribe arengas en Currahee. «¡Los japos os cogerán!» y «¡Adelante, Silver!» son inventadas a partir de su carácter. | Subtítulos y voz sintetizada. |
-| Apuesta de Tipper sobre la montaña | No aparece. | Una línea en la llegada para presentar la colina. |
 | Doce reclutas sin nombre («Recluta Hale», etc.) | La compañía pierde a muchos hombres en Toccoa; el libro no da sus nombres. | Son los únicos que pueden ser expulsados. Nunca se expulsa a un hombre con nombre en el libro: si flaquea, un compañero lo lleva. |
 | La mecánica de respirar al compás | Nada. Es la forma jugable de transmitir el esfuerzo. | Botón «Respirar» al ritmo de la cadencia. |
 | Volver por los rezagados y que eso cree lazos | Winters era conocido por cuidar a sus hombres; la escena concreta no existe. | Mejora la relación en la plantilla persistente. |

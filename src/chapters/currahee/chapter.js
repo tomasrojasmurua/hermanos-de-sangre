@@ -81,7 +81,7 @@ export const CURRAHEE = {
           ["Sobel", "El que no quiera estar, que lo diga ahora. Nadie se lo va a reprochar.", 3],
         ]);
         await G.wait(0.6);
-        await G.lines([["Tipper", "(en voz baja) Apuesto a que lo último que nos harán hacer será subir esa montaña.", 3.2]]);
+        await G.lines([["Tipper", "(en voz baja) Apuesto a que cuando hayamos acabado el entrenamiento, lo último que nos harán hacer será subir a la cima de esa montaña.", 3.8]]);
         await G.wait(0.4);
         audio.whistle(...W(-75.5, 8.2), true);
         await G.lines([["Sobel", "¡Botas y pantalones cortos! ¡Formados en cinco minutos!", 2.4]]);
@@ -119,7 +119,7 @@ export const CURRAHEE = {
           text: [
             `Aquel primer día la compañía perdió a varios hombres. ${r1.lost ? `De los reclutas que corrían contigo, ${r1.lost} ${r1.lost === 1 ? "subió" : "subieron"} a la ambulancia.` : "De los que corrían contigo, ninguno subió a la ambulancia."} ${r1.helped ? `Volviste por ${r1.helped} ${r1.helped === 1 ? "hombre" : "hombres"}; ellos no lo olvidarán.` : ""}`,
             "Una semana más tarde ya corrían todo el camino de ida y vuelta. Después, tres o cuatro veces por semana, hasta cubrir los nueve kilómetros en cincuenta minutos. Y cada día la pista de obstáculos, las flexiones, las marchas nocturnas sin agua ni cigarrillos, con Sobel comprobando al final que las cantimploras siguieran llenas.",
-            `Quedan ${left} de los reclutas sin nombre de tu pelotón. A los hombres les dijeron que Currahee significaba «estar solos». Se convirtió en el grito de guerra del 506.º.`,
+            `Quedan ${left} de los reclutas sin nombre de tu pelotón. A los hombres les dijeron que Currahee era una palabra india que significaba «estar solo». Se convirtió en el grito de guerra del 506.º.`,
           ],
           next: "Seguir",
         });
