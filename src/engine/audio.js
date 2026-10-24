@@ -19,6 +19,21 @@ export class Audio {
     comp.threshold.value = -16;
     comp.ratio.value = 5;
     this.master.connect(comp).connect(c.destination);
+    // separate buses so music, effects and voice have their own volume (settings)
+    this.sfxBus = c.createGain();
+    this.musicBus = c.createGain();
+    this.voiceBus = c.createGain();
+    this.ambBus = c.createGain();
+    for (const b of [this.sfxBus, this.musicBus, this.voiceBus, this.ambBus]) b.connect(this.master);
+    this.meters = {};
+    for (const [k, b] of Object.entries({ sfx: this.sfxBus, music: this.musicBus, voice: this.voiceBus, amb: this.ambBus, master: comp })) {
+      const an = c.createAnalyser();
+      an.fftSize = 1024;
+      b.connect(an);
+      this.meters[k] = an;
+    }
+    this.levels = this.levels || { music: 0.8, sfx: 0.9, voice: 0.9 };
+    this.applyLevels();
     // shared noise buffer
     const len = c.sampleRate * 2;
     this.noise = c.createBuffer(1, len, c.sampleRate);
@@ -39,7 +54,7 @@ export class Audio {
     this.verb.buffer = ir;
     this.verbGain = c.createGain();
     this.verbGain.gain.value = 0.35;
-    this.verb.connect(this.verbGain).connect(this.master);
+    this.verb.connect(this.verbGain).connect(this.sfxBus);
     this.on = true;
   }
   resume() {
@@ -57,7 +72,7 @@ export class Audio {
       g.connect(p);
       node = p;
     }
-    node.connect(this.master);
+    node.connect(this._bus || this.sfxBus);
     const send = c.createGain();
     send.gain.value = Math.min(0.9, 0.15 + dist * 0.015);
     g.connect(send).connect(this.verb);
@@ -219,7 +234,7 @@ export class Audio {
     const lg = c.createGain();
     lg.gain.value = 180;
     lfo.connect(lg).connect(f.frequency);
-    s.connect(f).connect(g).connect(this.master);
+    s.connect(f).connect(g).connect(this.ambBus);
     s.start();
     lfo.start();
     this.wind = { s, g, f };
@@ -234,7 +249,7 @@ export class Audio {
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(level, t + dur * 0.45);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    g.connect(this.master);
+    g.connect(this.ambBus);
     for (const f of [58, 61.5, 116]) {
       const o = c.createOscillator();
       o.type = "sawtooth";
@@ -261,5 +276,236 @@ export class Audio {
     const t = this.ctx.currentTime;
     const notes = kind === "grief" ? [110, 130.8, 164.8] : kind === "dawn" ? [146.8, 220, 293.7] : [98, 116.5];
     notes.forEach((f, i) => this._tone(o, t + i * 0.4, 4.5, f, { type: "triangle", gain: 0.09, attack: 1.2 }));
+  }
+
+  // ---- buses & metering ---------------------------------------------------------------------------
+  applyLevels() {
+    if (!this.on && !this.musicBus) return;
+    const t = this.ctx.currentTime;
+    this.musicBus.gain.setTargetAtTime(this.levels.music, t, 0.1);
+    this.sfxBus.gain.setTargetAtTime(this.levels.sfx, t, 0.1);
+    this.ambBus.gain.setTargetAtTime(this.levels.sfx * 0.9, t, 0.1);
+    this.voiceBus.gain.setTargetAtTime(this.levels.voice, t, 0.1);
+  }
+  setLevels(l) {
+    Object.assign(this.levels || (this.levels = {}), l);
+    if (this.ctx) this.applyLevels();
+  }
+  // rms / peak (dBFS) of each bus right now, for the sound QA
+  meter() {
+    const out = {};
+    if (!this.meters) return out;
+    const buf = new Float32Array(1024);
+    for (const [k, an] of Object.entries(this.meters)) {
+      an.getFloatTimeDomainData(buf);
+      let s = 0, p = 0;
+      for (const v of buf) {
+        s += v * v;
+        p = Math.max(p, Math.abs(v));
+      }
+      const rms = Math.sqrt(s / buf.length);
+      out[k] = { rms: rms > 1e-6 ? 20 * Math.log10(rms) : -120, peak: p > 1e-6 ? 20 * Math.log10(p) : -120 };
+    }
+    return out;
+  }
+  // ---- voices: short formant-synthesised shouts (no recorded dialogue) --------------------------------
+  // vowels: a e i o u ; returns end time
+  vowel(dest, t, dur, v, pitch, gain = 0.2, glide = 0) {
+    const F = { a: [800, 1150, 2900], e: [480, 1720, 2520], i: [300, 2200, 2950], o: [500, 900, 2600], u: [330, 760, 2400] }[v] || [600, 1000, 2600];
+    const c = this.ctx;
+    const o = c.createOscillator();
+    o.type = "sawtooth";
+    o.frequency.setValueAtTime(pitch, t);
+    if (glide) o.frequency.linearRampToValueAtTime(pitch * (1 + glide), t + dur);
+    const vib = c.createOscillator();
+    vib.frequency.value = 5.5;
+    const vg = c.createGain();
+    vg.gain.value = pitch * 0.015;
+    vib.connect(vg).connect(o.frequency);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.03);
+    g.gain.setValueAtTime(gain, t + dur * 0.7);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    const amps = [1, 0.5, 0.25];
+    F.forEach((f, k) => {
+      const bp = c.createBiquadFilter();
+      bp.type = "bandpass";
+      bp.frequency.value = f;
+      bp.Q.value = 7 + k * 3;
+      const ag = c.createGain();
+      ag.gain.value = amps[k] * 3;
+      o.connect(bp).connect(ag).connect(g);
+    });
+    g.connect(dest);
+    o.start(t);
+    vib.start(t);
+    o.stop(t + dur + 0.05);
+    vib.stop(t + dur + 0.05);
+    return t + dur;
+  }
+  // a shouted word as vowel syllables with consonant noise bursts: [[vowel, dur, consonantNoise?], ...]
+  say(syl, { x, z, pitch = 150, gain = 0.18, voices = 1, spread = 0.03, delay = 0 } = {}) {
+    if (!this.on) return;
+    const p = x !== undefined ? this._pos(x, z) : { d: 0, pan: 0 };
+    this._bus = this.voiceBus;
+    const out = this._out(p.d, p.pan);
+    this._bus = null;
+    for (let k = 0; k < voices; k++) {
+      let t = this.ctx.currentTime + delay + Math.random() * spread * voices;
+      const pk = pitch * (1 + (Math.random() - 0.5) * 0.18 * (voices > 1 ? 1 : 0));
+      for (const [v, d, cons] of syl) {
+        if (cons) this._noise(out, t, 0.05, { type: "bandpass", f0: cons, q: 2, gain: gain * 1.4 / Math.sqrt(voices) });
+        t = this.vowel(out, t + (cons ? 0.03 : 0), d, v, pk, gain / Math.sqrt(voices), -0.06);
+      }
+    }
+  }
+  chant(word = "currahee", n = 8, x, z) {
+    const W = {
+      currahee: [["u", 0.16, 2600], ["a", 0.18, 1400], ["i", 0.42, 900]],
+      firmes: [["i", 0.16, 3200], ["e", 0.28, 4200]],
+      adelante: [["a", 0.1], ["e", 0.12, 1800], ["a", 0.14, 1800], ["e", 0.22, 2400]],
+      silver: [["i", 0.16, 4500], ["e", 0.3, 1400]],
+      granada: [["a", 0.12, 1200], ["a", 0.14, 1600], ["a", 0.24, 1800]],
+      sanitario: [["a", 0.1, 4500], ["i", 0.1, 1800], ["a", 0.12, 2400], ["i", 0.1, 1600], ["o", 0.22]],
+      vamos: [["a", 0.14, 900], ["o", 0.24, 4200]],
+      arriba: [["a", 0.1], ["i", 0.14, 1600], ["a", 0.22, 900]],
+    }[word] || [["a", 0.3]];
+    this.say(W, { x, z, voices: n, pitch: n > 1 ? 135 : 160, gain: n > 1 ? 0.26 : 0.2, spread: 0.02 });
+  }
+  whistle(x, z, long = false) {
+    if (!this.on) return;
+    const p = x !== undefined ? this._pos(x, z) : { d: 0, pan: 0 };
+    const o = this._out(p.d, p.pan);
+    const t = this.ctx.currentTime;
+    const c = this.ctx;
+    const osc = c.createOscillator();
+    osc.type = "sine";
+    osc.frequency.value = 2900;
+    const trill = c.createOscillator();
+    trill.frequency.value = 28;
+    const tg = c.createGain();
+    tg.gain.value = 140;
+    trill.connect(tg).connect(osc.frequency);
+    const g = c.createGain();
+    const dur = long ? 1.1 : 0.45;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.14, t + 0.02);
+    g.gain.setValueAtTime(0.14, t + dur - 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(g).connect(o);
+    osc.start(t);
+    trill.start(t);
+    osc.stop(t + dur + 0.05);
+    trill.stop(t + dur + 0.05);
+    this._noise(o, t, dur, { type: "highpass", f0: 5000, gain: 0.03 });
+  }
+  breath(k = 0.5, pan = 0) {
+    // ragged breathing; k 0..1 exhaustion
+    if (!this.on) return;
+    this._bus = this.voiceBus;
+    const o = this._out(0, pan);
+    this._bus = null;
+    const t = this.ctx.currentTime;
+    this._noise(o, t, 0.28 + k * 0.12, { type: "bandpass", f0: 1100 + k * 500, f1: 700, q: 1.2, gain: 0.05 + k * 0.09, attack: 0.04 });
+  }
+  stride(soft = 1, pan = 0) {
+    // boots on dry red clay
+    if (!this.on) return;
+    const o = this._out(0, pan);
+    const t = this.ctx.currentTime;
+    this._noise(o, t, 0.07, { f0: 700 + Math.random() * 300, type: "lowpass", gain: 0.1 * soft });
+    this._noise(o, t + 0.01, 0.05, { f0: 2600, type: "bandpass", q: 1, gain: 0.025 * soft });
+  }
+  engine(x, z, dur = 3) {
+    // idling Dodge ambulance
+    if (!this.on) return;
+    const p = this._pos(x, z);
+    const o = this._out(p.d, p.pan);
+    const t = this.ctx.currentTime;
+    this._tone(o, t, dur, 34, { type: "sawtooth", gain: 0.06, attack: 0.3 });
+    this._noise(o, t, dur, { f0: 220, type: "lowpass", gain: 0.12, attack: 0.3 });
+  }
+  // a looping bed for each place (cicadas & hot wind for Georgia; crickets at night)
+  startBed(kind) {
+    if (!this.on) return;
+    this.stopBed();
+    const c = this.ctx;
+    const g = c.createGain();
+    g.gain.value = 0;
+    g.connect(this.ambBus);
+    const nodes = [];
+    if (kind === "georgia" || kind === "georgia-noon") {
+      // cicada drone: bandpassed noise with a slow pulsing swell
+      for (const [f, q, lv] of [[4300, 9, 0.05], [5600, 12, 0.03], [3600, 6, 0.02]]) {
+        const s = c.createBufferSource();
+        s.buffer = this.noise;
+        s.loop = true;
+        const bp = c.createBiquadFilter();
+        bp.type = "bandpass";
+        bp.frequency.value = f;
+        bp.Q.value = q;
+        const sg = c.createGain();
+        sg.gain.value = lv;
+        const lfo = c.createOscillator();
+        lfo.frequency.value = 0.13 + Math.random() * 0.1;
+        const lg = c.createGain();
+        lg.gain.value = lv * 0.8;
+        lfo.connect(lg).connect(sg.gain);
+        const am = c.createOscillator();
+        am.frequency.value = 38 + Math.random() * 8;
+        const amg = c.createGain();
+        amg.gain.value = lv * 0.5;
+        am.connect(amg).connect(sg.gain);
+        s.connect(bp).connect(sg).connect(g);
+        s.start(0, Math.random());
+        lfo.start();
+        am.start();
+        nodes.push(s, lfo, am);
+      }
+    }
+    const s = c.createBufferSource();
+    s.buffer = this.noise;
+    s.loop = true;
+    s.playbackRate.value = 0.4;
+    const lp = c.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = 300;
+    const wg = c.createGain();
+    wg.gain.value = 0.12;
+    s.connect(lp).connect(wg).connect(g);
+    s.start();
+    nodes.push(s);
+    g.gain.setTargetAtTime(1, c.currentTime, 1.5);
+    this.bed = { g, nodes };
+  }
+  stopBed() {
+    if (!this.bed) return;
+    const { g, nodes } = this.bed;
+    g.gain.setTargetAtTime(0, this.ctx.currentTime, 0.8);
+    setTimeout(() => nodes.forEach((n) => { try { n.stop(); } catch {} }), 3000);
+    this.bed = null;
+  }
+  setBed(level) {
+    this.bed && this.bed.g.gain.setTargetAtTime(level, this.ctx.currentTime, 1.2);
+  }
+  paper() {
+    // UI: a page turned
+    if (!this.on) return;
+    const o = this._out(0, 0);
+    const t = this.ctx.currentTime;
+    this._noise(o, t, 0.18, { type: "bandpass", f0: 3200, f1: 1800, q: 0.8, gain: 0.08, attack: 0.03 });
+    this._noise(o, t + 0.12, 0.08, { type: "highpass", f0: 4000, gain: 0.04 });
+  }
+  pencil() {
+    if (!this.on) return;
+    const o = this._out(0, 0.1);
+    const t = this.ctx.currentTime;
+    for (let i = 0; i < 3; i++) this._noise(o, t + i * 0.07, 0.06, { type: "bandpass", f0: 5200, q: 3, gain: 0.04 });
+  }
+  vibrate(ms = 30) {
+    try {
+      this.vibrateOn !== false && navigator.vibrate && navigator.vibrate(ms);
+    } catch {}
   }
 }

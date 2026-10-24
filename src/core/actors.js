@@ -6,7 +6,11 @@ export const PAL = {
   para: { coat: 0x8a7f55, coat2: 0x766c48, pants: 0x7d744f, boots: 0x5a3c26, helmet: 0x5f5d40, net: 0x46452f, skin: 0xd6a07c, gear: 0xa49c74, paint: 0x2b2a22 },
   heer: { coat: 0x6e7468, coat2: 0x5d6358, pants: 0x585e54, boots: 0x1d1d1c, helmet: 0x4a4f48, net: 0x3c4139, skin: 0xd3a283, gear: 0x232320, paint: null },
   fj: { coat: 0x6f7158, coat2: 0x5a5c45, pants: 0x55594c, boots: 0x22211f, helmet: 0x4a4f49, net: 0x3d4239, skin: 0xd09e80, gear: 0x2a2a26, paint: null },
+  // Toccoa 1942: PT (boots, khaki shorts, undershirt) and herringbone twill fatigues with a soft cap
+  pt: { coat: 0xd9d2bf, coat2: 0xc8c0aa, pants: 0x9c8a62, boots: 0x4a2f1e, helmet: 0x3b2a1e, net: 0x3b2a1e, skin: 0xd6a07c, gear: 0x7a6a48, paint: null },
+  hbt: { coat: 0x6f7552, coat2: 0x5f6546, pants: 0x6a704e, boots: 0x4a2f1e, helmet: 0x646a48, net: 0x56603f, skin: 0xd6a07c, gear: 0x8a8462, paint: null },
 };
+const US_KITS = ["para", "pt", "hbt"];
 
 // bone layout
 const B = { hips: 0, spine: 1, chest: 2, head: 3, shL: 4, elL: 5, shR: 6, elR: 7, thL: 8, knL: 9, thR: 10, knR: 11, gun: 12 };
@@ -15,7 +19,9 @@ export function buildSoldier(opts = {}) {
   const pal = PAL[opts.kit || "para"];
   const seed = opts.seed ?? Math.floor(Math.random() * 1e6);
   const r = rng(seed);
-  const enemy = opts.kit !== "para";
+  const enemy = !US_KITS.includes(opts.kit || "para");
+  const pt = opts.kit === "pt", hbt = opts.kit === "hbt";
+  const hair = opts.hair ?? [0x3b2a1e, 0x5a3a22, 0x24201c, 0x7a5a3a, 0x2e2620][Math.abs(seed) % 5];
   const bones = [];
   const mk = (parent, x, y, z) => {
     const b = new T.Bone();
@@ -43,17 +49,27 @@ export function buildSoldier(opts = {}) {
   const W = (bone) => ({ mat: bone.matrixWorld, bone: bones.indexOf(bone), jit: 0.05 });
   // legs
   for (const [th, kn, s] of [[thL, knL, 1], [thR, knR, -1]]) {
-    b.box(0.17, 0.44, 0.19, pal.pants, { y: -0.21 }, W(th));
-    b.box(0.19, 0.08, 0.2, pal.coat2, { y: -0.02, z: 0.0 }, W(th)); // cargo pocket line
-    if (opts.kit === "para") b.box(0.07, 0.15, 0.06, pal.coat2, { x: s * 0.095, y: -0.24, z: 0.02 }, W(th));
-    b.box(0.155, 0.4, 0.17, pal.pants, { y: -0.18 }, W(kn));
+    const face0 = opts.skin ?? pal.skin;
+    if (pt) {
+      b.box(0.19, 0.2, 0.21, pal.pants, { y: -0.09 }, W(th)); // shorts
+      b.box(0.15, 0.26, 0.16, face0, { y: -0.31 }, W(th));
+      b.box(0.14, 0.24, 0.15, face0, { y: -0.12 }, W(kn));
+      b.box(0.155, 0.06, 0.165, 0xd8d2c4, { y: -0.27 }, W(kn)); // sock top
+    } else {
+      b.box(0.17, 0.44, 0.19, pal.pants, { y: -0.21 }, W(th));
+      b.box(0.19, 0.08, 0.2, pal.coat2, { y: -0.02, z: 0.0 }, W(th)); // cargo pocket line
+      if (opts.kit === "para") b.box(0.07, 0.15, 0.06, pal.coat2, { x: s * 0.095, y: -0.24, z: 0.02 }, W(th));
+      b.box(0.155, 0.4, 0.17, pal.pants, { y: -0.18 }, W(kn));
+    }
     b.box(0.16, 0.18, 0.2, pal.boots, { y: -0.36, z: 0.02 }, W(kn));
     b.box(0.15, 0.06, 0.29, pal.boots, { y: -0.45, z: 0.05 }, W(kn));
   }
   // torso
   b.box(0.42, 0.24, 0.24, pal.pants, { y: 0.02 }, W(hips));
-  b.box(0.44, 0.07, 0.26, pal.gear, { y: 0.1 }, W(hips)); // belt
-  if (opts.kit === "para") {
+  b.box(0.44, 0.07, 0.26, pt ? 0x7a6a48 : pal.gear, { y: 0.1 }, W(hips)); // belt
+  if (pt || hbt) {
+    /* no field gear in training */
+  } else if (opts.kit === "para") {
     for (const s of [-1, 1]) b.box(0.08, 0.1, 0.07, pal.gear, { x: s * 0.16, y: 0.1, z: 0.13 }, W(hips)); // ammo pouches
     b.box(0.09, 0.14, 0.08, 0x5d5a46, { x: 0.2, y: 0.04, z: -0.1 }, W(hips)); // canteen
   } else {
@@ -61,9 +77,13 @@ export function buildSoldier(opts = {}) {
   }
   b.box(0.44, 0.34, 0.26, pal.coat, { y: 0.14 }, W(spine));
   b.box(0.48, 0.3, 0.28, pal.coat, { y: 0.11 }, W(chest));
-  b.box(0.2, 0.12, 0.05, pal.coat2, { x: 0.11, y: 0.1, z: 0.14 }, W(chest)); // chest pockets
-  b.box(0.2, 0.12, 0.05, pal.coat2, { x: -0.11, y: 0.1, z: 0.14 }, W(chest));
-  if (opts.kit === "para") {
+  if (!pt) {
+    b.box(0.2, 0.12, 0.05, pal.coat2, { x: 0.11, y: 0.1, z: 0.14 }, W(chest)); // chest pockets
+    b.box(0.2, 0.12, 0.05, pal.coat2, { x: -0.11, y: 0.1, z: 0.14 }, W(chest));
+  } else b.box(0.3, 0.05, 0.05, 0xc0b8a2, { y: 0.25, z: 0.13 }, W(chest)); // neckline
+  if (pt || hbt) {
+    if (hbt && opts.rank) b.box(0.06, 0.06, 0.02, 0xd8c890, { x: 0.12, y: 0.2, z: 0.145 }, W(chest)); // collar insignia
+  } else if (opts.kit === "para") {
     // suspenders + musette bag + reserve chute look
     for (const s of [-1, 1]) b.box(0.05, 0.42, 0.29, pal.gear, { x: s * 0.13, y: 0.04 }, W(chest));
     b.box(0.34, 0.3, 0.14, 0x6b6648, { y: 0.06, z: -0.19 }, W(chest)); // musette bag
@@ -87,8 +107,15 @@ export function buildSoldier(opts = {}) {
     b.box(0.18, 0.03, 0.02, pal.paint, { y: 0.19, z: 0.122, rz: -0.2 }, W(head));
   }
   if (opts.mustache) b.box(0.1, 0.025, 0.02, 0x3a2a1e, { y: 0.055, z: 0.13 }, W(head));
-  // helmet: M1 (round) vs Stahlhelm (flared skirt) vs FJ (no brim)
-  if (opts.kit === "para") {
+  // helmet: M1 (round) vs Stahlhelm (flared skirt) vs FJ (no brim); Toccoa: bare head / fatigue cap
+  if (pt) {
+    b.box(0.235, 0.07, 0.25, hair, { y: 0.26, z: -0.005 }, W(head)); // short GI haircut
+    b.box(0.235, 0.12, 0.05, hair, { y: 0.2, z: -0.12 }, W(head));
+  } else if (hbt) {
+    b.box(0.24, 0.1, 0.26, pal.helmet, { y: 0.28 }, W(head)); // soft cap
+    b.box(0.22, 0.025, 0.1, pal.coat2, { y: 0.235, z: 0.16 }, W(head)); // visor
+    if (opts.rank === "lt" || opts.rank === "cpt") b.box(0.05, 0.05, 0.02, 0xd8c890, { y: 0.29, z: 0.135 }, W(head));
+  } else if (opts.kit === "para") {
     b.sphere(0.165, 8, 5, pal.helmet, { y: 0.21, sy: 0.82, sz: 1.06 }, W(head));
     b.cyl(0.18, 0.185, 0.03, 10, pal.helmet, { y: 0.17 }, W(head));
     b.sphere(0.168, 7, 4, pal.net, { y: 0.215, sy: 0.8, sz: 1.06 }, { ...W(head), jit: 0.15 });
@@ -106,12 +133,18 @@ export function buildSoldier(opts = {}) {
   }
   // arms
   for (const [sh, el] of [[shL, elL], [shR, elR]]) {
+    if (pt) {
+      b.box(0.15, 0.12, 0.16, pal.coat, { y: -0.05 }, W(sh));
+      b.box(0.12, 0.22, 0.13, face, { y: -0.2 }, W(sh));
+      b.box(0.11, 0.28, 0.12, face, { y: -0.12 }, W(el));
+      continue;
+    }
     b.box(0.14, 0.33, 0.15, pal.coat, { y: -0.13 }, W(sh));
     b.box(0.13, 0.28, 0.14, pal.coat, { y: -0.12 }, W(el));
     b.box(0.11, 0.1, 0.12, face, { y: -0.3 }, W(el));
   }
   // weapon on its own bone
-  const wpn = opts.weapon || (enemy ? "k98" : "m1");
+  const wpn = opts.weapon || (enemy ? "k98" : pt ? "none" : "m1");
   const G = W(gun);
   if (wpn === "m1" || wpn === "k98") {
     const wood = wpn === "m1" ? 0x6b4429 : 0x5a3a24;
@@ -187,6 +220,17 @@ export function animate(a, st, dt) {
   b[Bi.gun].rotation.x = lerp(1.15, 1.5, k);
   b[Bi.gun].rotation.y = lerp(0.55, 0.0, k);
   b[Bi.gun].rotation.z = lerp(0.2, 0, k);
+  // empty-handed (PT, drill): arms pump with the stride, elbows bent; at rest they hang
+  if (a.weapon === "none") {
+    const run = mv;
+    b[Bi.shL].rotation.set(sw * 0.9 * run - 0.15 * run, 0, -0.08);
+    b[Bi.shR].rotation.set(-sw * 0.9 * run - 0.15 * run, 0, 0.08);
+    b[Bi.elL].rotation.x = -0.15 - 1.25 * run;
+    b[Bi.elR].rotation.x = -0.15 - 1.25 * run;
+    b[Bi.gun].rotation.set(0, 0, 0);
+    b[Bi.spine].rotation.x = 0.16 * mv + cr * 0.42 + (st.slump || 0) * 0.5;
+    b[Bi.head].rotation.x = -(st.slump || 0) * 0.35 + (st.look || 0);
+  }
   if (aim > 0.5) {
     b[Bi.chest].rotation.y += 0.22;
     b[Bi.head].rotation.y = -0.18;

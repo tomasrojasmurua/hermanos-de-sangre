@@ -1,4 +1,29 @@
-# Hermanos de Sangre · estado tras la ronda 4 de Bastogne y la primera versión del Día D
+# Hermanos de Sangre · estado
+
+## Juego unificado · Capítulo I, Currahee (ronda 1)
+`juego.html` es el comienzo del juego completo: un solo programa que recorre el libro y cambia de modo dentro de cada capítulo, con la misma cámara y sin pantallas de carga.
+
+**Sistemas nuevos (comunes a todos los capítulos):**
+- Caparazón (`core/shell.js`): renderer, cámara, controles, interfaz, audio y bucle; monta lugares a partir de datos.
+- Director de escenas (`core/director.js`): un capítulo es una lista de momentos con su lugar y su modo; guarda al entrar en cada momento y permite reintentar.
+- Modos (`core/modes.js`): narrativo, acción, sigilo, línea, base y asalto (hoy se usan narrativo y acción).
+- Plantilla persistente (`core/roster.js`): estadísticas, moral, cansancio, heridas, cicatrices, relaciones y experiencia de cada hombre; los reclutas inventados son los únicos que pueden ser expulsados.
+- Guardado general versionado (`core/save.js`, clave `hds_save`, versión 2) que migra el guardado antiguo del Día D (`hds_dia_d_v1`).
+- Interfaz apaisada para dos pulgares; en vertical, el teléfono pide girarse.
+- Audio por buses (música, efectos, voces, ambiente) con volúmenes separados y medidores; voces sintetizadas con formantes; ambiente de Georgia con cigarras; música adaptativa por capas (`engine/music.js`) con cadencia militar, que se desbloquea con el primer toque.
+- Columnas en marcha (`core/column.js`), reutilizable para la marcha a Atlanta y las marchas nocturnas.
+
+**Jugable:** llegada a Toccoa (narrativo) → primera subida a Currahee (acción) → las semanas de entrenamiento → la comida de espaguetis (decisión) → la carrera de los espaguetis con dos ambulancias → cierre.
+- En la carrera eres Winters dentro de la columna de Sobel: respira al compás de la cadencia para recuperar aliento, no dejes que te alcance la ambulancia y vuelve por los hombres que flaquean.
+- Los hombres con nombre nunca son expulsados (los lleva un compañero); los reclutas inventados que alcanza la ambulancia se van ese mismo día.
+
+**Cambio de regla en el Día D:** Winters sobrevive a la guerra en el libro, así que si cae en Brécourt se vuelve al punto de control. Se quitó la rama «Lipton toma el mando».
+
+**Pendiente en el Capítulo I (rondas siguientes):** base (horario semanal, permisos y tensión con Sobel), pista de obstáculos y campo de tiro, maniobras nocturnas (sigilo), casa de prácticas (asalto), ejercicios de defensa (línea), marcha a Atlanta y salto en Fort Benning.
+
+---
+
+## Antes del juego unificado
 
 ## Bastogne (ronda 4 cerrada · crítico 8,1/10)
 - Cráter fantasma del día 1 eliminado (eran cráteres precargados delante de los pozos).

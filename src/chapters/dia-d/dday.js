@@ -5,6 +5,7 @@ import { Builder, meshFrom, U, mat } from "../../engine/geo.js";
 import { World, buildGround, scatter } from "../../core/world.js";
 import * as P from "../../core/props.js";
 import { setGrade } from "../../engine/render.js";
+import { sky, lights, tuft, signTexture } from "../../engine/stage.js";
 
 // level frame: u = forward (screen up), v = lateral (screen right). Camera yaw π/4.
 const F = [-Math.SQRT1_2, -Math.SQRT1_2], R = [Math.SQRT1_2, -Math.SQRT1_2];
@@ -14,50 +15,6 @@ const WL = (list) => list.map(([u, v]) => W(u, v));
 const ANG = Math.atan2(F[0], F[1]); // facing "forward" (toward +u)
 
 export { CAST } from "../../data/dia-d-cast.js";
-
-// ------------------------------------------------------------------------------------------------
-function sky(scene, top, bottom) {
-  const g = new T.SphereGeometry(400, 16, 8);
-  const m = new T.ShaderMaterial({
-    side: 1, depthWrite: false, fog: false,
-    uniforms: { top: { value: new T.Color(top) }, bot: { value: new T.Color(bottom) } },
-    vertexShader: "varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
-    fragmentShader: "uniform vec3 top; uniform vec3 bot; varying vec3 vP; void main(){ float h = normalize(vP).y; gl_FragColor = vec4(mix(bot, top, smoothstep(-0.2, 0.6, h)), 1.0); }",
-  });
-  const s = new T.Mesh(g, m);
-  s.renderOrder = -10;
-  scene.add(s);
-  return s;
-}
-
-function lights(scene, o) {
-  const hemi = new T.HemisphereLight(o.sky, o.ground, o.hemi);
-  scene.add(hemi);
-  const sun = new T.DirectionalLight(o.sunCol, o.sun);
-  sun.position.set(o.dir[0] * 60, o.dir[1] * 60, o.dir[2] * 60);
-  sun.castShadow = o.shadow > 0;
-  if (sun.castShadow) {
-    sun.shadow.mapSize.set(o.shadow, o.shadow);
-    const c = sun.shadow.camera;
-    c.left = -36; c.right = 36; c.top = 36; c.bottom = -36; c.near = 1; c.far = 180;
-    sun.shadow.bias = -0.0006;
-    sun.shadow.normalBias = 0.04;
-  }
-  scene.add(sun);
-  scene.add(sun.target);
-  return { hemi, sun, dir: o.dir };
-}
-
-// grass clump: wide blades fanning out from a root, darker at the base
-function tuft(b, col = 0x5f7a3a) {
-  const n = 7;
-  for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 2 + Math.random() * 0.5;
-    const h = 0.32 + Math.random() * 0.3, w = 0.07 + Math.random() * 0.04, lean = 0.12 + Math.random() * 0.16;
-    const m = new T.Matrix4().makeRotationY(a);
-    b.tris([-w, 0, 0, w, 0, 0, w * 0.2, h, lean], col, { mat: m, jit: 0.2, grad: { y0: 0, y1: 0.5, k: 0.22 } });
-  }
-}
 
 // earth showing on the hedge banks (brown, scuffed), strongest at the foot of the hedge
 const BANK_N = new T.Color().setRGB(0.24, 0.21, 0.19, "srgb");
@@ -72,22 +29,6 @@ function bankK(world, x, z) {
     best = Math.min(best, Math.hypot(x - r.ax - dx * t, z - r.az - dz * t));
   }
   return smooth(1.9, 0.9, best) * 0.75 * (0.7 + fbm(x * 0.9, z * 0.9, 2) * 0.6);
-}
-
-function signTexture(text) {
-  const c = document.createElement("canvas");
-  c.width = 256;
-  c.height = 64;
-  const x = c.getContext("2d");
-  x.fillStyle = "#b9b2a2";
-  x.fillRect(0, 0, 256, 64);
-  x.fillStyle = "#2a2a28";
-  x.font = "bold 26px Georgia, serif";
-  x.textAlign = "center";
-  x.fillText(text, 128, 42);
-  const t = new T.CanvasTexture(c);
-  t.colorSpace = "srgb";
-  return t;
 }
 
 // ================================================================================================

@@ -4834,6 +4834,20 @@ void main(){
       comp.threshold.value = -16;
       comp.ratio.value = 5;
       this.master.connect(comp).connect(c.destination);
+      this.sfxBus = c.createGain();
+      this.musicBus = c.createGain();
+      this.voiceBus = c.createGain();
+      this.ambBus = c.createGain();
+      for (const b2 of [this.sfxBus, this.musicBus, this.voiceBus, this.ambBus]) b2.connect(this.master);
+      this.meters = {};
+      for (const [k, b2] of Object.entries({ sfx: this.sfxBus, music: this.musicBus, voice: this.voiceBus, amb: this.ambBus, master: comp })) {
+        const an = c.createAnalyser();
+        an.fftSize = 1024;
+        b2.connect(an);
+        this.meters[k] = an;
+      }
+      this.levels = this.levels || { music: 0.8, sfx: 0.9, voice: 0.9 };
+      this.applyLevels();
       const len = c.sampleRate * 2;
       this.noise = c.createBuffer(1, len, c.sampleRate);
       const d = this.noise.getChannelData(0);
@@ -4852,7 +4866,7 @@ void main(){
       this.verb.buffer = ir;
       this.verbGain = c.createGain();
       this.verbGain.gain.value = 0.35;
-      this.verb.connect(this.verbGain).connect(this.master);
+      this.verb.connect(this.verbGain).connect(this.sfxBus);
       this.on = true;
     }
     resume() {
@@ -4870,7 +4884,7 @@ void main(){
         g.connect(p);
         node = p;
       }
-      node.connect(this.master);
+      node.connect(this._bus || this.sfxBus);
       const send = c.createGain();
       send.gain.value = Math.min(0.9, 0.15 + dist * 0.015);
       g.connect(send).connect(this.verb);
@@ -5030,7 +5044,7 @@ void main(){
       const lg = c.createGain();
       lg.gain.value = 180;
       lfo.connect(lg).connect(f.frequency);
-      s.connect(f).connect(g).connect(this.master);
+      s.connect(f).connect(g).connect(this.ambBus);
       s.start();
       lfo.start();
       this.wind = { s, g, f };
@@ -5045,7 +5059,7 @@ void main(){
       g.gain.setValueAtTime(1e-4, t);
       g.gain.exponentialRampToValueAtTime(level, t + dur * 0.45);
       g.gain.exponentialRampToValueAtTime(1e-4, t + dur);
-      g.connect(this.master);
+      g.connect(this.ambBus);
       for (const f of [58, 61.5, 116]) {
         const o = c.createOscillator();
         o.type = "sawtooth";
@@ -5071,6 +5085,237 @@ void main(){
       const t = this.ctx.currentTime;
       const notes = kind === "grief" ? [110, 130.8, 164.8] : kind === "dawn" ? [146.8, 220, 293.7] : [98, 116.5];
       notes.forEach((f, i) => this._tone(o, t + i * 0.4, 4.5, f, { type: "triangle", gain: 0.09, attack: 1.2 }));
+    }
+    // ---- buses & metering ---------------------------------------------------------------------------
+    applyLevels() {
+      if (!this.on && !this.musicBus) return;
+      const t = this.ctx.currentTime;
+      this.musicBus.gain.setTargetAtTime(this.levels.music, t, 0.1);
+      this.sfxBus.gain.setTargetAtTime(this.levels.sfx, t, 0.1);
+      this.ambBus.gain.setTargetAtTime(this.levels.sfx * 0.9, t, 0.1);
+      this.voiceBus.gain.setTargetAtTime(this.levels.voice, t, 0.1);
+    }
+    setLevels(l) {
+      Object.assign(this.levels || (this.levels = {}), l);
+      if (this.ctx) this.applyLevels();
+    }
+    // rms / peak (dBFS) of each bus right now, for the sound QA
+    meter() {
+      const out = {};
+      if (!this.meters) return out;
+      const buf = new Float32Array(1024);
+      for (const [k, an] of Object.entries(this.meters)) {
+        an.getFloatTimeDomainData(buf);
+        let s = 0, p = 0;
+        for (const v of buf) {
+          s += v * v;
+          p = Math.max(p, Math.abs(v));
+        }
+        const rms = Math.sqrt(s / buf.length);
+        out[k] = { rms: rms > 1e-6 ? 20 * Math.log10(rms) : -120, peak: p > 1e-6 ? 20 * Math.log10(p) : -120 };
+      }
+      return out;
+    }
+    // ---- voices: short formant-synthesised shouts (no recorded dialogue) --------------------------------
+    // vowels: a e i o u ; returns end time
+    vowel(dest, t, dur, v, pitch, gain = 0.2, glide = 0) {
+      const F2 = { a: [800, 1150, 2900], e: [480, 1720, 2520], i: [300, 2200, 2950], o: [500, 900, 2600], u: [330, 760, 2400] }[v] || [600, 1e3, 2600];
+      const c = this.ctx;
+      const o = c.createOscillator();
+      o.type = "sawtooth";
+      o.frequency.setValueAtTime(pitch, t);
+      if (glide) o.frequency.linearRampToValueAtTime(pitch * (1 + glide), t + dur);
+      const vib = c.createOscillator();
+      vib.frequency.value = 5.5;
+      const vg = c.createGain();
+      vg.gain.value = pitch * 0.015;
+      vib.connect(vg).connect(o.frequency);
+      const g = c.createGain();
+      g.gain.setValueAtTime(1e-4, t);
+      g.gain.exponentialRampToValueAtTime(gain, t + 0.03);
+      g.gain.setValueAtTime(gain, t + dur * 0.7);
+      g.gain.exponentialRampToValueAtTime(1e-4, t + dur);
+      const amps = [1, 0.5, 0.25];
+      F2.forEach((f, k) => {
+        const bp = c.createBiquadFilter();
+        bp.type = "bandpass";
+        bp.frequency.value = f;
+        bp.Q.value = 7 + k * 3;
+        const ag = c.createGain();
+        ag.gain.value = amps[k] * 3;
+        o.connect(bp).connect(ag).connect(g);
+      });
+      g.connect(dest);
+      o.start(t);
+      vib.start(t);
+      o.stop(t + dur + 0.05);
+      vib.stop(t + dur + 0.05);
+      return t + dur;
+    }
+    // a shouted word as vowel syllables with consonant noise bursts: [[vowel, dur, consonantNoise?], ...]
+    say(syl, { x, z, pitch = 150, gain = 0.18, voices = 1, spread = 0.03, delay = 0 } = {}) {
+      if (!this.on) return;
+      const p = x !== void 0 ? this._pos(x, z) : { d: 0, pan: 0 };
+      this._bus = this.voiceBus;
+      const out = this._out(p.d, p.pan);
+      this._bus = null;
+      for (let k = 0; k < voices; k++) {
+        let t = this.ctx.currentTime + delay + Math.random() * spread * voices;
+        const pk = pitch * (1 + (Math.random() - 0.5) * 0.18 * (voices > 1 ? 1 : 0));
+        for (const [v, d, cons] of syl) {
+          if (cons) this._noise(out, t, 0.05, { type: "bandpass", f0: cons, q: 2, gain: gain * 1.4 / Math.sqrt(voices) });
+          t = this.vowel(out, t + (cons ? 0.03 : 0), d, v, pk, gain / Math.sqrt(voices), -0.06);
+        }
+      }
+    }
+    chant(word = "currahee", n = 8, x, z) {
+      const W2 = {
+        currahee: [["u", 0.16, 2600], ["a", 0.18, 1400], ["i", 0.42, 900]],
+        firmes: [["i", 0.16, 3200], ["e", 0.28, 4200]],
+        adelante: [["a", 0.1], ["e", 0.12, 1800], ["a", 0.14, 1800], ["e", 0.22, 2400]],
+        silver: [["i", 0.16, 4500], ["e", 0.3, 1400]],
+        granada: [["a", 0.12, 1200], ["a", 0.14, 1600], ["a", 0.24, 1800]],
+        sanitario: [["a", 0.1, 4500], ["i", 0.1, 1800], ["a", 0.12, 2400], ["i", 0.1, 1600], ["o", 0.22]],
+        vamos: [["a", 0.14, 900], ["o", 0.24, 4200]],
+        arriba: [["a", 0.1], ["i", 0.14, 1600], ["a", 0.22, 900]]
+      }[word] || [["a", 0.3]];
+      this.say(W2, { x, z, voices: n, pitch: n > 1 ? 135 : 160, gain: n > 1 ? 0.26 : 0.2, spread: 0.02 });
+    }
+    whistle(x, z, long = false) {
+      if (!this.on) return;
+      const p = x !== void 0 ? this._pos(x, z) : { d: 0, pan: 0 };
+      const o = this._out(p.d, p.pan);
+      const t = this.ctx.currentTime;
+      const c = this.ctx;
+      const osc = c.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = 2900;
+      const trill = c.createOscillator();
+      trill.frequency.value = 28;
+      const tg = c.createGain();
+      tg.gain.value = 140;
+      trill.connect(tg).connect(osc.frequency);
+      const g = c.createGain();
+      const dur = long ? 1.1 : 0.45;
+      g.gain.setValueAtTime(1e-4, t);
+      g.gain.exponentialRampToValueAtTime(0.14, t + 0.02);
+      g.gain.setValueAtTime(0.14, t + dur - 0.05);
+      g.gain.exponentialRampToValueAtTime(1e-4, t + dur);
+      osc.connect(g).connect(o);
+      osc.start(t);
+      trill.start(t);
+      osc.stop(t + dur + 0.05);
+      trill.stop(t + dur + 0.05);
+      this._noise(o, t, dur, { type: "highpass", f0: 5e3, gain: 0.03 });
+    }
+    breath(k = 0.5, pan = 0) {
+      if (!this.on) return;
+      this._bus = this.voiceBus;
+      const o = this._out(0, pan);
+      this._bus = null;
+      const t = this.ctx.currentTime;
+      this._noise(o, t, 0.28 + k * 0.12, { type: "bandpass", f0: 1100 + k * 500, f1: 700, q: 1.2, gain: 0.05 + k * 0.09, attack: 0.04 });
+    }
+    stride(soft = 1, pan = 0) {
+      if (!this.on) return;
+      const o = this._out(0, pan);
+      const t = this.ctx.currentTime;
+      this._noise(o, t, 0.07, { f0: 700 + Math.random() * 300, type: "lowpass", gain: 0.1 * soft });
+      this._noise(o, t + 0.01, 0.05, { f0: 2600, type: "bandpass", q: 1, gain: 0.025 * soft });
+    }
+    engine(x, z, dur = 3) {
+      if (!this.on) return;
+      const p = this._pos(x, z);
+      const o = this._out(p.d, p.pan);
+      const t = this.ctx.currentTime;
+      this._tone(o, t, dur, 34, { type: "sawtooth", gain: 0.06, attack: 0.3 });
+      this._noise(o, t, dur, { f0: 220, type: "lowpass", gain: 0.12, attack: 0.3 });
+    }
+    // a looping bed for each place (cicadas & hot wind for Georgia; crickets at night)
+    startBed(kind) {
+      if (!this.on) return;
+      this.stopBed();
+      const c = this.ctx;
+      const g = c.createGain();
+      g.gain.value = 0;
+      g.connect(this.ambBus);
+      const nodes = [];
+      if (kind === "georgia" || kind === "georgia-noon") {
+        for (const [f, q2, lv] of [[4300, 9, 0.05], [5600, 12, 0.03], [3600, 6, 0.02]]) {
+          const s2 = c.createBufferSource();
+          s2.buffer = this.noise;
+          s2.loop = true;
+          const bp = c.createBiquadFilter();
+          bp.type = "bandpass";
+          bp.frequency.value = f;
+          bp.Q.value = q2;
+          const sg = c.createGain();
+          sg.gain.value = lv;
+          const lfo = c.createOscillator();
+          lfo.frequency.value = 0.13 + Math.random() * 0.1;
+          const lg = c.createGain();
+          lg.gain.value = lv * 0.8;
+          lfo.connect(lg).connect(sg.gain);
+          const am = c.createOscillator();
+          am.frequency.value = 38 + Math.random() * 8;
+          const amg = c.createGain();
+          amg.gain.value = lv * 0.5;
+          am.connect(amg).connect(sg.gain);
+          s2.connect(bp).connect(sg).connect(g);
+          s2.start(0, Math.random());
+          lfo.start();
+          am.start();
+          nodes.push(s2, lfo, am);
+        }
+      }
+      const s = c.createBufferSource();
+      s.buffer = this.noise;
+      s.loop = true;
+      s.playbackRate.value = 0.4;
+      const lp = c.createBiquadFilter();
+      lp.type = "lowpass";
+      lp.frequency.value = 300;
+      const wg = c.createGain();
+      wg.gain.value = 0.12;
+      s.connect(lp).connect(wg).connect(g);
+      s.start();
+      nodes.push(s);
+      g.gain.setTargetAtTime(1, c.currentTime, 1.5);
+      this.bed = { g, nodes };
+    }
+    stopBed() {
+      if (!this.bed) return;
+      const { g, nodes } = this.bed;
+      g.gain.setTargetAtTime(0, this.ctx.currentTime, 0.8);
+      setTimeout(() => nodes.forEach((n) => {
+        try {
+          n.stop();
+        } catch {
+        }
+      }), 3e3);
+      this.bed = null;
+    }
+    setBed(level) {
+      this.bed && this.bed.g.gain.setTargetAtTime(level, this.ctx.currentTime, 1.2);
+    }
+    paper() {
+      if (!this.on) return;
+      const o = this._out(0, 0);
+      const t = this.ctx.currentTime;
+      this._noise(o, t, 0.18, { type: "bandpass", f0: 3200, f1: 1800, q: 0.8, gain: 0.08, attack: 0.03 });
+      this._noise(o, t + 0.12, 0.08, { type: "highpass", f0: 4e3, gain: 0.04 });
+    }
+    pencil() {
+      if (!this.on) return;
+      const o = this._out(0, 0.1);
+      const t = this.ctx.currentTime;
+      for (let i = 0; i < 3; i++) this._noise(o, t + i * 0.07, 0.06, { type: "bandpass", f0: 5200, q: 3, gain: 0.04 });
+    }
+    vibrate(ms = 30) {
+      try {
+        this.vibrateOn !== false && navigator.vibrate && navigator.vibrate(ms);
+      } catch {
+      }
     }
   };
 
@@ -5173,7 +5418,7 @@ void main(){
       this.pressed = {};
     }
   };
-  var KEYMAP = { Space: "fire", KeyJ: "fire", KeyC: "crouch", KeyG: "grenade", KeyH: "heal", KeyE: "act", KeyR: "reload", Enter: "act", KeyQ: "call" };
+  var KEYMAP = { KeyB: "breath", Space: "fire", KeyJ: "fire", KeyC: "crouch", KeyG: "grenade", KeyH: "heal", KeyE: "act", KeyR: "reload", Enter: "act", KeyQ: "call" };
 
   // src/engine/ui.js
   var $ = (s, r = document) => r.querySelector(s);
@@ -5485,14 +5730,20 @@ void main(){
   var PAL = {
     para: { coat: 9076565, coat2: 7760968, pants: 8221775, boots: 5913638, helmet: 6249792, net: 4605231, skin: 14065788, gear: 10787956, paint: 2828834 },
     heer: { coat: 7238760, coat2: 6120280, pants: 5791316, boots: 1907996, helmet: 4869960, net: 3948857, skin: 13869699, gear: 2302752, paint: null },
-    fj: { coat: 7303512, coat2: 5921861, pants: 5593420, boots: 2236703, helmet: 4869961, net: 4014649, skin: 13672064, gear: 2763302, paint: null }
+    fj: { coat: 7303512, coat2: 5921861, pants: 5593420, boots: 2236703, helmet: 4869961, net: 4014649, skin: 13672064, gear: 2763302, paint: null },
+    // Toccoa 1942: PT (boots, khaki shorts, undershirt) and herringbone twill fatigues with a soft cap
+    pt: { coat: 14275263, coat2: 13156522, pants: 10259042, boots: 4861726, helmet: 3877406, net: 3877406, skin: 14065788, gear: 8022600, paint: null },
+    hbt: { coat: 7304530, coat2: 6251846, pants: 6975566, boots: 4861726, helmet: 6580808, net: 5660735, skin: 14065788, gear: 9077858, paint: null }
   };
+  var US_KITS = ["para", "pt", "hbt"];
   var B = { hips: 0, spine: 1, chest: 2, head: 3, shL: 4, elL: 5, shR: 6, elR: 7, thL: 8, knL: 9, thR: 10, knR: 11, gun: 12 };
   function buildSoldier(opts = {}) {
     const pal = PAL[opts.kit || "para"];
     const seed = opts.seed ?? Math.floor(Math.random() * 1e6);
     const r = rng(seed);
-    const enemy = opts.kit !== "para";
+    const enemy = !US_KITS.includes(opts.kit || "para");
+    const pt = opts.kit === "pt", hbt = opts.kit === "hbt";
+    const hair = opts.hair ?? [3877406, 5913122, 2367516, 8018490, 3024416][Math.abs(seed) % 5];
     const bones = [];
     const mk = (parent, x, y, z) => {
       const b2 = new T.Bone();
@@ -5518,16 +5769,25 @@ void main(){
     const b = new Builder(seed).enableSkin();
     const W2 = (bone) => ({ mat: bone.matrixWorld, bone: bones.indexOf(bone), jit: 0.05 });
     for (const [th, kn, s] of [[thL, knL, 1], [thR, knR, -1]]) {
-      b.box(0.17, 0.44, 0.19, pal.pants, { y: -0.21 }, W2(th));
-      b.box(0.19, 0.08, 0.2, pal.coat2, { y: -0.02, z: 0 }, W2(th));
-      if (opts.kit === "para") b.box(0.07, 0.15, 0.06, pal.coat2, { x: s * 0.095, y: -0.24, z: 0.02 }, W2(th));
-      b.box(0.155, 0.4, 0.17, pal.pants, { y: -0.18 }, W2(kn));
+      const face0 = opts.skin ?? pal.skin;
+      if (pt) {
+        b.box(0.19, 0.2, 0.21, pal.pants, { y: -0.09 }, W2(th));
+        b.box(0.15, 0.26, 0.16, face0, { y: -0.31 }, W2(th));
+        b.box(0.14, 0.24, 0.15, face0, { y: -0.12 }, W2(kn));
+        b.box(0.155, 0.06, 0.165, 14209732, { y: -0.27 }, W2(kn));
+      } else {
+        b.box(0.17, 0.44, 0.19, pal.pants, { y: -0.21 }, W2(th));
+        b.box(0.19, 0.08, 0.2, pal.coat2, { y: -0.02, z: 0 }, W2(th));
+        if (opts.kit === "para") b.box(0.07, 0.15, 0.06, pal.coat2, { x: s * 0.095, y: -0.24, z: 0.02 }, W2(th));
+        b.box(0.155, 0.4, 0.17, pal.pants, { y: -0.18 }, W2(kn));
+      }
       b.box(0.16, 0.18, 0.2, pal.boots, { y: -0.36, z: 0.02 }, W2(kn));
       b.box(0.15, 0.06, 0.29, pal.boots, { y: -0.45, z: 0.05 }, W2(kn));
     }
     b.box(0.42, 0.24, 0.24, pal.pants, { y: 0.02 }, W2(hips));
-    b.box(0.44, 0.07, 0.26, pal.gear, { y: 0.1 }, W2(hips));
-    if (opts.kit === "para") {
+    b.box(0.44, 0.07, 0.26, pt ? 8022600 : pal.gear, { y: 0.1 }, W2(hips));
+    if (pt || hbt) {
+    } else if (opts.kit === "para") {
       for (const s of [-1, 1]) b.box(0.08, 0.1, 0.07, pal.gear, { x: s * 0.16, y: 0.1, z: 0.13 }, W2(hips));
       b.box(0.09, 0.14, 0.08, 6117958, { x: 0.2, y: 0.04, z: -0.1 }, W2(hips));
     } else {
@@ -5535,9 +5795,13 @@ void main(){
     }
     b.box(0.44, 0.34, 0.26, pal.coat, { y: 0.14 }, W2(spine));
     b.box(0.48, 0.3, 0.28, pal.coat, { y: 0.11 }, W2(chest));
-    b.box(0.2, 0.12, 0.05, pal.coat2, { x: 0.11, y: 0.1, z: 0.14 }, W2(chest));
-    b.box(0.2, 0.12, 0.05, pal.coat2, { x: -0.11, y: 0.1, z: 0.14 }, W2(chest));
-    if (opts.kit === "para") {
+    if (!pt) {
+      b.box(0.2, 0.12, 0.05, pal.coat2, { x: 0.11, y: 0.1, z: 0.14 }, W2(chest));
+      b.box(0.2, 0.12, 0.05, pal.coat2, { x: -0.11, y: 0.1, z: 0.14 }, W2(chest));
+    } else b.box(0.3, 0.05, 0.05, 12630178, { y: 0.25, z: 0.13 }, W2(chest));
+    if (pt || hbt) {
+      if (hbt && opts.rank) b.box(0.06, 0.06, 0.02, 14207120, { x: 0.12, y: 0.2, z: 0.145 }, W2(chest));
+    } else if (opts.kit === "para") {
       for (const s of [-1, 1]) b.box(0.05, 0.42, 0.29, pal.gear, { x: s * 0.13, y: 0.04 }, W2(chest));
       b.box(0.34, 0.3, 0.14, 7038536, { y: 0.06, z: -0.19 }, W2(chest));
       b.box(0.08, 0.05, 0.02, 12104096, { x: 0.255, y: 0.02, z: 0, ry: Math.PI / 2 }, W2(shL));
@@ -5559,7 +5823,14 @@ void main(){
       b.box(0.18, 0.03, 0.02, pal.paint, { y: 0.19, z: 0.122, rz: -0.2 }, W2(head));
     }
     if (opts.mustache) b.box(0.1, 0.025, 0.02, 3811870, { y: 0.055, z: 0.13 }, W2(head));
-    if (opts.kit === "para") {
+    if (pt) {
+      b.box(0.235, 0.07, 0.25, hair, { y: 0.26, z: -5e-3 }, W2(head));
+      b.box(0.235, 0.12, 0.05, hair, { y: 0.2, z: -0.12 }, W2(head));
+    } else if (hbt) {
+      b.box(0.24, 0.1, 0.26, pal.helmet, { y: 0.28 }, W2(head));
+      b.box(0.22, 0.025, 0.1, pal.coat2, { y: 0.235, z: 0.16 }, W2(head));
+      if (opts.rank === "lt" || opts.rank === "cpt") b.box(0.05, 0.05, 0.02, 14207120, { y: 0.29, z: 0.135 }, W2(head));
+    } else if (opts.kit === "para") {
       b.sphere(0.165, 8, 5, pal.helmet, { y: 0.21, sy: 0.82, sz: 1.06 }, W2(head));
       b.cyl(0.18, 0.185, 0.03, 10, pal.helmet, { y: 0.17 }, W2(head));
       b.sphere(0.168, 7, 4, pal.net, { y: 0.215, sy: 0.8, sz: 1.06 }, { ...W2(head), jit: 0.15 });
@@ -5576,11 +5847,17 @@ void main(){
       b.cyl(0.162, 0.165, 0.07, 10, pal.helmet, { y: 0.15 }, W2(head));
     }
     for (const [sh, el2] of [[shL, elL], [shR, elR]]) {
+      if (pt) {
+        b.box(0.15, 0.12, 0.16, pal.coat, { y: -0.05 }, W2(sh));
+        b.box(0.12, 0.22, 0.13, face, { y: -0.2 }, W2(sh));
+        b.box(0.11, 0.28, 0.12, face, { y: -0.12 }, W2(el2));
+        continue;
+      }
       b.box(0.14, 0.33, 0.15, pal.coat, { y: -0.13 }, W2(sh));
       b.box(0.13, 0.28, 0.14, pal.coat, { y: -0.12 }, W2(el2));
       b.box(0.11, 0.1, 0.12, face, { y: -0.3 }, W2(el2));
     }
-    const wpn = opts.weapon || (enemy ? "k98" : "m1");
+    const wpn = opts.weapon || (enemy ? "k98" : pt ? "none" : "m1");
     const G2 = W2(gun);
     if (wpn === "m1" || wpn === "k98") {
       const wood = wpn === "m1" ? 7029801 : 5913124;
@@ -5649,6 +5926,16 @@ void main(){
     b[Bi.gun].rotation.x = lerp(1.15, 1.5, k);
     b[Bi.gun].rotation.y = lerp(0.55, 0, k);
     b[Bi.gun].rotation.z = lerp(0.2, 0, k);
+    if (a.weapon === "none") {
+      const run = mv;
+      b[Bi.shL].rotation.set(sw * 0.9 * run - 0.15 * run, 0, -0.08);
+      b[Bi.shR].rotation.set(-sw * 0.9 * run - 0.15 * run, 0, 0.08);
+      b[Bi.elL].rotation.x = -0.15 - 1.25 * run;
+      b[Bi.elR].rotation.x = -0.15 - 1.25 * run;
+      b[Bi.gun].rotation.set(0, 0, 0);
+      b[Bi.spine].rotation.x = 0.16 * mv + cr * 0.42 + (st.slump || 0) * 0.5;
+      b[Bi.head].rotation.x = -(st.slump || 0) * 0.35 + (st.look || 0);
+    }
     if (aim > 0.5) {
       b[Bi.chest].rotation.y += 0.22;
       b[Bi.head].rotation.y = -0.18;
@@ -7311,28 +7598,7 @@ void main(){
     return Math.hypot(x - (s.ax + dx * t), z - (s.az + dz * t));
   }
 
-  // src/data/dia-d-cast.js
-  var CAST = {
-    winters: { id: "winters", name: "Tte. Richard Winters", short: "Winters", rank: "Compa\xF1\xEDa E \xB7 1.er pelot\xF3n", rankKey: "lt", portrait: { rank: "lt", skin: "#dba886" }, skin: 14395526 },
-    lipton: { id: "lipton", name: "Sgto. Carwood Lipton", short: "Lipton", rank: "Sargento", rankKey: "sgt", portrait: { rank: "sgt", skin: "#d39f7d" }, skin: 13868925, mustache: true },
-    guarnere: { id: "guarnere", name: "Sgto. Bill Guarnere", short: "Guarnere", rank: "Sargento", rankKey: "sgt", portrait: { rank: "sgt", skin: "#cf9874" }, skin: 13604980 },
-    malarkey: { id: "malarkey", name: "Don Malarkey", short: "Malarkey", rank: "Soldado", portrait: { skin: "#e0b08f" }, skin: 14725263 },
-    toye: { id: "toye", name: "Joe Toye", short: "Toye", rank: "Soldado", portrait: { skin: "#d7a483" }, skin: 14132355 },
-    wynn: { id: "wynn", name: "\xABPopeye\xBB Wynn", short: "Wynn", rank: "Soldado", portrait: { skin: "#d9a07a" }, skin: 14262394 },
-    compton: { id: "compton", name: "Tte. Buck Compton", short: "Compton", rank: "Teniente", rankKey: "lt", portrait: { rank: "lt", skin: "#d6a07c" }, skin: 14065788 },
-    plesha: { id: "plesha", name: "John Plesha", short: "Plesha", portrait: {} },
-    hendrix: { id: "hendrix", name: "Walter Hendrix", short: "Hendrix", portrait: {} },
-    liebgott: { id: "liebgott", name: "Joe Liebgott", short: "Liebgott", portrait: {} },
-    hall: { id: "hall", name: "John D. Hall", short: "Hall", rank: "Compa\xF1\xEDa A", portrait: { skin: "#d2a281" }, skin: 13804161 }
-  };
-
-  // src/chapters/dia-d/dday.js
-  var F = [-Math.SQRT1_2, -Math.SQRT1_2];
-  var R = [Math.SQRT1_2, -Math.SQRT1_2];
-  var S0 = [35.35, 35.35];
-  var W = (u, v) => [S0[0] + F[0] * u + R[0] * v, S0[1] + F[1] * u + R[1] * v];
-  var WL = (list) => list.map(([u, v]) => W(u, v));
-  var ANG = Math.atan2(F[0], F[1]);
+  // src/engine/stage.js
   function sky(scene2, top, bottom) {
     const g = new T.SphereGeometry(400, 16, 8);
     const m = new T.ShaderMaterial({
@@ -7379,6 +7645,44 @@ void main(){
       b.tris([-w, 0, 0, w, 0, 0, w * 0.2, h, lean], col, { mat: m, jit: 0.2, grad: { y0: 0, y1: 0.5, k: 0.22 } });
     }
   }
+  function signTexture(text, o = {}) {
+    const c = document.createElement("canvas");
+    c.width = 256;
+    c.height = 64;
+    const x = c.getContext("2d");
+    x.fillStyle = o.bg || "#b9b2a2";
+    x.fillRect(0, 0, 256, 64);
+    x.fillStyle = o.fg || "#2a2a28";
+    x.font = o.font || "bold 26px Georgia, serif";
+    x.textAlign = "center";
+    x.fillText(text, 128, 42);
+    const t = new T.CanvasTexture(c);
+    t.colorSpace = "srgb";
+    return t;
+  }
+
+  // src/data/dia-d-cast.js
+  var CAST = {
+    winters: { id: "winters", name: "Tte. Richard Winters", short: "Winters", rank: "Compa\xF1\xEDa E \xB7 1.er pelot\xF3n", rankKey: "lt", portrait: { rank: "lt", skin: "#dba886" }, skin: 14395526 },
+    lipton: { id: "lipton", name: "Sgto. Carwood Lipton", short: "Lipton", rank: "Sargento", rankKey: "sgt", portrait: { rank: "sgt", skin: "#d39f7d" }, skin: 13868925, mustache: true },
+    guarnere: { id: "guarnere", name: "Sgto. Bill Guarnere", short: "Guarnere", rank: "Sargento", rankKey: "sgt", portrait: { rank: "sgt", skin: "#cf9874" }, skin: 13604980 },
+    malarkey: { id: "malarkey", name: "Don Malarkey", short: "Malarkey", rank: "Soldado", portrait: { skin: "#e0b08f" }, skin: 14725263 },
+    toye: { id: "toye", name: "Joe Toye", short: "Toye", rank: "Soldado", portrait: { skin: "#d7a483" }, skin: 14132355 },
+    wynn: { id: "wynn", name: "\xABPopeye\xBB Wynn", short: "Wynn", rank: "Soldado", portrait: { skin: "#d9a07a" }, skin: 14262394 },
+    compton: { id: "compton", name: "Tte. Buck Compton", short: "Compton", rank: "Teniente", rankKey: "lt", portrait: { rank: "lt", skin: "#d6a07c" }, skin: 14065788 },
+    plesha: { id: "plesha", name: "John Plesha", short: "Plesha", portrait: {} },
+    hendrix: { id: "hendrix", name: "Walter Hendrix", short: "Hendrix", portrait: {} },
+    liebgott: { id: "liebgott", name: "Joe Liebgott", short: "Liebgott", portrait: {} },
+    hall: { id: "hall", name: "John D. Hall", short: "Hall", rank: "Compa\xF1\xEDa A", portrait: { skin: "#d2a281" }, skin: 13804161 }
+  };
+
+  // src/chapters/dia-d/dday.js
+  var F = [-Math.SQRT1_2, -Math.SQRT1_2];
+  var R = [Math.SQRT1_2, -Math.SQRT1_2];
+  var S0 = [35.35, 35.35];
+  var W = (u, v) => [S0[0] + F[0] * u + R[0] * v, S0[1] + F[1] * u + R[1] * v];
+  var WL = (list) => list.map(([u, v]) => W(u, v));
+  var ANG = Math.atan2(F[0], F[1]);
   var BANK_N = new T.Color().setRGB(0.24, 0.21, 0.19, "srgb");
   var BANK_D = new T.Color().setRGB(0.36, 0.29, 0.21, "srgb");
   function bankK(world, x, z) {
@@ -7391,21 +7695,6 @@ void main(){
       best = Math.min(best, Math.hypot(x - r.ax - dx * t, z - r.az - dz * t));
     }
     return smooth(1.9, 0.9, best) * 0.75 * (0.7 + fbm(x * 0.9, z * 0.9, 2) * 0.6);
-  }
-  function signTexture(text) {
-    const c = document.createElement("canvas");
-    c.width = 256;
-    c.height = 64;
-    const x = c.getContext("2d");
-    x.fillStyle = "#b9b2a2";
-    x.fillRect(0, 0, 256, 64);
-    x.fillStyle = "#2a2a28";
-    x.font = "bold 26px Georgia, serif";
-    x.textAlign = "center";
-    x.fillText(text, 128, 42);
-    const t = new T.CanvasTexture(c);
-    t.colorSpace = "srgb";
-    return t;
   }
   function buildNight(ctx) {
     const { scene: scene2, q: q2 } = ctx;
@@ -8029,6 +8318,7 @@ void main(){
     team.wynn = mk(CAST.wynn, st[0] - 8, st[1] - 0.5);
     const mgA = mk(CAST.plesha, st[0] - 9.5, st[1], { weapon: "mg42" });
     const mgB = mk(CAST.liebgott, st[0] - 11, st[1] + 0.3, { weapon: "thompson" });
+    void off;
     const followAll = () => Object.values(team).concat([mgA, mgB]).forEach((s, i) => s.alive && (s.ai = { mode: "follow", slot: 1 + i, engage: true }));
     const de = [];
     const fj = (u, v, o = {}) => {
@@ -8065,7 +8355,7 @@ void main(){
       return c;
     };
     const near = (p, r) => Math.hypot(win.x - W(...p)[0], win.z - W(...p)[1]) < r;
-    g.onPlayerDeath = (s) => g.deathCard({ guaranteed: !g.flags.permadeath, who: s });
+    g.onPlayerDeath = (s) => g.deathCard({ guaranteed: true, who: s });
     g.onEnemyKilled = () => {
       g.flags.kills = (g.flags.kills || 0) + 1;
     };
@@ -8159,15 +8449,6 @@ void main(){
     }
     if (at("b2")) {
       g.checkpoint("brecourt", "b2");
-      if (!g.flags.permadeath) {
-        g.flags.permadeath = true;
-        await ui2.card({
-          kicker: "Br\xE9court Manor \xB7 08:45",
-          title: "Desde aqu\xED, quien cae no vuelve",
-          text: "La compa\xF1\xEDa ya ha tenido su bautismo de fuego. A partir de este momento, si el hombre que llevas muere, no habr\xE1 vuelta atr\xE1s: la historia seguir\xE1 con otro.",
-          next: "Entendido"
-        });
-      }
       const mal = team.malarkey;
       if (mal && mal.alive) {
         await g.wait(2);
@@ -8469,6 +8750,7 @@ void main(){
   var scene = null;
   var lvl = null;
   var save = loadSave() || { part: "night", cp: "n0", lead: "winters" };
+  if (save.lead === "lipton") save.lead = "winters";
   var running = false;
   function disposeScene(sc) {
     if (!sc) return;
@@ -8535,7 +8817,7 @@ void main(){
         await ui.card({
           kicker: "A\xFAn no",
           title: `${nm} no cae aqu\xED`,
-          text: "La historia necesita a este hombre vivo esta noche. Vuelves al \xFAltimo punto de control: lo que ocurra a partir de Br\xE9court ya no tendr\xE1 vuelta atr\xE1s.",
+          text: "La historia necesita a este hombre vivo. Vuelves al \xFAltimo punto de control.",
           next: "Reintentar"
         });
         restart();

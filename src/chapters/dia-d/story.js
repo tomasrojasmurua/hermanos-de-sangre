@@ -436,7 +436,8 @@ export async function brecourtScript(g, from = "b0") {
   };
   const near = (p, r) => Math.hypot(win.x - W(...p)[0], win.z - W(...p)[1]) < r;
 
-  g.onPlayerDeath = (s) => g.deathCard({ guaranteed: !g.flags.permadeath, who: s });
+  // Winters survives the war in the book: falling is always a retry from the last checkpoint
+  g.onPlayerDeath = (s) => g.deathCard({ guaranteed: true, who: s });
   g.onEnemyKilled = () => {
     g.flags.kills = (g.flags.kills || 0) + 1;
   };
@@ -531,15 +532,6 @@ export async function brecourtScript(g, from = "b0") {
   }
   if (at("b2")) {
     g.checkpoint("brecourt", "b2");
-    if (!g.flags.permadeath) {
-      g.flags.permadeath = true;
-      await ui.card({
-        kicker: "Brécourt Manor · 08:45",
-        title: "Desde aquí, quien cae no vuelve",
-        text: "La compañía ya ha tenido su bautismo de fuego. A partir de este momento, si el hombre que llevas muere, no habrá vuelta atrás: la historia seguirá con otro.",
-        next: "Entendido",
-      });
-    }
     // Malarkey and the black holster
     const mal = team.malarkey;
     if (mal && mal.alive) {
