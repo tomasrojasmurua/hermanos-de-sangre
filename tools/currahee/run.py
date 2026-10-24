@@ -12,6 +12,7 @@ async def main():
         pg.on('console', lambda m: logs.append(m.type+': '+m.text) if m.type in ('error','warning') else None)
         pg.on('pageerror', lambda e: logs.append('PAGEERROR: '+str(e)))
         await pg.add_init_script(path=os.path.join(ROOT,'tools','currahee','bot.js'))
+        await pg.add_init_script(path=os.path.join(ROOT,'tools','currahee','summit.js'))
         await pg.goto('file://'+os.path.join(ROOT,'juego.html')+q)
         for s in steps:
             k=s[0]

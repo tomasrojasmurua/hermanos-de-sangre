@@ -8530,7 +8530,8 @@ void main(){
     }
     // arc length of the closest point. With a hint only segments within ±win metres of it are searched,
     // so a route that doubles back on itself (up the hill and down the same road) stays on the right leg.
-    project(x, z, hint = null, win = 30) {
+    // head: optional unit vector of travel; on a road that doubles back, the leg running the same way wins
+    project(x, z, hint = null, win = 30, head = null) {
       let best = hint ?? 0, bd = 1e9;
       for (let i = 1; i < this.p.length; i++) {
         if (hint != null && (this.len[i] < hint - win || this.len[i - 1] > hint + win)) continue;
@@ -8539,7 +8540,8 @@ void main(){
         const t = clamp(((x - a2[0]) * (b[0] - a2[0]) + (z - a2[1]) * (b[1] - a2[1])) / (L * L), 0, 1);
         const px = a2[0] + (b[0] - a2[0]) * t, pz = a2[1] + (b[1] - a2[1]) * t;
         const sa = this.len[i - 1] + t * L;
-        const d = (x - px) ** 2 + (z - pz) ** 2 + (hint != null ? 0.02 * (sa - hint) ** 2 + 0.01 * Math.max(0, hint - sa) : 0);
+        let d = (x - px) ** 2 + (z - pz) ** 2 + (hint != null ? 0.02 * (sa - hint) ** 2 + 0.01 * Math.max(0, hint - sa) : 0);
+        if (head) d += 3 * Math.max(0, -((b[0] - a2[0]) * head[0] + (b[1] - a2[1]) * head[1]) / L);
         if (d < bd) {
           bd = d;
           best = sa;
@@ -8643,8 +8645,17 @@ void main(){
     updatePlayer(dt, pace, ctx) {
       const p = this.cfg.player, G = this.G, P2 = this.p;
       if (!p) return;
-      let pr = this.route.project(p.x, p.z, P2.s, 6);
-      if (pr.off > 6) pr = this.route.project(p.x, p.z, P2.s, 30);
+      if (P2.px != null) {
+        const vx = (p.x - P2.px) / dt, vz = (p.z - P2.pz) / dt;
+        P2.vx = damp(P2.vx || 0, vx, 4, dt);
+        P2.vz = damp(P2.vz || 0, vz, 4, dt);
+      }
+      P2.px = p.x;
+      P2.pz = p.z;
+      const sp = Math.hypot(P2.vx || 0, P2.vz || 0);
+      const hd = sp > 0.6 ? [P2.vx / sp, P2.vz / sp] : null;
+      let pr = this.route.project(p.x, p.z, P2.s, 6, hd);
+      if (pr.off > 6) pr = this.route.project(p.x, p.z, P2.s, 30, hd);
       P2.s = pr.s;
       const v = p.st.move * p.speed;
       const climb = Math.max(0, this.cfg.grade ? this.cfg.grade(P2.s, this.dir) : 0);
@@ -8827,7 +8838,7 @@ void main(){
       }
     });
     const flagged = /* @__PURE__ */ new Set(), helped = /* @__PURE__ */ new Set(), lost = [], carried = [];
-    window.__run = { col, win, music };
+    window.__run = { col, win, music, summitS, route };
     for (const m of col.men) {
       const sl = col.slot(m.rank, m.lane);
       m.sol.x = sl.x;

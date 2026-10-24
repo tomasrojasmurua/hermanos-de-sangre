@@ -22,7 +22,8 @@ export class Route {
   }
   // arc length of the closest point. With a hint only segments within ±win metres of it are searched,
   // so a route that doubles back on itself (up the hill and down the same road) stays on the right leg.
-  project(x, z, hint = null, win = 30) {
+  // head: optional unit vector of travel; on a road that doubles back, the leg running the same way wins
+  project(x, z, hint = null, win = 30, head = null) {
     let best = hint ?? 0, bd = 1e9;
     for (let i = 1; i < this.p.length; i++) {
       if (hint != null && (this.len[i] < hint - win || this.len[i - 1] > hint + win)) continue;
@@ -32,7 +33,8 @@ export class Route {
       const px = a[0] + (b[0] - a[0]) * t, pz = a[1] + (b[1] - a[1]) * t;
       const sa = this.len[i - 1] + t * L;
       // the way down is the same road as the way up: on identical points keep continuity with last frame (and lean forward)
-      const d = (x - px) ** 2 + (z - pz) ** 2 + (hint != null ? 0.02 * (sa - hint) ** 2 + 0.01 * Math.max(0, hint - sa) : 0);
+      let d = (x - px) ** 2 + (z - pz) ** 2 + (hint != null ? 0.02 * (sa - hint) ** 2 + 0.01 * Math.max(0, hint - sa) : 0);
+      if (head) d += 3 * Math.max(0, -((b[0] - a[0]) * head[0] + (b[1] - a[1]) * head[1]) / L);
       if (d < bd) {
         bd = d;
         best = sa;
@@ -144,8 +146,18 @@ export class Column {
     if (!p) return;
     // track along the route continuously: a narrow window around last frame's arc length, so the
     // two legs that meet at the summit never get confused; widen only if the player left the road
-    let pr = this.route.project(p.x, p.z, P.s, 6);
-    if (pr.off > 6) pr = this.route.project(p.x, p.z, P.s, 30);
+    // heading from the last frames (smoothed), so the way up and the way down are told apart
+    if (P.px != null) {
+      const vx = (p.x - P.px) / dt, vz = (p.z - P.pz) / dt;
+      P.vx = damp(P.vx || 0, vx, 4, dt);
+      P.vz = damp(P.vz || 0, vz, 4, dt);
+    }
+    P.px = p.x;
+    P.pz = p.z;
+    const sp = Math.hypot(P.vx || 0, P.vz || 0);
+    const hd = sp > 0.6 ? [P.vx / sp, P.vz / sp] : null;
+    let pr = this.route.project(p.x, p.z, P.s, 6, hd);
+    if (pr.off > 6) pr = this.route.project(p.x, p.z, P.s, 30, hd);
     P.s = pr.s;
     // stamina: speed above an easy jog costs, climbing costs, being far off the road costs
     const v = p.st.move * p.speed;

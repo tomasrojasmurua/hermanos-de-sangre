@@ -147,7 +147,7 @@ export async function currahee(ctx, opts) {
     },
   });
   const flagged = new Set(), helped = new Set(), lost = [], carried = [];
-  window.__run = { col, win, music }; // for test bots (tools/currahee)
+  window.__run = { col, win, music, summitS, route }; // for test bots (tools/currahee)
   // place everyone in their slot before the whistle
   for (const m of col.men) {
     const sl = col.slot(m.rank, m.lane);
