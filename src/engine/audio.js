@@ -14,7 +14,7 @@ export class Audio {
     }
     const c = this.ctx;
     this.master = c.createGain();
-    this.master.gain.value = 3.4; // measured: master sat near −36 dB RMS on a phone-quiet mix; the compressor catches the peaks
+    this.master.gain.value = 3.0; // measured: master sat near −36 dB RMS on a phone-quiet mix; the compressor catches the peaks
     const comp = c.createDynamicsCompressor();
     comp.threshold.value = -16;
     comp.ratio.value = 5;
