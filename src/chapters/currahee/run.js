@@ -117,7 +117,6 @@ export async function currahee(ctx, opts) {
       flagged.add(m.id);
     },
     onRecover: (m) => {
-      audio.say([["a", 0.12, 900], ["o", 0.22, 4200]], { x: win.x, z: win.z, pitch: 140 }); // «¡vamos!»
       ui.say("Winters", r() < 0.5 ? `Vamos, ${m.sol.short}. Conmigo.` : `Un paso más, ${m.sol.short}. Y otro.`, 1.8);
       roster.bond("winters", m.id, 6);
       roster.mood(m.id, 4);
@@ -227,7 +226,6 @@ export async function currahee(ctx, opts) {
       nextLine = 9 + r() * 6;
       const line = SOBEL_LINES[Math.floor(r() * SOBEL_LINES.length)];
       ui.say("Sobel", line, 2.2);
-      audio.say(line.includes("Silver") ? [["a", 0.1], ["e", 0.12, 1800], ["a", 0.14, 1800], ["e", 0.18, 2400], ["i", 0.16, 4500], ["e", 0.3, 1400]] : [["a", 0.14, 1600], ["o", 0.12, 2400], ["a", 0.26, 1200]], { x: sobel.x, z: sobel.z, pitch: 175, gain: 0.16 });
     }
     // spaghetti: men retching by the road
     if (opts.variant === "spaghetti") {

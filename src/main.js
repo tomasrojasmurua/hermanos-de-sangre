@@ -117,6 +117,7 @@ if (qs.get("m")) {
   save = freshSave();
   if (qs.get("ate")) save.flags.ate = true;
   shell.audio.init();
+  shell.music.start();
   playChapter("currahee", qs.get("m"));
 } else title();
 window.__clearSave = clearSave;

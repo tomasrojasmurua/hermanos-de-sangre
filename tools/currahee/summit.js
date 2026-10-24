@@ -4,6 +4,7 @@ window.__summit = function () {
   col.s = R.summitS - 20;
   for (const m of col.men) { const sl = col.slot(m.rank, m.lane); m.sol.x = sl.x; m.sol.z = sl.z; }
   const ws = col.slot(2, 1.6); win.x = ws.x; win.z = ws.z; col.p.s = ws.s;
+  const G = window.__G(); G.cam.x = win.x; G.cam.z = win.z;
   window.__slog = [];
   let t = 0;
   window.__shell.hook((dt) => {

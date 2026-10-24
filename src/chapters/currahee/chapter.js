@@ -16,7 +16,7 @@ function muster(G, roster, kit = "hbt") {
   ids.forEach((id, i) => {
     const c = cast(id) || roster.get(id);
     const row = Math.floor(i / 8), colI = i % 8;
-    const [x, z] = W(-82 + colI * 1.9, 3 - row * 1.9);
+    const [x, z] = W(-82 + colI * 1.9, 3.4 - row * 2.7);
     const s = G.add({ id, name: c.name, short: c.short, side: "us", kit, weapon: "none", skin: c.skin, mustache: c.mustache, seed: 200 + i, x, z, ry: face });
     s.st.phase = Math.random() * 6;
   });
@@ -50,6 +50,7 @@ export const CURRAHEE = {
   title: "Currahee",
   kicker: "Capítulo I · Toccoa, Georgia · 1942",
   places: { toccoa: buildToccoa },
+  beds: { toccoa: "georgia" },
   moments: [
     {
       id: "llegada",
@@ -61,8 +62,7 @@ export const CURRAHEE = {
         muster(G, roster, "hbt");
         G.camSpan = 15;
         G.cam.span = 15;
-        const off = drift(ctx, W(-92, 6), W(-74, 3), 30);
-        audio.startBed("georgia");
+        const off = drift(ctx, W(-80, 3), W(-74, 1), 34);
         music.sting("arrival");
         await ui.card({
           kicker: "Toccoa, Georgia · Julio de 1942",

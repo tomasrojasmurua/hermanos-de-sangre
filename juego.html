@@ -4897,7 +4897,7 @@ void main(){
       }
       const c = this.ctx;
       this.master = c.createGain();
-      this.master.gain.value = 0.9;
+      this.master.gain.value = 3.4;
       const comp = c.createDynamicsCompressor();
       comp.threshold.value = -16;
       comp.ratio.value = 5;
@@ -4907,6 +4907,7 @@ void main(){
       this.voiceBus = c.createGain();
       this.ambBus = c.createGain();
       for (const b2 of [this.sfxBus, this.musicBus, this.voiceBus, this.ambBus]) b2.connect(this.master);
+      this.ambBus.gain.value = 0.5;
       this.meters = {};
       for (const [k, b2] of Object.entries({ sfx: this.sfxBus, music: this.musicBus, voice: this.voiceBus, amb: this.ambBus, master: comp })) {
         const an = c.createAnalyser();
@@ -4936,6 +4937,7 @@ void main(){
       this.verbGain.gain.value = 0.35;
       this.verb.connect(this.verbGain).connect(this.sfxBus);
       this.on = true;
+      if (this.wantBed) this.startBed(this.wantBed);
     }
     resume() {
       this.ctx && this.ctx.state !== "running" && this.ctx.resume();
@@ -5160,7 +5162,7 @@ void main(){
       const t = this.ctx.currentTime;
       this.musicBus.gain.setTargetAtTime(this.levels.music, t, 0.1);
       this.sfxBus.gain.setTargetAtTime(this.levels.sfx, t, 0.1);
-      this.ambBus.gain.setTargetAtTime(this.levels.sfx * 0.9, t, 0.1);
+      this.ambBus.gain.setTargetAtTime(this.levels.sfx * 0.5, t, 0.1);
       this.voiceBus.gain.setTargetAtTime(this.levels.voice, t, 0.1);
     }
     setLevels(l) {
@@ -5236,6 +5238,29 @@ void main(){
         }
       }
     }
+    // a spoken line as formant babble: the vowels of the first words, with the consonants' colour.
+    // Not words, just the shape and pitch of a voice under the subtitle (no recorded dialogue).
+    speak(text, { x, z, pitch = 150, gain = 0.15, max = 9 } = {}) {
+      if (!this.on || !text) return;
+      const shout = /[¡!]/.test(text), quiet = /^\(/.test(text);
+      const clean = text.replace(/\([^)]*\)/g, "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const syl = [];
+      const CONS = (c) => "szcx".includes(c) ? 4600 : "rl".includes(c) ? 1300 : "ptkqbdg".includes(c) ? 2400 : "mn\xF1".includes(c) ? 0 : 1700;
+      let prev = "";
+      for (const ch of clean) {
+        if ("aeiou".includes(ch)) {
+          if (syl.length >= max) break;
+          syl.push([ch, 0.07 + Math.random() * 0.06, prev ? CONS(prev) || void 0 : void 0]);
+          prev = "";
+        } else if (/[a-zñ]/.test(ch)) prev = ch;
+        else if (ch === "," || ch === "." || ch === "?") {
+          if (syl.length) syl[syl.length - 1][1] += 0.12;
+        }
+      }
+      if (!syl.length) return;
+      syl[syl.length - 1][1] += shout ? 0.16 : 0.08;
+      this.say(syl, { x, z, pitch: pitch * (shout ? 1.12 : quiet ? 0.92 : 1), gain: gain * (shout ? 1.3 : quiet ? 0.45 : 1) });
+    }
     chant(word = "currahee", n = 8, x, z) {
       const W2 = {
         currahee: [["u", 0.16, 2600], ["a", 0.18, 1400], ["i", 0.42, 900]],
@@ -5288,8 +5313,8 @@ void main(){
       if (!this.on) return;
       const o = this._out(0, pan);
       const t = this.ctx.currentTime;
-      this._noise(o, t, 0.07, { f0: 700 + Math.random() * 300, type: "lowpass", gain: 0.1 * soft });
-      this._noise(o, t + 0.01, 0.05, { f0: 2600, type: "bandpass", q: 1, gain: 0.025 * soft });
+      this._noise(o, t, 0.07, { f0: 700 + Math.random() * 300, type: "lowpass", gain: 0.18 * soft });
+      this._noise(o, t + 0.01, 0.05, { f0: 2600, type: "bandpass", q: 1, gain: 0.05 * soft });
     }
     engine(x, z, dur = 3) {
       if (!this.on) return;
@@ -5301,8 +5326,10 @@ void main(){
     }
     // a looping bed for each place (cicadas & hot wind for Georgia; crickets at night)
     startBed(kind) {
-      if (!this.on) return;
+      this.wantBed = kind;
+      if (!this.on || this.bed && this.bedKind === kind) return;
       this.stopBed();
+      this.bedKind = kind;
       const c = this.ctx;
       const g = c.createGain();
       g.gain.value = 0;
@@ -5362,6 +5389,7 @@ void main(){
         }
       }), 3e3);
       this.bed = null;
+      this.bedKind = null;
     }
     setBed(level) {
       this.bed && this.bed.g.gain.setTargetAtTime(level, this.ctx.currentTime, 1.2);
@@ -5433,7 +5461,7 @@ void main(){
       const def = THEMES[name] || THEMES.calm;
       const bus = c.createGain();
       bus.gain.setValueAtTime(1e-4, t);
-      bus.gain.setTargetAtTime(1, t + 0.2, 1.4);
+      bus.gain.setTargetAtTime(1.8, t + 0.2, 1.4);
       bus.connect(this.a.musicBus);
       const layers = {};
       for (const k of Object.keys(def.layers)) {
@@ -5963,6 +5991,7 @@ void main(){
         void this.sub.offsetWidth;
         this.sub.classList.add("pop");
         this.subT = s.dur;
+        if (this.onLine) this.onLine(s.who, s.text);
       }
     }
     get talking() {
@@ -7427,6 +7456,14 @@ void main(){
       this.ui = new UI(this.uiRoot);
       this.input = new Input(this.uiRoot);
       this.ui.bindInput(this.input);
+      const PITCH = { Sobel: 178, Winters: 132, Lipton: 140, Guarnere: 150, Tipper: 158, Nixon: 126 };
+      this.ui.onLine = (who, text) => {
+        if (!who) return;
+        const s = this.G && this.G.soldiers.find((o) => o.short === who);
+        let h = 0;
+        for (const c of who) h = (h * 31 + c.charCodeAt(0)) % 997;
+        this.audio.speak(text, { pitch: PITCH[who] || 118 + h % 50, x: s?.x, z: s?.z });
+      };
       this.camera = new T.OrthographicCamera(-10, 10, 10, -10, 1, 260);
       this.G = null;
       this.scene = null;
@@ -7493,7 +7530,7 @@ void main(){
       }
       const R = this.R;
       R.post.fade.value = damp(R.post.fade.value, this.fadeTo || 0, 2, real);
-      if (G.player) this.audio.listener = { x: G.player.x, z: G.player.z };
+      this.audio.listener = G.player ? { x: G.player.x, z: G.player.z } : { x: G.cam.x, z: G.cam.z };
       const want = G.camSpan || 12.5;
       if (Math.abs(G.cam.span - want) > 0.05) G.cam.span = damp(G.cam.span, want, G.camSpanK || 0.8, real);
       const L = G.lvl.L;
@@ -7826,6 +7863,9 @@ void main(){
     const m = MODES[mode] || MODES.narrative;
     document.body.dataset.mode = mode;
     shell2.ui.show(m.hud);
+    const bed = ctx.moment.bed ?? ctx.chapter.beds?.[ctx.moment.place];
+    if (bed) shell2.audio.startBed(bed);
+    else if (bed === null) shell2.audio.stopBed();
     if (ctx.moment.music !== false) shell2.music.set(ctx.moment.music?.theme || m.music.theme, ctx.moment.music?.level ?? m.music.level);
   }
 
@@ -8427,7 +8467,18 @@ void main(){
     sgn.rotation.y = campAng + Math.PI / 2;
     scene.add(sgn);
     for (let i = 0; i < 10; i++) pole(world, B2, ...W(-120 + i * 9, 41), 6);
-    const onRoad = (u, v) => Math.abs(v - roadV(u)) < 4.2;
+    const RW = routeWorld();
+    const roadDist = (x, z) => {
+      let best = 1e9;
+      for (let i = 1; i < RW.length; i++) {
+        const [ax, az] = RW[i - 1], [bx, bz] = RW[i];
+        const dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz || 1;
+        const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / L2));
+        best = Math.min(best, Math.hypot(x - ax - dx * t, z - az - dz * t));
+      }
+      return best;
+    };
+    const onRoad = (u, v) => Math.abs(v - roadV(u)) < 4.2 || roadDist(...W(u, v)) < 3.6;
     const inCamp = (u, v) => u < -34 && u > -126 && Math.abs(v) < 46;
     for (let i = 0, tries = 0; i < Math.floor(620 * q.props) && tries < 9e3; tries++) {
       const u = -130 + r() * 330, v = (r() - 0.5) * 120;
@@ -8437,7 +8488,7 @@ void main(){
       const [x, z] = W(u, v);
       if (Math.abs(world.height(x, z) - world.rawHeight(x, z)) > 0.5) continue;
       i++;
-      if (r() < 0.75) pine(world, B2, Fo, x, z, 0.8 + r() * 0.45, r);
+      if (r() < 0.75 && roadDist(x, z) > 9) pine(world, B2, Fo, x, z, 0.8 + r() * 0.45, r);
       else scrub(world, Fo, x, z, 0.7 + r() * 0.8, r);
     }
     for (const [u, v] of [[-118, 12], [-104, -30], [-60, 30], [-40, -38], [-122, -36], [-76, 40]]) pine(world, B2, Fo, ...W(u, v), 1.05);
@@ -8809,7 +8860,6 @@ void main(){
         flagged.add(m.id);
       },
       onRecover: (m) => {
-        audio.say([["a", 0.12, 900], ["o", 0.22, 4200]], { x: win.x, z: win.z, pitch: 140 });
         ui.say("Winters", r() < 0.5 ? `Vamos, ${m.sol.short}. Conmigo.` : `Un paso m\xE1s, ${m.sol.short}. Y otro.`, 1.8);
         roster.bond("winters", m.id, 6);
         roster.mood(m.id, 4);
@@ -8910,7 +8960,6 @@ void main(){
         nextLine = 9 + r() * 6;
         const line = SOBEL_LINES[Math.floor(r() * SOBEL_LINES.length)];
         ui.say("Sobel", line, 2.2);
-        audio.say(line.includes("Silver") ? [["a", 0.1], ["e", 0.12, 1800], ["a", 0.14, 1800], ["e", 0.18, 2400], ["i", 0.16, 4500], ["e", 0.3, 1400]] : [["a", 0.14, 1600], ["o", 0.12, 2400], ["a", 0.26, 1200]], { x: sobel.x, z: sobel.z, pitch: 175, gain: 0.16 });
       }
       if (opts.variant === "spaghetti") {
         for (const m of col.men) {
@@ -9008,7 +9057,7 @@ void main(){
     ids.forEach((id, i) => {
       const c = cast(id) || roster.get(id);
       const row = Math.floor(i / 8), colI = i % 8;
-      const [x, z] = W(-82 + colI * 1.9, 3 - row * 1.9);
+      const [x, z] = W(-82 + colI * 1.9, 3.4 - row * 2.7);
       const s = G.add({ id, name: c.name, short: c.short, side: "us", kit, weapon: "none", skin: c.skin, mustache: c.mustache, seed: 200 + i, x, z, ry: face });
       s.st.phase = Math.random() * 6;
     });
@@ -9039,6 +9088,7 @@ void main(){
     title: "Currahee",
     kicker: "Cap\xEDtulo I \xB7 Toccoa, Georgia \xB7 1942",
     places: { toccoa: buildToccoa },
+    beds: { toccoa: "georgia" },
     moments: [
       {
         id: "llegada",
@@ -9050,8 +9100,7 @@ void main(){
           muster(G, roster, "hbt");
           G.camSpan = 15;
           G.cam.span = 15;
-          const off = drift(ctx, W(-92, 6), W(-74, 3), 30);
-          audio.startBed("georgia");
+          const off = drift(ctx, W(-80, 3), W(-74, 1), 34);
           music.sting("arrival");
           await ui.card({
             kicker: "Toccoa, Georgia \xB7 Julio de 1942",
@@ -9296,6 +9345,7 @@ void main(){
     save = freshSave();
     if (qs.get("ate")) save.flags.ate = true;
     shell.audio.init();
+    shell.music.start();
     playChapter("currahee", qs.get("m"));
   } else title();
   window.__clearSave = clearSave;

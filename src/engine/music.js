@@ -52,7 +52,7 @@ export class Music {
     const def = THEMES[name] || THEMES.calm;
     const bus = c.createGain();
     bus.gain.setValueAtTime(0.0001, t);
-    bus.gain.setTargetAtTime(1, t + 0.2, 1.4);
+    bus.gain.setTargetAtTime(1.8, t + 0.2, 1.4); // measured: the music sat under the cicadas
     bus.connect(this.a.musicBus);
     const layers = {};
     for (const k of Object.keys(def.layers)) {

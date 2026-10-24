@@ -228,6 +228,7 @@ export class UI {
       void this.sub.offsetWidth;
       this.sub.classList.add("pop");
       this.subT = s.dur;
+      if (this.onLine) this.onLine(s.who, s.text);
     }
   }
   get talking() {

@@ -14,7 +14,7 @@ export class Audio {
     }
     const c = this.ctx;
     this.master = c.createGain();
-    this.master.gain.value = 0.9;
+    this.master.gain.value = 3.4; // measured: master sat near −36 dB RMS on a phone-quiet mix; the compressor catches the peaks
     const comp = c.createDynamicsCompressor();
     comp.threshold.value = -16;
     comp.ratio.value = 5;
@@ -25,6 +25,7 @@ export class Audio {
     this.voiceBus = c.createGain();
     this.ambBus = c.createGain();
     for (const b of [this.sfxBus, this.musicBus, this.voiceBus, this.ambBus]) b.connect(this.master);
+    this.ambBus.gain.value = 0.5; // cicadas sat 8 dB over the music: the bed sits under, not over
     this.meters = {};
     for (const [k, b] of Object.entries({ sfx: this.sfxBus, music: this.musicBus, voice: this.voiceBus, amb: this.ambBus, master: comp })) {
       const an = c.createAnalyser();
@@ -56,6 +57,8 @@ export class Audio {
     this.verbGain.gain.value = 0.35;
     this.verb.connect(this.verbGain).connect(this.sfxBus);
     this.on = true;
+    // a bed asked for before the first touch starts now
+    if (this.wantBed) this.startBed(this.wantBed);
   }
   resume() {
     this.ctx && this.ctx.state !== "running" && this.ctx.resume();
@@ -284,7 +287,7 @@ export class Audio {
     const t = this.ctx.currentTime;
     this.musicBus.gain.setTargetAtTime(this.levels.music, t, 0.1);
     this.sfxBus.gain.setTargetAtTime(this.levels.sfx, t, 0.1);
-    this.ambBus.gain.setTargetAtTime(this.levels.sfx * 0.9, t, 0.1);
+    this.ambBus.gain.setTargetAtTime(this.levels.sfx * 0.5, t, 0.1); // the bed sits under the music
     this.voiceBus.gain.setTargetAtTime(this.levels.voice, t, 0.1);
   }
   setLevels(l) {
@@ -360,6 +363,29 @@ export class Audio {
       }
     }
   }
+  // a spoken line as formant babble: the vowels of the first words, with the consonants' colour.
+  // Not words, just the shape and pitch of a voice under the subtitle (no recorded dialogue).
+  speak(text, { x, z, pitch = 150, gain = 0.15, max = 9 } = {}) {
+    if (!this.on || !text) return;
+    const shout = /[¡!]/.test(text), quiet = /^\(/.test(text);
+    const clean = text.replace(/\([^)]*\)/g, "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const syl = [];
+    const CONS = (c) => ("szcx".includes(c) ? 4600 : "rl".includes(c) ? 1300 : "ptkqbdg".includes(c) ? 2400 : "mnñ".includes(c) ? 0 : 1700);
+    let prev = "";
+    for (const ch of clean) {
+      if ("aeiou".includes(ch)) {
+        if (syl.length >= max) break;
+        syl.push([ch, 0.07 + Math.random() * 0.06, prev ? CONS(prev) || undefined : undefined]);
+        prev = "";
+      } else if (/[a-zñ]/.test(ch)) prev = ch;
+      else if (ch === "," || ch === "." || ch === "?") {
+        if (syl.length) syl[syl.length - 1][1] += 0.12;
+      }
+    }
+    if (!syl.length) return;
+    syl[syl.length - 1][1] += shout ? 0.16 : 0.08; // the last syllable is held
+    this.say(syl, { x, z, pitch: pitch * (shout ? 1.12 : quiet ? 0.92 : 1), gain: gain * (shout ? 1.3 : quiet ? 0.45 : 1) });
+  }
   chant(word = "currahee", n = 8, x, z) {
     const W = {
       currahee: [["u", 0.16, 2600], ["a", 0.18, 1400], ["i", 0.42, 900]],
@@ -414,8 +440,8 @@ export class Audio {
     if (!this.on) return;
     const o = this._out(0, pan);
     const t = this.ctx.currentTime;
-    this._noise(o, t, 0.07, { f0: 700 + Math.random() * 300, type: "lowpass", gain: 0.1 * soft });
-    this._noise(o, t + 0.01, 0.05, { f0: 2600, type: "bandpass", q: 1, gain: 0.025 * soft });
+    this._noise(o, t, 0.07, { f0: 700 + Math.random() * 300, type: "lowpass", gain: 0.18 * soft });
+    this._noise(o, t + 0.01, 0.05, { f0: 2600, type: "bandpass", q: 1, gain: 0.05 * soft });
   }
   engine(x, z, dur = 3) {
     // idling Dodge ambulance
@@ -428,8 +454,10 @@ export class Audio {
   }
   // a looping bed for each place (cicadas & hot wind for Georgia; crickets at night)
   startBed(kind) {
-    if (!this.on) return;
+    this.wantBed = kind;
+    if (!this.on || (this.bed && this.bedKind === kind)) return;
     this.stopBed();
+    this.bedKind = kind;
     const c = this.ctx;
     const g = c.createGain();
     g.gain.value = 0;
@@ -485,6 +513,7 @@ export class Audio {
     g.gain.setTargetAtTime(0, this.ctx.currentTime, 0.8);
     setTimeout(() => nodes.forEach((n) => { try { n.stop(); } catch {} }), 3000);
     this.bed = null;
+    this.bedKind = null;
   }
   setBed(level) {
     this.bed && this.bed.g.gain.setTargetAtTime(level, this.ctx.currentTime, 1.2);

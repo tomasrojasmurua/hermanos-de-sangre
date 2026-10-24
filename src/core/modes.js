@@ -13,5 +13,9 @@ export function enterMode(shell, mode, ctx) {
   const m = MODES[mode] || MODES.narrative;
   document.body.dataset.mode = mode;
   shell.ui.show(m.hud);
+  // the place's ambience is layered under every moment there (silence is a valid bed too)
+  const bed = ctx.moment.bed ?? ctx.chapter.beds?.[ctx.moment.place];
+  if (bed) shell.audio.startBed(bed);
+  else if (bed === null) shell.audio.stopBed();
   if (ctx.moment.music !== false) shell.music.set(ctx.moment.music?.theme || m.music.theme, ctx.moment.music?.level ?? m.music.level);
 }

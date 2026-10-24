@@ -22,6 +22,15 @@ export class Shell {
     this.ui = new UI(this.uiRoot);
     this.input = new Input(this.uiRoot);
     this.ui.bindInput(this.input);
+    // every subtitle gets a voice: pitch per speaker, placed where he stands
+    const PITCH = { Sobel: 178, Winters: 132, Lipton: 140, Guarnere: 150, Tipper: 158, Nixon: 126 };
+    this.ui.onLine = (who, text) => {
+      if (!who) return;
+      const s = this.G && this.G.soldiers.find((o) => o.short === who);
+      let h = 0;
+      for (const c of who) h = (h * 31 + c.charCodeAt(0)) % 997;
+      this.audio.speak(text, { pitch: PITCH[who] || 118 + (h % 50), x: s?.x, z: s?.z });
+    };
     this.camera = new T.OrthographicCamera(-10, 10, 10, -10, 1, 260);
     this.G = null;
     this.scene = null;
@@ -89,7 +98,8 @@ export class Shell {
     }
     const R = this.R;
     R.post.fade.value = damp(R.post.fade.value, this.fadeTo || 0, 2, real);
-    if (G.player) this.audio.listener = { x: G.player.x, z: G.player.z };
+    // the ear is the player, or the camera's centre when nobody is being played (narrative)
+    this.audio.listener = G.player ? { x: G.player.x, z: G.player.z } : { x: G.cam.x, z: G.cam.z };
     const want = G.camSpan || 12.5;
     if (Math.abs(G.cam.span - want) > 0.05) G.cam.span = damp(G.cam.span, want, G.camSpanK || 0.8, real);
     const L = G.lvl.L;
