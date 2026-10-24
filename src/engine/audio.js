@@ -34,7 +34,10 @@ export class Audio {
     this.musicBus = c.createGain();
     this.voiceBus = c.createGain();
     this.ambBus = c.createGain();
-    for (const b of [this.sfxBus, this.musicBus, this.voiceBus, this.ambBus]) b.connect(this.master);
+    // music goes through its own duck node, so ducking never fights the volume setting
+    this.duckGain = c.createGain();
+    this.musicBus.connect(this.duckGain).connect(this.master);
+    for (const b of [this.sfxBus, this.voiceBus, this.ambBus]) b.connect(this.master);
     this.ambBus.gain.value = 0.5; // cicadas sat 8 dB over the music: the bed sits under, not over
     this.meters = {};
     for (const [k, b] of Object.entries({ sfx: this.sfxBus, music: this.musicBus, voice: this.voiceBus, amb: this.ambBus, master: lim })) {
@@ -92,12 +95,20 @@ export class Audio {
     this.echoOut.gain.setTargetAtTime(kind === "room" ? 0 : 0.5, t, 0.3);
   }
   // music steps aside while someone talks
-  duck(sec = 2, depth = 0.5) {
+  duck(sec = 2, depth = 0.5, tc = 0.08) {
     if (!this.on) return;
-    const t = this.ctx.currentTime, lv = this.levels.music;
-    this.musicBus.gain.cancelScheduledValues(t);
-    this.musicBus.gain.setTargetAtTime(lv * depth, t, 0.08);
-    this.musicBus.gain.setTargetAtTime(lv, t + sec, 0.3);
+    const t = this.ctx.currentTime, g = this.duckGain.gain;
+    g.cancelScheduledValues(t);
+    g.setTargetAtTime(depth, t, tc);
+    g.setTargetAtTime(1, t + sec, 0.3);
+  }
+  // paused: music sits far back, the world holds its breath
+  pauseMix(on) {
+    if (!this.on) return;
+    this.paused = on;
+    const t = this.ctx.currentTime, g = this.duckGain.gain;
+    g.cancelScheduledValues(t);
+    g.setTargetAtTime(on ? 0.3 : 1, t, 0.15);
   }
   // rhythm feedback: a soft thump and a buzz when you hit the beat, a sour drop when you miss
   hit(ok) {
@@ -114,8 +125,8 @@ export class Audio {
   // the guide pulse of the cadence lives on the effects bus: you hear it even with the music muted
   tick(t, v = 0.8) {
     if (!this.on) return;
-    this._noise(this.sfxBus, t, 0.05, { type: "bandpass", f0: 2400, q: 1.4, gain: 0.08 * v });
-    this._tone(this.sfxBus, t, 0.05, 210, { f1: 140, gain: 0.07 * v });
+    this._noise(this.sfxBus, t, 0.05, { type: "bandpass", f0: 2400, q: 1.4, gain: 0.25 * v });
+    this._tone(this.sfxBus, t, 0.05, 210, { f1: 140, gain: 0.2 * v });
   }
   heartAt(v = 0.6, t) {
     if (!this.on) return;
@@ -140,12 +151,14 @@ export class Audio {
     }
     node.connect(this._bus || this.sfxBus);
     const send = c.createGain();
-    send.gain.value = Math.min(0.9, 0.15 + dist * 0.015);
+    // the reverb and echo returns go to the effects bus: scale voice sends by the voice volume
+    const vk = this._bus === this.voiceBus ? this.levels.voice / 0.9 : 1;
+    send.gain.value = Math.min(0.9, 0.15 + dist * 0.015) * vk;
     g.connect(send).connect(this.verb);
     if (this.echo && dist > 4) {
       // far sounds come back off the hill
       const es = c.createGain();
-      es.gain.value = Math.min(0.6, dist * 0.012) * (this._bus === this.voiceBus ? this.levels.voice / 0.9 : 1);
+      es.gain.value = Math.min(0.6, dist * 0.012) * vk;
       g.connect(es).connect(this.echo);
     }
     return g;
@@ -509,8 +522,8 @@ export class Audio {
     if (!this.on) return;
     const o = this._out(0, pan);
     const t = at ?? this.ctx.currentTime;
-    this._noise(o, t, 0.07, { f0: 700 + Math.random() * 300, type: "lowpass", gain: 0.18 * soft });
-    this._noise(o, t + 0.01, 0.05, { f0: 2600, type: "bandpass", q: 1, gain: 0.05 * soft });
+    this._noise(o, t, 0.07, { f0: 700 + Math.random() * 300, type: "lowpass", gain: 0.5 * soft });
+    this._noise(o, t + 0.01, 0.05, { f0: 2600, type: "bandpass", q: 1, gain: 0.12 * soft });
   }
   engine(x, z, dur = 3) {
     // idling Dodge ambulance
@@ -534,7 +547,7 @@ export class Audio {
     const nodes = [];
     if (kind === "georgia" || kind === "georgia-noon") {
       // cicada drone: bandpassed noise with a slow pulsing swell
-      for (const [f, q, lv] of [[4300, 9, 0.05], [5600, 12, 0.03], [3600, 6, 0.02]]) {
+      for (const [f, q, lv] of [[4300, 9, 0.035], [5600, 12, 0.025], [3600, 6, 0.02]]) {
         const s = c.createBufferSource();
         s.buffer = this.noise;
         s.loop = true;
@@ -585,9 +598,9 @@ export class Audio {
         nodes.push(m, lfo);
       }
       const clink = () => {
-        if (!this.bed || this.bedKind !== "mess") return;
+        if (!this.bed || this.bed.g !== g) return; // this bed was replaced: the chain ends
         const t = this.ctx.currentTime;
-        this._tone(g, t, 0.18, 2200 + Math.random() * 1800, { type: "triangle", gain: 0.02 + Math.random() * 0.02 });
+        if (!this.paused) this._tone(g, t, 0.18, 2200 + Math.random() * 1800, { type: "triangle", gain: 0.02 + Math.random() * 0.02 });
         setTimeout(clink, 300 + Math.random() * 1400);
       };
       setTimeout(clink, 500);

@@ -98,6 +98,7 @@ shell.ui.onPause = async () => {
   const G = shell.G;
   if (!G || G.paused) return;
   G.paused = true;
+  shell.audio.pauseMix(true);
   if (!save) save = freshSave();
   const st = save.settings;
   for (;;) {
@@ -136,11 +137,13 @@ shell.ui.onPause = async () => {
       shell.ui.cards.innerHTML = "";
       document.getElementById("runhud")?.remove();
       delete document.body.dataset.run;
+      shell.audio.pauseMix(false);
       title();
       return;
     }
     break;
   }
+  shell.audio.pauseMix(false);
   G.paused = false;
 };
 

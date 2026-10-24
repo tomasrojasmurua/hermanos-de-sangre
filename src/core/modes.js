@@ -17,5 +17,6 @@ export function enterMode(shell, mode, ctx) {
   const bed = ctx.moment.bed ?? ctx.chapter.beds?.[ctx.moment.place];
   if (bed) shell.audio.startBed(bed);
   else if (bed === null) shell.audio.stopBed();
+  shell.audio.space(bed === "mess" ? "room" : "open");
   if (ctx.moment.music !== false) shell.music.set(ctx.moment.music?.theme || m.music.theme, ctx.moment.music?.level ?? m.music.level);
 }

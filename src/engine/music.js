@@ -75,7 +75,11 @@ export class Music {
     for (const [k, g] of Object.entries(cur.layers)) {
       const [from, vol] = cur.def.layers[k];
       const on = Math.max(0, Math.min(1, (this.level - from) / 0.25));
-      g.gain.setTargetAtTime(on * vol * 0.5, t, 0.4);
+      const v = on * vol * 0.5;
+      if (Math.abs((g._v ?? -1) - v) > 0.005) {
+        g.gain.setTargetAtTime(v, t, 0.4);
+        g._v = v;
+      }
     }
     // after a long frame hitch, skip the beats already in the past instead of firing them all at once
     if (cur.next < t) {
@@ -115,10 +119,12 @@ export class Music {
     }
     if (L.timp && (inBar === 0 || (cur.name === "combat" && inBar === 2))) this._timp(L.timp, t, NOTE(root - 12));
     if (L.trem && inBar === 0) this._trem(L.trem, t, spb * 4, NOTE(chord[2] + 24));
-    if (L.lead && inBar === 0 && bar % 2 === 0) {
+    // the bugle only calls over chords its notes belong to (a G–C–E–G call over B♭ or A clashes)
+    const bugleOk = cur.name !== "drive" || bar % 8 === 0 || bar % 8 === 4;
+    if (L.lead && inBar === 0 && bar % 2 === 0 && bugleOk) {
       // bugle calls: only the natural harmonics G–C–E–G (a real field bugle has no valves),
       // a different call each time so it never loops the same four notes
-      const CALLS = [[55, 60, 64, 60], [60, 64, 67, 64], [55, 55, 60, 64], [67, 64, 60, 55]];
+      const CALLS = cur.name === "drive" ? [[57, 62, 69, 62], [62, 69, 74, 69], [57, 57, 62, 69], [69, 62, 57, 62]] : [[55, 60, 64, 60], [60, 64, 67, 64], [55, 55, 60, 64], [67, 64, 60, 55]];
       const ph = CALLS[(bar / 2) % 4 | 0];
       ph.forEach((n, i) => this._horn(L.lead, t + i * spb * 0.5, spb * (i === 3 ? 1.4 : 0.45), NOTE(n + 12)));
     }

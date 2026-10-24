@@ -181,12 +181,12 @@ export async function currahee(ctx, opts) {
   await G.wait(1.4);
   G.lockMove = false;
   music.set("drive", 0.45);
-  audio.startBed && audio.setBed(0.6);
+  audio.setBed(0.4);
   G.setObjective(opts.variant === "first" ? "Corre con la columna hasta la cima" : "Que nadie de tu pelotón suba a la ambulancia", ...lvl.summit);
   const touch = matchMedia("(pointer: coarse)").matches;
   if (opts.variant === "first") ui.toast(touch ? "Arrastra a la izquierda para correr. Toca «Respirar» cuando el anillo llegue al aro." : "WASD para correr · Espacio para respirar cuando el anillo llegue al aro · E para empujar", 4800);
   else ui.toast("Que no suba nadie de tu pelotón a la ambulancia.", 3200);
-  let tutHelp = false, ambT = 0, fadeAt = opts.variant === "first" ? [110, 190] : [], silentT = 0, nextLine = 6, phaseUp = true, summitDone = false, behindT = 0, stepT = 0, lastBreathOk = false, tipsShown = 0;
+  let bag = [], tutHelp = false, ambT = 0, fadeAt = opts.variant === "first" ? [110, 190] : [], silentT = 0, nextLine = 6, phaseUp = true, summitDone = false, behindT = 0, stepT = 0, lastBreathOk = false, tipsShown = 0;
   let failed = false;
   const tick = (dt, rdt) => {
     if (dt <= 0) return;
@@ -237,8 +237,9 @@ export async function currahee(ctx, opts) {
     // Sobel shouts
     nextLine -= dt;
     if (nextLine <= 0) {
-      nextLine = 9 + r() * 6;
-      const line = SOBEL_LINES[Math.floor(r() * SOBEL_LINES.length)];
+      nextLine = 14 + r() * 6;
+      if (!bag.length) bag = SOBEL_LINES.slice().sort(() => r() - 0.5);
+      const line = bag.pop();
       ui.say("Sobel", line, 2.2);
     }
     // the first run teaches helping: the two weakest recruits fade at set points
@@ -278,7 +279,10 @@ export async function currahee(ctx, opts) {
       // silence as a tool: the music drops away and leaves the wind and the men shouting the name
       music.intensity(0.05);
       silentT = 4;
-      audio.setBed(0.5);
+      audio.duck(4, 0.05, 0.3);
+      audio.startWind(0.05);
+      audio.setWind(0.3);
+      setTimeout(() => audio.setWind(0.08), 5000);
       G.camSpan = 22;
       setTimeout(() => (G.camSpan = 15), 3500);
       audio.chant("currahee", 10, sobel.x, sobel.z);
@@ -317,19 +321,21 @@ export async function currahee(ctx, opts) {
       audio.stride(0.7 + mv * 0.4 + (b % 2 === 0 ? 0.3 : 0), 0, t);
       audio.stride(0.6 + mv * 0.3, 0, t + spb / 2);
     }
-    audio.stride(0.35, -0.5, t + 0.04);
-    audio.stride(0.3, 0.5, t + spb / 2 + 0.03);
-    if (b % 2 === 0) {
-      audio.tick(t, 0.8);
-      if (P.stam < 0.35) audio.heartAt(0.6, t);
-    }
+    audio.stride(0.6, -0.5, t + 0.04);
+    audio.stride(0.5, 0.5, t + spb / 2 + 0.03);
+    if (b % 2 === 0) audio.tick(t, 0.8);
+    if (P.stam < 0.35) audio.heartAt(P.stam < 0.2 ? 0.8 : 0.55, t);
   };
-  // the run ends back at the parade ground
-  await G.until(() => failed || col.s >= route.total - 2);
-  unhook();
-  music.onBeat = null;
-  G.quietSteps = false;
-  G.focusR = 0;
+  // the run ends back at the parade ground; leaving it any way (abort included) cleans up
+  try {
+    await G.until(() => failed || col.s >= route.total - 2);
+  } finally {
+    unhook();
+    music.onBeat = null;
+    G.quietSteps = false;
+    G.focusR = 0;
+    audio.setWind(0);
+  }
   G.objective = null;
   ui.setAct(null);
   H.remove();

@@ -4924,7 +4924,9 @@ void main(){
       this.musicBus = c.createGain();
       this.voiceBus = c.createGain();
       this.ambBus = c.createGain();
-      for (const b2 of [this.sfxBus, this.musicBus, this.voiceBus, this.ambBus]) b2.connect(this.master);
+      this.duckGain = c.createGain();
+      this.musicBus.connect(this.duckGain).connect(this.master);
+      for (const b2 of [this.sfxBus, this.voiceBus, this.ambBus]) b2.connect(this.master);
       this.ambBus.gain.value = 0.5;
       this.meters = {};
       for (const [k, b2] of Object.entries({ sfx: this.sfxBus, music: this.musicBus, voice: this.voiceBus, amb: this.ambBus, master: lim })) {
@@ -4978,12 +4980,20 @@ void main(){
       this.echoOut.gain.setTargetAtTime(kind === "room" ? 0 : 0.5, t, 0.3);
     }
     // music steps aside while someone talks
-    duck(sec = 2, depth = 0.5) {
+    duck(sec = 2, depth = 0.5, tc = 0.08) {
       if (!this.on) return;
-      const t = this.ctx.currentTime, lv = this.levels.music;
-      this.musicBus.gain.cancelScheduledValues(t);
-      this.musicBus.gain.setTargetAtTime(lv * depth, t, 0.08);
-      this.musicBus.gain.setTargetAtTime(lv, t + sec, 0.3);
+      const t = this.ctx.currentTime, g = this.duckGain.gain;
+      g.cancelScheduledValues(t);
+      g.setTargetAtTime(depth, t, tc);
+      g.setTargetAtTime(1, t + sec, 0.3);
+    }
+    // paused: music sits far back, the world holds its breath
+    pauseMix(on) {
+      if (!this.on) return;
+      this.paused = on;
+      const t = this.ctx.currentTime, g = this.duckGain.gain;
+      g.cancelScheduledValues(t);
+      g.setTargetAtTime(on ? 0.3 : 1, t, 0.15);
     }
     // rhythm feedback: a soft thump and a buzz when you hit the beat, a sour drop when you miss
     hit(ok) {
@@ -5000,8 +5010,8 @@ void main(){
     // the guide pulse of the cadence lives on the effects bus: you hear it even with the music muted
     tick(t, v = 0.8) {
       if (!this.on) return;
-      this._noise(this.sfxBus, t, 0.05, { type: "bandpass", f0: 2400, q: 1.4, gain: 0.08 * v });
-      this._tone(this.sfxBus, t, 0.05, 210, { f1: 140, gain: 0.07 * v });
+      this._noise(this.sfxBus, t, 0.05, { type: "bandpass", f0: 2400, q: 1.4, gain: 0.25 * v });
+      this._tone(this.sfxBus, t, 0.05, 210, { f1: 140, gain: 0.2 * v });
     }
     heartAt(v = 0.6, t) {
       if (!this.on) return;
@@ -5026,11 +5036,12 @@ void main(){
       }
       node.connect(this._bus || this.sfxBus);
       const send = c.createGain();
-      send.gain.value = Math.min(0.9, 0.15 + dist * 0.015);
+      const vk = this._bus === this.voiceBus ? this.levels.voice / 0.9 : 1;
+      send.gain.value = Math.min(0.9, 0.15 + dist * 0.015) * vk;
       g.connect(send).connect(this.verb);
       if (this.echo && dist > 4) {
         const es = c.createGain();
-        es.gain.value = Math.min(0.6, dist * 0.012) * (this._bus === this.voiceBus ? this.levels.voice / 0.9 : 1);
+        es.gain.value = Math.min(0.6, dist * 0.012) * vk;
         g.connect(es).connect(this.echo);
       }
       return g;
@@ -5388,8 +5399,8 @@ void main(){
       if (!this.on) return;
       const o = this._out(0, pan);
       const t = at ?? this.ctx.currentTime;
-      this._noise(o, t, 0.07, { f0: 700 + Math.random() * 300, type: "lowpass", gain: 0.18 * soft });
-      this._noise(o, t + 0.01, 0.05, { f0: 2600, type: "bandpass", q: 1, gain: 0.05 * soft });
+      this._noise(o, t, 0.07, { f0: 700 + Math.random() * 300, type: "lowpass", gain: 0.5 * soft });
+      this._noise(o, t + 0.01, 0.05, { f0: 2600, type: "bandpass", q: 1, gain: 0.12 * soft });
     }
     engine(x, z, dur = 3) {
       if (!this.on) return;
@@ -5411,7 +5422,7 @@ void main(){
       g.connect(this.ambBus);
       const nodes = [];
       if (kind === "georgia" || kind === "georgia-noon") {
-        for (const [f, q, lv] of [[4300, 9, 0.05], [5600, 12, 0.03], [3600, 6, 0.02]]) {
+        for (const [f, q, lv] of [[4300, 9, 0.035], [5600, 12, 0.025], [3600, 6, 0.02]]) {
           const s2 = c.createBufferSource();
           s2.buffer = this.noise;
           s2.loop = true;
@@ -5461,9 +5472,9 @@ void main(){
           nodes.push(m, lfo);
         }
         const clink = () => {
-          if (!this.bed || this.bedKind !== "mess") return;
+          if (!this.bed || this.bed.g !== g) return;
           const t = this.ctx.currentTime;
-          this._tone(g, t, 0.18, 2200 + Math.random() * 1800, { type: "triangle", gain: 0.02 + Math.random() * 0.02 });
+          if (!this.paused) this._tone(g, t, 0.18, 2200 + Math.random() * 1800, { type: "triangle", gain: 0.02 + Math.random() * 0.02 });
           setTimeout(clink, 300 + Math.random() * 1400);
         };
         setTimeout(clink, 500);
@@ -5587,7 +5598,11 @@ void main(){
       for (const [k, g] of Object.entries(cur.layers)) {
         const [from, vol] = cur.def.layers[k];
         const on = Math.max(0, Math.min(1, (this.level - from) / 0.25));
-        g.gain.setTargetAtTime(on * vol * 0.5, t, 0.4);
+        const v = on * vol * 0.5;
+        if (Math.abs((g._v ?? -1) - v) > 5e-3) {
+          g.gain.setTargetAtTime(v, t, 0.4);
+          g._v = v;
+        }
       }
       if (cur.next < t) {
         const n = Math.ceil((t - cur.next) / cur.spb);
@@ -5622,8 +5637,9 @@ void main(){
       }
       if (L.timp && (inBar === 0 || cur.name === "combat" && inBar === 2)) this._timp(L.timp, t, NOTE(root - 12));
       if (L.trem && inBar === 0) this._trem(L.trem, t, spb * 4, NOTE(chord[2] + 24));
-      if (L.lead && inBar === 0 && bar % 2 === 0) {
-        const CALLS = [[55, 60, 64, 60], [60, 64, 67, 64], [55, 55, 60, 64], [67, 64, 60, 55]];
+      const bugleOk = cur.name !== "drive" || bar % 8 === 0 || bar % 8 === 4;
+      if (L.lead && inBar === 0 && bar % 2 === 0 && bugleOk) {
+        const CALLS = cur.name === "drive" ? [[57, 62, 69, 62], [62, 69, 74, 69], [57, 57, 62, 69], [69, 62, 57, 62]] : [[55, 60, 64, 60], [60, 64, 67, 64], [55, 55, 60, 64], [67, 64, 60, 55]];
         const ph = CALLS[bar / 2 % 4 | 0];
         ph.forEach((n, i) => this._horn(L.lead, t + i * spb * 0.5, spb * (i === 3 ? 1.4 : 0.45), NOTE(n + 12)));
       }
@@ -7986,6 +8002,7 @@ void main(){
     const bed = ctx.moment.bed ?? ctx.chapter.beds?.[ctx.moment.place];
     if (bed) shell2.audio.startBed(bed);
     else if (bed === null) shell2.audio.stopBed();
+    shell2.audio.space(bed === "mess" ? "room" : "open");
     if (ctx.moment.music !== false) shell2.music.set(ctx.moment.music?.theme || m.music.theme, ctx.moment.music?.level ?? m.music.level);
   }
 
@@ -9053,12 +9070,12 @@ void main(){
     await G.wait(1.4);
     G.lockMove = false;
     music.set("drive", 0.45);
-    audio.startBed && audio.setBed(0.6);
+    audio.setBed(0.4);
     G.setObjective(opts.variant === "first" ? "Corre con la columna hasta la cima" : "Que nadie de tu pelot\xF3n suba a la ambulancia", ...lvl.summit);
     const touch = matchMedia("(pointer: coarse)").matches;
     if (opts.variant === "first") ui.toast(touch ? "Arrastra a la izquierda para correr. Toca \xABRespirar\xBB cuando el anillo llegue al aro." : "WASD para correr \xB7 Espacio para respirar cuando el anillo llegue al aro \xB7 E para empujar", 4800);
     else ui.toast("Que no suba nadie de tu pelot\xF3n a la ambulancia.", 3200);
-    let tutHelp = false, ambT = 0, fadeAt = opts.variant === "first" ? [110, 190] : [], silentT = 0, nextLine = 6, phaseUp = true, summitDone = false, behindT = 0, stepT = 0, lastBreathOk = false, tipsShown = 0;
+    let bag = [], tutHelp = false, ambT = 0, fadeAt = opts.variant === "first" ? [110, 190] : [], silentT = 0, nextLine = 6, phaseUp = true, summitDone = false, behindT = 0, stepT = 0, lastBreathOk = false, tipsShown = 0;
     let failed = false;
     const tick = (dt, rdt) => {
       if (dt <= 0) return;
@@ -9102,8 +9119,9 @@ void main(){
       if (!silentT) music.intensity(0.45 + (1 - P2.stam) * 0.3 + (phaseUp ? 0.1 : 0) + col.flagged().length * 0.05);
       nextLine -= dt;
       if (nextLine <= 0) {
-        nextLine = 9 + r() * 6;
-        const line = SOBEL_LINES[Math.floor(r() * SOBEL_LINES.length)];
+        nextLine = 14 + r() * 6;
+        if (!bag.length) bag = SOBEL_LINES.slice().sort(() => r() - 0.5);
+        const line = bag.pop();
         ui.say("Sobel", line, 2.2);
       }
       if (fadeAt.length && col.s > fadeAt[0]) {
@@ -9139,7 +9157,10 @@ void main(){
         music.sting("summit");
         music.intensity(0.05);
         silentT = 4;
-        audio.setBed(0.5);
+        audio.duck(4, 0.05, 0.3);
+        audio.startWind(0.05);
+        audio.setWind(0.3);
+        setTimeout(() => audio.setWind(0.08), 5e3);
         G.camSpan = 22;
         setTimeout(() => G.camSpan = 15, 3500);
         audio.chant("currahee", 10, sobel.x, sobel.z);
@@ -9173,18 +9194,20 @@ void main(){
         audio.stride(0.7 + mv * 0.4 + (b % 2 === 0 ? 0.3 : 0), 0, t);
         audio.stride(0.6 + mv * 0.3, 0, t + spb / 2);
       }
-      audio.stride(0.35, -0.5, t + 0.04);
-      audio.stride(0.3, 0.5, t + spb / 2 + 0.03);
-      if (b % 2 === 0) {
-        audio.tick(t, 0.8);
-        if (P2.stam < 0.35) audio.heartAt(0.6, t);
-      }
+      audio.stride(0.6, -0.5, t + 0.04);
+      audio.stride(0.5, 0.5, t + spb / 2 + 0.03);
+      if (b % 2 === 0) audio.tick(t, 0.8);
+      if (P2.stam < 0.35) audio.heartAt(P2.stam < 0.2 ? 0.8 : 0.55, t);
     };
-    await G.until(() => failed || col.s >= route.total - 2);
-    unhook();
-    music.onBeat = null;
-    G.quietSteps = false;
-    G.focusR = 0;
+    try {
+      await G.until(() => failed || col.s >= route.total - 2);
+    } finally {
+      unhook();
+      music.onBeat = null;
+      G.quietSteps = false;
+      G.focusR = 0;
+      audio.setWind(0);
+    }
     G.objective = null;
     ui.setAct(null);
     H.remove();
@@ -9507,6 +9530,7 @@ void main(){
     const G = shell.G;
     if (!G || G.paused) return;
     G.paused = true;
+    shell.audio.pauseMix(true);
     if (!save) save = freshSave();
     const st = save.settings;
     for (; ; ) {
@@ -9545,11 +9569,13 @@ void main(){
         shell.ui.cards.innerHTML = "";
         document.getElementById("runhud")?.remove();
         delete document.body.dataset.run;
+        shell.audio.pauseMix(false);
         title();
         return;
       }
       break;
     }
+    shell.audio.pauseMix(false);
     G.paused = false;
   };
   var qs = new URLSearchParams(location.search);
