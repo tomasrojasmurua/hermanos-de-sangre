@@ -84,13 +84,19 @@ export function buildToccoa(ctx) {
   // ---- vegetation: longleaf pines, scrub oak, dry grass; denser on the mountain -----------------
   // distance to the real road polyline (it switchbacks, so v alone is not enough)
   const RW = routeWorld();
+  // nearest road point; `side` > 0 means the spot is between the road and the camera (screen-down)
+  let roadSide = 0;
   const roadDist = (x, z) => {
     let best = 1e9;
     for (let i = 1; i < RW.length; i++) {
       const [ax, az] = RW[i - 1], [bx, bz] = RW[i];
       const dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz || 1;
       const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / L2));
-      best = Math.min(best, Math.hypot(x - ax - dx * t, z - az - dz * t));
+      const ox = x - ax - dx * t, oz = z - az - dz * t, d = Math.hypot(ox, oz);
+      if (d < best) {
+        best = d;
+        roadSide = (ox + oz) * 0.707;
+      }
     }
     return best;
   };
@@ -105,7 +111,8 @@ export function buildToccoa(ctx) {
     if (Math.abs(world.height(x, z) - world.rawHeight(x, z)) > 0.5) continue;
     i++;
     // pines are tall: keep them back from the road so they never wall off the column from the camera
-    if (r() < 0.75 && roadDist(x, z) > 9) TP.pine(world, B, Fo, x, z, 0.8 + r() * 0.45, r);
+    const rd = roadDist(x, z);
+    if (r() < 0.75 && rd > (roadSide > 0 ? 17 : 8)) TP.pine(world, B, Fo, x, z, 0.8 + r() * 0.45, r);
     else TP.scrub(world, Fo, x, z, 0.7 + r() * 0.8, r);
   }
   // shade pines inside the camp, a few spared by the bulldozers

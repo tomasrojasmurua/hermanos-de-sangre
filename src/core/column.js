@@ -159,12 +159,19 @@ export class Column {
     let pr = this.route.project(p.x, p.z, P.s, 6, hd);
     if (pr.off > 6) pr = this.route.project(p.x, p.z, P.s, 30, hd);
     P.s = pr.s;
-    // stamina: speed above an easy jog costs, climbing costs, being far off the road costs
+    // cruise: with the stick part-way the player runs at the column's pace (holding a thumb
+    // half-pressed on glass is hard; holding a rhythm should be the skill). Pushing the stick to
+    // the rim sprints, and only running faster than the column costs breath.
+    const l = this.cfg.input ? this.cfg.input.axis().l : 1;
+    const sprint = lerp(2.9, 5.0, clamp(P.stam * 1.4, 0, 1));
+    const cruise = Math.min(sprint, pace * 1.06);
+    const want = l < 0.85 ? cruise / Math.max(0.3, l) : sprint;
+    p.speed = Math.min(want, 9);
     const v = p.st.move * p.speed;
     const climb = Math.max(0, this.cfg.grade ? this.cfg.grade(P.s, this.dir) : 0);
-    const cost = (Math.max(0, v - 2.2) / 2.2) ** 1.6 * (1 + climb * 2.5) * (this.cfg.drain || 1) * 0.07 + (this.cfg.sick?.({ id: p.id, player: true }) || 0);
-    P.stam = clamp(P.stam - cost * dt + 0.012 * dt, 0, 1);
-    p.speed = lerp(2.4, 4.9, clamp(P.stam * 1.4, 0, 1));
+    const excess = Math.max(0, v - pace * 1.08);
+    const cost = (excess / 2) ** 1.5 * (1 + climb * 1.5) * (this.cfg.drain || 1) * 0.12 + (this.cfg.sick?.({ id: p.id, player: true }) || 0) + climb * 0.2 * (this.cfg.drain || 1); // the hill itself: ~1 %/s net on the climb if you never breathe
+    P.stam = clamp(P.stam - cost * dt + (this.cfg.regen ?? 0.012) * dt, 0, 1);
     P.breathT = Math.max(0, P.breathT - dt);
     // position relative to the column: ahead of the leader, inside, or near the ambulances
     const head = this.s, amb = this.ambS();
@@ -176,7 +183,7 @@ export class Column {
     const P = this.p;
     if (onBeat) {
       P.combo = Math.min(6, P.combo + 1);
-      P.stam = clamp(P.stam + 0.06 + P.combo * 0.012, 0, 1);
+      P.stam = clamp(P.stam + 0.025 + P.combo * 0.006, 0, 1);
       P.breathT = 0.4;
       return true;
     }

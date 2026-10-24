@@ -9,9 +9,9 @@ import { W } from "./chapters/currahee/places.js";
 const CHAPTERS = { currahee: CURRAHEE };
 // chapters not yet ported to the director open their own prototype page
 const LIST = [
-  { id: "currahee", n: "I", title: "Currahee", sub: "Toccoa · 1942", ready: true },
-  { id: "dia-d", n: "III", title: "Día D", sub: "Normandía · junio de 1944", href: "dia-d.html" },
-  { id: "bastogne", n: "VII", title: "Bastogne", sub: "Ardenas · diciembre de 1944", href: "hermanos-de-sangre.html" },
+  { id: "currahee", n: "1942", title: "Currahee", sub: "Toccoa, Georgia", ready: true },
+  { id: "dia-d", n: "1944", title: "Día D", sub: "Normandía, junio", href: "dia-d.html" },
+  { id: "bastogne", n: "1944", title: "Bastogne", sub: "Ardenas, diciembre", href: "hermanos-de-sangre.html" },
 ];
 
 const shell = new Shell();
@@ -30,9 +30,9 @@ function title() {
   shell.build("toccoa", CURRAHEE.places.toccoa);
   const G = shell.G;
   G.player = null;
-  G.camSpan = 24;
-  G.cam.span = 24;
-  const [x0, z0] = W(-40, 6);
+  G.camSpan = 20;
+  G.cam.span = 20;
+  const [x0, z0] = W(-96, -4);
   G.cam.x = x0;
   G.cam.z = z0;
   shell.music.set("calm", 0.3);

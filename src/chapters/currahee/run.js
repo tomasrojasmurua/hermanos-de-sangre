@@ -24,9 +24,9 @@ function hud(ui, input) {
   el.innerHTML = `
     <div class="aliento" aria-label="Aliento"><span class="lbl">Aliento</span><span class="bar"><i></i></span></div>
     <div class="pace" aria-label="Tu lugar en la columna">
-      <span class="end amb" title="Ambulancias">✚</span><span class="track"><i class="danger"></i><b class="me"></b></span><span class="end head">Sobel</span>
+      <span class="end amb">✚ Ambulancia</span><span class="track"><i class="danger"></i><b class="me"></b></span><span class="end head">Sobel</span>
     </div>
-    <button class="breath" data-b="breath" aria-label="Respirar al compás"><span class="ring"></span><span class="core"><b>Respirar</b><small>al compás</small></span></button>`;
+    <button class="breath" data-b="breath" aria-label="Respirar al compás"><span class="target"></span><span class="ring"></span><span class="core"><b>Respirar</b><small class="hint">al compás</small><em class="combo"></em></span><kbd>Espacio</kbd></button>`;
   ui.root.querySelector("#hud").appendChild(el);
   const b = el.querySelector(".breath");
   b.addEventListener("pointerdown", (e) => {
@@ -47,6 +47,7 @@ function hud(ui, input) {
     me: el.querySelector(".pace .me"),
     pace: el.querySelector(".pace"),
     ring: el.querySelector(".breath .ring"),
+    combo: el.querySelector(".breath .combo"),
     btn: b,
     remove: () => el.remove(),
   };
@@ -73,7 +74,7 @@ export async function currahee(ctx, opts) {
     const rec = roster.get(id);
     const sol = G.add({ id, name: c.name, short: c.short, side: "us", kit: "pt", weapon: "none", skin: c.skin, mustache: c.mustache, seed: 100 + i, speed: 5.2 });
     const fit = (rec?.stats?.fit ?? 60) - (rec?.fatigue ?? 0) * 0.25;
-    men.push({ sol, id, named: !!cast(id), fit, immune: id === "nixon" ? false : false });
+    men.push({ sol, id, named: !!cast(id), fit });
   });
   const sobelC = cast("sobel");
   const sobel = G.add({ id: "sobel", name: sobelC.name, short: "Sobel", side: "us", kit: "pt", weapon: "none", skin: sobelC.skin, seed: 7, speed: 5.4 });
@@ -105,6 +106,8 @@ export async function currahee(ctx, opts) {
     seed: opts.variant === "first" ? 5 : 9,
     drain: opts.drain,
     grade,
+    input,
+    ambulances: ambs,
     pace: (s) => {
       // Sobel pushes harder on the climb and eases a touch on the summit
       const k = s < 30 ? 0.7 : s > summitS - 8 && s < summitS + 6 ? 0.75 : 1;
@@ -179,23 +182,28 @@ export async function currahee(ctx, opts) {
   G.lockMove = false;
   music.set("drive", 0.45);
   audio.startBed && audio.setBed(0.6);
-  G.setObjective("Corre con la columna hasta la cima", ...lvl.summit);
-  if (opts.variant === "first") ui.toast("Arrastra a la izquierda para correr. Toca «Respirar» cuando el anillo se cierre.", 4200);
-  let silentT = 0, nextLine = 6, phaseUp = true, summitDone = false, behindT = 0, stepT = 0, lastBreathOk = false, tipsShown = 0;
+  G.setObjective(opts.variant === "first" ? "Corre con la columna hasta la cima" : "Que nadie de tu pelotón suba a la ambulancia", ...lvl.summit);
+  const touch = matchMedia("(pointer: coarse)").matches;
+  if (opts.variant === "first") ui.toast(touch ? "Arrastra a la izquierda para correr. Toca «Respirar» cuando el anillo llegue al aro." : "WASD para correr · Espacio para respirar cuando el anillo llegue al aro · E para empujar", 4800);
+  else ui.toast("Que no suba nadie de tu pelotón a la ambulancia.", 3200);
+  let tutHelp = false, ambT = 0, fadeAt = opts.variant === "first" ? [110, 190] : [], silentT = 0, nextLine = 6, phaseUp = true, summitDone = false, behindT = 0, stepT = 0, lastBreathOk = false, tipsShown = 0;
   let failed = false;
   const tick = (dt, rdt) => {
     if (dt <= 0) return;
+    if (input.axis().l > 0.2) ui.ghostOff();
     col.update(dt, ctx);
     const P = col.p;
     // breathing on the cadence
     const b = music.breath();
-    H.ring.style.transform = `scale(${(1.7 - b.phase * 0.7).toFixed(3)})`;
+    // the ring closes onto the fixed target ring: tap when they meet
+    H.ring.style.transform = `scale(${(1.35 - b.phase * 0.35).toFixed(3)})`;
     H.ring.style.opacity = (0.25 + b.phase * 0.75).toFixed(2);
     H.btn.classList.toggle("window", b.err < 0.16);
     if (input.consume("breath") || input.consume("fire")) {
       const ok = col.breathe(b.err < 0.16);
-      audio.breath(ok ? 0.35 : 0.9, 0, 1.6);
+      audio.breath(ok ? 0.25 + 0.1 / (1 + col.p.combo) : 0.9, 0, 1.6);
       audio.hit(ok);
+      H.combo.textContent = ok && col.p.combo >= 2 ? `×${col.p.combo}` : "";
       H.btn.classList.remove("ok", "miss");
       void H.btn.offsetWidth;
       H.btn.classList.add(ok ? "ok" : "miss");
@@ -212,7 +220,16 @@ export async function currahee(ctx, opts) {
     // where you are in the column
     const rel = clamp(P.rel ?? 0.5, -0.15, 1.15);
     H.me.style.left = `${(clamp(rel, 0, 1) * 100).toFixed(1)}%`;
-    H.pace.classList.toggle("warn", rel < 0.12);
+    const warn = rel < 0.12;
+    if (warn && !H.pace.classList.contains("warn")) audio.vibrate([40, 60, 40]);
+    H.pace.classList.toggle("warn", warn);
+    // the ambulance idles audibly behind you
+    ambT -= dt;
+    if (ambT <= 0 && ambs[0]) {
+      ambT = 2.4;
+      const a = ambs[0].position;
+      if (Math.hypot(a.x - win.x, a.z - win.z) < 26) audio.engine(a.x, a.z, 2.6);
+    }
     // footsteps of the column, the player's own breath
     if (P.stam < 0.35 && r() < dt * (1.6 - P.stam * 2)) audio.breath(1 - P.stam, 0);
     silentT = Math.max(0, silentT - dt);
@@ -223,6 +240,18 @@ export async function currahee(ctx, opts) {
       nextLine = 9 + r() * 6;
       const line = SOBEL_LINES[Math.floor(r() * SOBEL_LINES.length)];
       ui.say("Sobel", line, 2.2);
+    }
+    // the first run teaches helping: the two weakest recruits fade at set points
+    if (fadeAt.length && col.s > fadeAt[0]) {
+      fadeAt.shift();
+      const weak = col.men.filter((m) => !m.named && m.state === "ok").sort((a, b) => a.fit - b.fit)[0];
+      if (weak) {
+        weak.stam = 0.15;
+        if (!tutHelp) {
+          tutHelp = true;
+          setTimeout(() => ui.toast(`Vuelve por ${weak.sol.short}: acércate y pulsa «Empujar»${touch ? "" : " (E)"}.`, 4200), 1900);
+        }
+      }
     }
     // spaghetti: men retching by the road
     if (opts.variant === "spaghetti") {
@@ -275,7 +304,6 @@ export async function currahee(ctx, opts) {
       if (behindT > 0.4 && behindT - dt <= 0.4) ui.toast("¡La ambulancia te alcanza! Corre.", 1600);
       if (behindT > 4.5) failed = true;
     } else behindT = Math.max(0, behindT - dt * 2);
-    win.speed *= 1; // set by column
   };
   const unhook = shell.hook(tick);
   // the column's boots fall on the cadence (two steps a beat), the breath beats carry a guide pulse

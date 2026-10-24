@@ -115,11 +115,11 @@ export const CURRAHEE = {
         const r1 = flags.run1 || { lost: 0, helped: 0 };
         const left = roster.activeRecruits().length;
         await ui.card({
-          kicker: "Toccoa · Agosto de 1942",
+          kicker: "Toccoa · La primera semana",
           title: "Tres millas arriba, tres abajo",
           text: [
             `Aquel primer día la compañía perdió a varios hombres. ${r1.lost ? `De los reclutas que corrían contigo, ${r1.lost} ${r1.lost === 1 ? "subió" : "subieron"} a la ambulancia.` : "De los que corrían contigo, ninguno subió a la ambulancia."} ${r1.helped ? `Volviste por ${r1.helped} ${r1.helped === 1 ? "hombre" : "hombres"}; ellos no lo olvidarán.` : ""}`,
-            "Una semana más tarde ya corrían todo el camino de ida y vuelta. Después, tres o cuatro veces por semana, hasta cubrir los nueve kilómetros en cincuenta minutos. Y cada día la pista de obstáculos, las flexiones, las marchas nocturnas sin agua ni cigarrillos, con Sobel comprobando al final que las cantimploras siguieran llenas.",
+            "Una semana más tarde ya corrían todo el camino de ida y vuelta. Y cada día la pista de obstáculos, las flexiones, la instrucción en orden cerrado hasta que dolían los pies.",
             `Quedan ${left} de los reclutas sin nombre de tu pelotón. A los hombres les dijeron que Currahee era una palabra india que significaba «estar solo». Se convirtió en el grito de guerra del 506.º.`,
           ],
           next: "Seguir",
@@ -164,7 +164,7 @@ export const CURRAHEE = {
       bed: "georgia",
       music: { theme: "drive", level: 0.55 },
       async run(ctx) {
-        const res = await currahee(ctx, { variant: "spaghetti", pace: 3.15, drain: 1.0, ate: ctx.flags.ate });
+        const res = await currahee(ctx, { variant: "spaghetti", pace: 3.3, drain: 1.05, ate: ctx.flags.ate });
         if (res.retry) return res;
         ctx.flags.run2 = { lost: res.lost.length, helped: res.helped.length };
         return res;
@@ -189,6 +189,7 @@ export const CURRAHEE = {
           text: [
             `Subieron y bajaron Currahee con un par de ambulancias detrás y los hombres vomitando espaguetis por todo el camino. Los que aceptaron la invitación de los médicos fueron expulsados aquel mismo día. ${r2.lost ? `De tu pelotón, ${r2.lost} más.` : "De tu pelotón, nadie."}`,
             "Sobel quería que su compañía fuese la mejor del regimiento, y para eso le exigía más que nadie. Negaba los permisos por «orejas sucias». Los hombres lo odiaban, y ese odio común los unió. Sobrevivir a Sobel fue la primera prueba de la Compañía E.",
+            "Subían y bajaban Currahee tres o cuatro veces por semana, hasta cubrir los nueve kilómetros en cincuenta minutos. Llegaron las marchas nocturnas sin agua ni cigarrillos, con Sobel comprobando al final que las cantimploras siguieran llenas.",
             `Siguen en pie ${left} reclutas de los doce con los que empezaste. Lo que entrenaste aquí se notará en Normandía.`,
           ],
           next: "Seguir",

@@ -157,12 +157,13 @@ button{font:inherit;color:inherit}
 .title .tleft h1{font-size:clamp(44px,9.5vh + 2vw,96px);margin:6px 0 10px}
 .title .tleft blockquote{margin:6px 0 0;padding:0}
 .title .tright{display:flex;flex-direction:column;justify-content:center;gap:10px;width:min(300px,42vw)}
-.title .tright .foot{margin-top:4px;font-size:11px;line-height:1.3}
+.title .tright{background:rgba(10,9,7,.55);padding:14px;border-radius:3px;box-shadow:0 0 40px 20px rgba(10,9,7,.45)}
+.title .tright .foot{margin-top:4px;font-size:11.5px;line-height:1.3;color:#c9bfa9}
 .title .cont{width:100%}
 .chlist{display:flex;flex-direction:column;gap:8px}
-.ch{appearance:none;border:1px solid rgba(233,224,203,.25);background:rgba(16,14,11,.6);color:#efe6d2;text-align:left;padding:8px 12px 8px 54px;min-height:52px;border-radius:2px;position:relative;cursor:pointer;pointer-events:auto;transition:background .2s}
+.ch{appearance:none;border:1px solid rgba(233,224,203,.25);background:rgba(16,14,11,.6);color:#efe6d2;text-align:left;padding:8px 12px 8px 60px;min-height:52px;border-radius:2px;position:relative;cursor:pointer;pointer-events:auto;transition:background .2s}
 .ch:hover,.ch:focus-visible{background:rgba(227,194,122,.2);outline:none}
-.ch em{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-family:'IM Fell English SC',serif;font-style:normal;font-size:22px;color:#e3c27a;width:32px;text-align:center}
+.ch em{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-family:'IM Fell English SC',serif;font-style:normal;font-size:15px;color:#e3c27a;width:40px;text-align:center}
 .ch b{display:block;font-family:'IM Fell English SC',serif;font-weight:400;font-size:20px;line-height:1.05}
 .ch small{display:block;font-family:'Special Elite',monospace;font-size:11px;letter-spacing:.06em;color:#b8ae98}
 .ch.proto{opacity:.72}
@@ -181,14 +182,19 @@ button{font:inherit;color:inherit}
 #runhud .aliento .bar{width:min(180px,24vw);height:9px;border-radius:5px;background:rgba(255,255,255,.12);overflow:hidden}
 #runhud .aliento .bar i{display:block;height:100%;width:100%;transform-origin:0 50%;background:linear-gradient(90deg,#6f8f5a,#cfe0a0)}
 #runhud .aliento.low .bar i{background:linear-gradient(90deg,#8d2c25,#e05a4a);animation:blink .6s infinite}
-#runhud .pace{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(12px + var(--safe-b));display:flex;align-items:center;gap:8px;background:var(--hud);border:1px solid var(--line);border-radius:16px;padding:6px 12px;font-size:13px;letter-spacing:.06em}
-#runhud .pace .track{position:relative;width:min(260px,32vw);height:10px;border-radius:5px;background:linear-gradient(90deg,rgba(200,67,58,.55) 0 12%,rgba(255,255,255,.14) 12%)}
-#runhud .pace .me{position:absolute;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#e3c27a;border:2px solid #1d1a16;left:50%;transition:left .2s linear}
+#runhud .pace{position:absolute;left:calc(12px + env(safe-area-inset-left,0px));top:calc(52px + var(--safe-t));display:flex;align-items:center;gap:8px;background:var(--hud);border:1px solid var(--line);border-radius:14px;padding:6px 12px;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase}
+#runhud .pace .track{position:relative;width:min(200px,26vw);height:14px;border-radius:7px;background:linear-gradient(90deg,rgba(200,67,58,.65) 0 12%,rgba(255,255,255,.14) 12%)}
+#runhud .pace .me{position:absolute;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:#e3c27a;border:2px solid #1d1a16;left:50%;transition:left .2s linear}
+#runhud .pace.warn{border-color:#e05a4a;box-shadow:0 0 0 2px rgba(224,90,74,.5)}
 #runhud .pace.warn .me{background:#e05a4a;animation:blink .4s infinite}
-#runhud .pace .amb{color:#e05a4a;font-weight:700}
+#runhud .pace .amb{color:#ff8a7a;font-weight:700}
 #runhud .pace .head{color:#e9e0cb}
 #runhud .breath{position:absolute;right:calc(18px + env(safe-area-inset-right,0px));bottom:calc(18px + var(--safe-b));width:112px;height:112px;border-radius:50%;pointer-events:auto;touch-action:none;border:2px solid rgba(233,224,203,.35);background:rgba(16,19,23,.62);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
-#runhud .breath .ring{position:absolute;inset:-2px;border-radius:50%;border:3px solid rgba(227,194,122,.85);transform:scale(1.6);opacity:.25;pointer-events:none}
+#runhud .breath .ring{position:absolute;inset:-2px;border-radius:50%;border:3px solid rgba(227,194,122,.85);transform:scale(1.35);opacity:.25;pointer-events:none}
+#runhud .breath .target{position:absolute;inset:-2px;border-radius:50%;border:2px dashed rgba(244,226,166,.55);pointer-events:none}
+#runhud .breath .combo{position:absolute;top:-30px;left:50%;transform:translateX(-50%);font-style:normal;font-weight:700;font-size:18px;color:#f4e2a6;text-shadow:0 1px 4px #000}
+#runhud .breath kbd{display:none;position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font:600 11px 'Barlow Condensed';letter-spacing:.08em;color:#bcb29e;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:1px 6px}
+@media (pointer:fine){#runhud .breath kbd{display:block}}
 #runhud .breath.window .ring{border-color:#f4e2a6;opacity:1;box-shadow:0 0 18px rgba(227,194,122,.7)}
 #runhud .breath .core{display:flex;flex-direction:column;align-items:center;line-height:1}
 #runhud .breath b{font-size:18px;letter-spacing:.06em;text-transform:uppercase}
@@ -197,8 +203,8 @@ button{font:inherit;color:inherit}
 #runhud .breath.ok{background:rgba(111,143,90,.7)}
 #runhud .breath.miss{background:rgba(141,44,37,.7)}
 body[data-run] #btns .fire,body[data-run] #btns .crouch,body[data-run] #btns .nade,body[data-run] #btns .heal,body[data-run] #btns .call,body[data-run] #who .hp,body[data-run] #who .status{display:none!important}
-body[data-run] #btns{bottom:calc(140px + var(--safe-b))}
-body[data-run] #btns .act{bottom:0;right:0}
+body[data-run] #btns{bottom:calc(18px + var(--safe-b));right:calc(146px + env(safe-area-inset-right,0px));width:auto;height:60px}
+body[data-run] #btns .act{bottom:26px;right:0;height:52px;font-size:17px}
 body[data-run] #who{display:none!important}
 body[data-run] #obj{top:calc(10px + var(--safe-t));left:auto;right:calc(64px + env(safe-area-inset-right,0px));transform:none;max-width:min(46vw,380px)}
 body[data-run] #obj.new{animation:none}
@@ -206,6 +212,7 @@ body[data-run] #toast{top:calc(60px + var(--safe-t))}
 .mk.strag{font-size:13px;font-weight:700;color:#ffd7c9;background:rgba(122,40,32,.85);padding:3px 8px;border-radius:10px;border:1px solid rgba(255,160,130,.5);animation:blink 1s infinite}
 body[data-run] #sub{bottom:calc(58px + var(--safe-b));left:50%;max-width:min(52vw,440px)}
 body[data-run] .ghost{bottom:calc(64px + var(--safe-b))}
+@media (pointer:fine){.ghost{display:none}}
 /* narrative mode: no HUD, cards and subtitles only */
 body[data-mode=narrative] #sub{bottom:calc(16px + var(--safe-b))}
 /* portrait on a phone: ask to rotate */
@@ -8579,13 +8586,18 @@ void main(){
     scene.add(sgn);
     for (let i = 0; i < 10; i++) pole(world, B2, ...W(-120 + i * 9, 41), 6);
     const RW = routeWorld();
+    let roadSide = 0;
     const roadDist = (x, z) => {
       let best = 1e9;
       for (let i = 1; i < RW.length; i++) {
         const [ax, az] = RW[i - 1], [bx, bz] = RW[i];
         const dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz || 1;
         const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / L2));
-        best = Math.min(best, Math.hypot(x - ax - dx * t, z - az - dz * t));
+        const ox = x - ax - dx * t, oz = z - az - dz * t, d = Math.hypot(ox, oz);
+        if (d < best) {
+          best = d;
+          roadSide = (ox + oz) * 0.707;
+        }
       }
       return best;
     };
@@ -8599,7 +8611,8 @@ void main(){
       const [x, z] = W(u, v);
       if (Math.abs(world.height(x, z) - world.rawHeight(x, z)) > 0.5) continue;
       i++;
-      if (r() < 0.75 && roadDist(x, z) > 9) pine(world, B2, Fo, x, z, 0.8 + r() * 0.45, r);
+      const rd = roadDist(x, z);
+      if (r() < 0.75 && rd > (roadSide > 0 ? 17 : 8)) pine(world, B2, Fo, x, z, 0.8 + r() * 0.45, r);
       else scrub(world, Fo, x, z, 0.7 + r() * 0.8, r);
     }
     for (const [u, v] of [[-118, 12], [-104, -30], [-60, 30], [-40, -38], [-122, -36], [-76, 40]]) pine(world, B2, Fo, ...W(u, v), 1.05);
@@ -8819,11 +8832,16 @@ void main(){
       let pr = this.route.project(p.x, p.z, P2.s, 6, hd);
       if (pr.off > 6) pr = this.route.project(p.x, p.z, P2.s, 30, hd);
       P2.s = pr.s;
+      const l = this.cfg.input ? this.cfg.input.axis().l : 1;
+      const sprint = lerp(2.9, 5, clamp(P2.stam * 1.4, 0, 1));
+      const cruise = Math.min(sprint, pace * 1.06);
+      const want = l < 0.85 ? cruise / Math.max(0.3, l) : sprint;
+      p.speed = Math.min(want, 9);
       const v = p.st.move * p.speed;
       const climb = Math.max(0, this.cfg.grade ? this.cfg.grade(P2.s, this.dir) : 0);
-      const cost = (Math.max(0, v - 2.2) / 2.2) ** 1.6 * (1 + climb * 2.5) * (this.cfg.drain || 1) * 0.07 + (this.cfg.sick?.({ id: p.id, player: true }) || 0);
-      P2.stam = clamp(P2.stam - cost * dt + 0.012 * dt, 0, 1);
-      p.speed = lerp(2.4, 4.9, clamp(P2.stam * 1.4, 0, 1));
+      const excess = Math.max(0, v - pace * 1.08);
+      const cost = (excess / 2) ** 1.5 * (1 + climb * 1.5) * (this.cfg.drain || 1) * 0.12 + (this.cfg.sick?.({ id: p.id, player: true }) || 0) + climb * 0.2 * (this.cfg.drain || 1);
+      P2.stam = clamp(P2.stam - cost * dt + (this.cfg.regen ?? 0.012) * dt, 0, 1);
       P2.breathT = Math.max(0, P2.breathT - dt);
       const head = this.s, amb = this.ambS();
       P2.rel = (P2.s - amb) / (head - amb || 1) * this.dir;
@@ -8834,7 +8852,7 @@ void main(){
       const P2 = this.p;
       if (onBeat) {
         P2.combo = Math.min(6, P2.combo + 1);
-        P2.stam = clamp(P2.stam + 0.06 + P2.combo * 0.012, 0, 1);
+        P2.stam = clamp(P2.stam + 0.025 + P2.combo * 6e-3, 0, 1);
         P2.breathT = 0.4;
         return true;
       }
@@ -8885,9 +8903,9 @@ void main(){
     el2.innerHTML = `
     <div class="aliento" aria-label="Aliento"><span class="lbl">Aliento</span><span class="bar"><i></i></span></div>
     <div class="pace" aria-label="Tu lugar en la columna">
-      <span class="end amb" title="Ambulancias">\u271A</span><span class="track"><i class="danger"></i><b class="me"></b></span><span class="end head">Sobel</span>
+      <span class="end amb">\u271A Ambulancia</span><span class="track"><i class="danger"></i><b class="me"></b></span><span class="end head">Sobel</span>
     </div>
-    <button class="breath" data-b="breath" aria-label="Respirar al comp\xE1s"><span class="ring"></span><span class="core"><b>Respirar</b><small>al comp\xE1s</small></span></button>`;
+    <button class="breath" data-b="breath" aria-label="Respirar al comp\xE1s"><span class="target"></span><span class="ring"></span><span class="core"><b>Respirar</b><small class="hint">al comp\xE1s</small><em class="combo"></em></span><kbd>Espacio</kbd></button>`;
     ui.root.querySelector("#hud").appendChild(el2);
     const b = el2.querySelector(".breath");
     b.addEventListener("pointerdown", (e) => {
@@ -8908,6 +8926,7 @@ void main(){
       me: el2.querySelector(".pace .me"),
       pace: el2.querySelector(".pace"),
       ring: el2.querySelector(".breath .ring"),
+      combo: el2.querySelector(".breath .combo"),
       btn: b,
       remove: () => el2.remove()
     };
@@ -8930,7 +8949,7 @@ void main(){
       const rec = roster.get(id);
       const sol = G.add({ id, name: c.name, short: c.short, side: "us", kit: "pt", weapon: "none", skin: c.skin, mustache: c.mustache, seed: 100 + i, speed: 5.2 });
       const fit = (rec?.stats?.fit ?? 60) - (rec?.fatigue ?? 0) * 0.25;
-      men.push({ sol, id, named: !!cast(id), fit, immune: id === "nixon" ? false : false });
+      men.push({ sol, id, named: !!cast(id), fit });
     });
     const sobelC = cast("sobel");
     const sobel = G.add({ id: "sobel", name: sobelC.name, short: "Sobel", side: "us", kit: "pt", weapon: "none", skin: sobelC.skin, seed: 7, speed: 5.4 });
@@ -8960,6 +8979,8 @@ void main(){
       seed: opts.variant === "first" ? 5 : 9,
       drain: opts.drain,
       grade,
+      input,
+      ambulances: ambs,
       pace: (s) => {
         const k = s < 30 ? 0.7 : s > summitS - 8 && s < summitS + 6 ? 0.75 : 1;
         return basePace * k;
@@ -9029,22 +9050,26 @@ void main(){
     G.lockMove = false;
     music.set("drive", 0.45);
     audio.startBed && audio.setBed(0.6);
-    G.setObjective("Corre con la columna hasta la cima", ...lvl.summit);
-    if (opts.variant === "first") ui.toast("Arrastra a la izquierda para correr. Toca \xABRespirar\xBB cuando el anillo se cierre.", 4200);
-    let silentT = 0, nextLine = 6, phaseUp = true, summitDone = false, behindT = 0, stepT = 0, lastBreathOk = false, tipsShown = 0;
+    G.setObjective(opts.variant === "first" ? "Corre con la columna hasta la cima" : "Que nadie de tu pelot\xF3n suba a la ambulancia", ...lvl.summit);
+    const touch = matchMedia("(pointer: coarse)").matches;
+    if (opts.variant === "first") ui.toast(touch ? "Arrastra a la izquierda para correr. Toca \xABRespirar\xBB cuando el anillo llegue al aro." : "WASD para correr \xB7 Espacio para respirar cuando el anillo llegue al aro \xB7 E para empujar", 4800);
+    else ui.toast("Que no suba nadie de tu pelot\xF3n a la ambulancia.", 3200);
+    let tutHelp = false, ambT = 0, fadeAt = opts.variant === "first" ? [110, 190] : [], silentT = 0, nextLine = 6, phaseUp = true, summitDone = false, behindT = 0, stepT = 0, lastBreathOk = false, tipsShown = 0;
     let failed = false;
     const tick = (dt, rdt) => {
       if (dt <= 0) return;
+      if (input.axis().l > 0.2) ui.ghostOff();
       col.update(dt, ctx);
       const P2 = col.p;
       const b = music.breath();
-      H.ring.style.transform = `scale(${(1.7 - b.phase * 0.7).toFixed(3)})`;
+      H.ring.style.transform = `scale(${(1.35 - b.phase * 0.35).toFixed(3)})`;
       H.ring.style.opacity = (0.25 + b.phase * 0.75).toFixed(2);
       H.btn.classList.toggle("window", b.err < 0.16);
       if (input.consume("breath") || input.consume("fire")) {
         const ok = col.breathe(b.err < 0.16);
-        audio.breath(ok ? 0.35 : 0.9, 0, 1.6);
+        audio.breath(ok ? 0.25 + 0.1 / (1 + col.p.combo) : 0.9, 0, 1.6);
         audio.hit(ok);
+        H.combo.textContent = ok && col.p.combo >= 2 ? `\xD7${col.p.combo}` : "";
         H.btn.classList.remove("ok", "miss");
         void H.btn.offsetWidth;
         H.btn.classList.add(ok ? "ok" : "miss");
@@ -9059,7 +9084,15 @@ void main(){
       win.st.slump = damp(win.st.slump || 0, P2.stam < 0.2 ? 0.7 : 0, 3, dt);
       const rel = clamp(P2.rel ?? 0.5, -0.15, 1.15);
       H.me.style.left = `${(clamp(rel, 0, 1) * 100).toFixed(1)}%`;
-      H.pace.classList.toggle("warn", rel < 0.12);
+      const warn = rel < 0.12;
+      if (warn && !H.pace.classList.contains("warn")) audio.vibrate([40, 60, 40]);
+      H.pace.classList.toggle("warn", warn);
+      ambT -= dt;
+      if (ambT <= 0 && ambs[0]) {
+        ambT = 2.4;
+        const a = ambs[0].position;
+        if (Math.hypot(a.x - win.x, a.z - win.z) < 26) audio.engine(a.x, a.z, 2.6);
+      }
       if (P2.stam < 0.35 && r() < dt * (1.6 - P2.stam * 2)) audio.breath(1 - P2.stam, 0);
       silentT = Math.max(0, silentT - dt);
       if (!silentT) music.intensity(0.45 + (1 - P2.stam) * 0.3 + (phaseUp ? 0.1 : 0) + col.flagged().length * 0.05);
@@ -9068,6 +9101,17 @@ void main(){
         nextLine = 9 + r() * 6;
         const line = SOBEL_LINES[Math.floor(r() * SOBEL_LINES.length)];
         ui.say("Sobel", line, 2.2);
+      }
+      if (fadeAt.length && col.s > fadeAt[0]) {
+        fadeAt.shift();
+        const weak = col.men.filter((m) => !m.named && m.state === "ok").sort((a, b2) => a.fit - b2.fit)[0];
+        if (weak) {
+          weak.stam = 0.15;
+          if (!tutHelp) {
+            tutHelp = true;
+            setTimeout(() => ui.toast(`Vuelve por ${weak.sol.short}: ac\xE9rcate y pulsa \xABEmpujar\xBB${touch ? "" : " (E)"}.`, 4200), 1900);
+          }
+        }
       }
       if (opts.variant === "spaghetti") {
         for (const m of col.men) {
@@ -9114,7 +9158,6 @@ void main(){
         if (behindT > 0.4 && behindT - dt <= 0.4) ui.toast("\xA1La ambulancia te alcanza! Corre.", 1600);
         if (behindT > 4.5) failed = true;
       } else behindT = Math.max(0, behindT - dt * 2);
-      win.speed *= 1;
     };
     const unhook = shell2.hook(tick);
     G.quietSteps = true;
@@ -9281,11 +9324,11 @@ void main(){
           const r1 = flags.run1 || { lost: 0, helped: 0 };
           const left = roster.activeRecruits().length;
           await ui.card({
-            kicker: "Toccoa \xB7 Agosto de 1942",
+            kicker: "Toccoa \xB7 La primera semana",
             title: "Tres millas arriba, tres abajo",
             text: [
               `Aquel primer d\xEDa la compa\xF1\xEDa perdi\xF3 a varios hombres. ${r1.lost ? `De los reclutas que corr\xEDan contigo, ${r1.lost} ${r1.lost === 1 ? "subi\xF3" : "subieron"} a la ambulancia.` : "De los que corr\xEDan contigo, ninguno subi\xF3 a la ambulancia."} ${r1.helped ? `Volviste por ${r1.helped} ${r1.helped === 1 ? "hombre" : "hombres"}; ellos no lo olvidar\xE1n.` : ""}`,
-              "Una semana m\xE1s tarde ya corr\xEDan todo el camino de ida y vuelta. Despu\xE9s, tres o cuatro veces por semana, hasta cubrir los nueve kil\xF3metros en cincuenta minutos. Y cada d\xEDa la pista de obst\xE1culos, las flexiones, las marchas nocturnas sin agua ni cigarrillos, con Sobel comprobando al final que las cantimploras siguieran llenas.",
+              "Una semana m\xE1s tarde ya corr\xEDan todo el camino de ida y vuelta. Y cada d\xEDa la pista de obst\xE1culos, las flexiones, la instrucci\xF3n en orden cerrado hasta que dol\xEDan los pies.",
               `Quedan ${left} de los reclutas sin nombre de tu pelot\xF3n. A los hombres les dijeron que Currahee era una palabra india que significaba \xABestar solo\xBB. Se convirti\xF3 en el grito de guerra del 506.\xBA.`
             ],
             next: "Seguir"
@@ -9330,7 +9373,7 @@ void main(){
         bed: "georgia",
         music: { theme: "drive", level: 0.55 },
         async run(ctx) {
-          const res = await currahee(ctx, { variant: "spaghetti", pace: 3.15, drain: 1, ate: ctx.flags.ate });
+          const res = await currahee(ctx, { variant: "spaghetti", pace: 3.3, drain: 1.05, ate: ctx.flags.ate });
           if (res.retry) return res;
           ctx.flags.run2 = { lost: res.lost.length, helped: res.helped.length };
           return res;
@@ -9355,6 +9398,7 @@ void main(){
             text: [
               `Subieron y bajaron Currahee con un par de ambulancias detr\xE1s y los hombres vomitando espaguetis por todo el camino. Los que aceptaron la invitaci\xF3n de los m\xE9dicos fueron expulsados aquel mismo d\xEDa. ${r2.lost ? `De tu pelot\xF3n, ${r2.lost} m\xE1s.` : "De tu pelot\xF3n, nadie."}`,
               "Sobel quer\xEDa que su compa\xF1\xEDa fuese la mejor del regimiento, y para eso le exig\xEDa m\xE1s que nadie. Negaba los permisos por \xABorejas sucias\xBB. Los hombres lo odiaban, y ese odio com\xFAn los uni\xF3. Sobrevivir a Sobel fue la primera prueba de la Compa\xF1\xEDa E.",
+              "Sub\xEDan y bajaban Currahee tres o cuatro veces por semana, hasta cubrir los nueve kil\xF3metros en cincuenta minutos. Llegaron las marchas nocturnas sin agua ni cigarrillos, con Sobel comprobando al final que las cantimploras siguieran llenas.",
               `Siguen en pie ${left} reclutas de los doce con los que empezaste. Lo que entrenaste aqu\xED se notar\xE1 en Normand\xEDa.`
             ],
             next: "Seguir"
@@ -9375,9 +9419,9 @@ void main(){
   // src/main.js
   var CHAPTERS = { currahee: CURRAHEE };
   var LIST = [
-    { id: "currahee", n: "I", title: "Currahee", sub: "Toccoa \xB7 1942", ready: true },
-    { id: "dia-d", n: "III", title: "D\xEDa D", sub: "Normand\xEDa \xB7 junio de 1944", href: "dia-d.html" },
-    { id: "bastogne", n: "VII", title: "Bastogne", sub: "Ardenas \xB7 diciembre de 1944", href: "hermanos-de-sangre.html" }
+    { id: "currahee", n: "1942", title: "Currahee", sub: "Toccoa, Georgia", ready: true },
+    { id: "dia-d", n: "1944", title: "D\xEDa D", sub: "Normand\xEDa, junio", href: "dia-d.html" },
+    { id: "bastogne", n: "1944", title: "Bastogne", sub: "Ardenas, diciembre", href: "hermanos-de-sangre.html" }
   ];
   var shell = new Shell();
   var save = loadSave();
@@ -9393,9 +9437,9 @@ void main(){
     shell.build("toccoa", CURRAHEE.places.toccoa);
     const G = shell.G;
     G.player = null;
-    G.camSpan = 24;
-    G.cam.span = 24;
-    const [x0, z0] = W(-40, 6);
+    G.camSpan = 20;
+    G.cam.span = 20;
+    const [x0, z0] = W(-96, -4);
     G.cam.x = x0;
     G.cam.z = z0;
     shell.music.set("calm", 0.3);
