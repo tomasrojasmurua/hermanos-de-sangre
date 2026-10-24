@@ -161,7 +161,7 @@ export const CURRAHEE = {
       place: "toccoa",
       music: { theme: "drive", level: 0.55 },
       async run(ctx) {
-        const res = await currahee(ctx, { variant: "spaghetti", pace: 3.35, drain: 1.15, ate: ctx.flags.ate });
+        const res = await currahee(ctx, { variant: "spaghetti", pace: 3.15, drain: 1.0, ate: ctx.flags.ate });
         if (res.retry) return res;
         ctx.flags.run2 = { lost: res.lost.length, helped: res.helped.length };
         return res;

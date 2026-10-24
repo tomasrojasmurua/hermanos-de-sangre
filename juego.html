@@ -8802,7 +8802,7 @@ void main(){
         const k = s < 30 ? 0.7 : s > summitS - 8 && s < summitS + 6 ? 0.75 : 1;
         return basePace * k;
       },
-      sick: (m) => opts.variant === "spaghetti" ? (sickT[m.id] > 0 ? 0.03 : 0) * (m.player ? opts.ate ? 1 : 0.4 : 1) : 0,
+      sick: (m) => opts.variant === "spaghetti" ? (sickT[m.id] > 0 ? 0.016 : 0) * (m.player ? opts.ate ? 1 : 0.4 : 1) : 0,
       onStraggle: (m) => {
         audio.breath(1, 0);
         if (!flagged.has(m.id)) ui.toast(`${m.sol.short} se est\xE1 quedando atr\xE1s`, 1800);
@@ -9150,7 +9150,7 @@ void main(){
         place: "toccoa",
         music: { theme: "drive", level: 0.55 },
         async run(ctx) {
-          const res = await currahee(ctx, { variant: "spaghetti", pace: 3.35, drain: 1.15, ate: ctx.flags.ate });
+          const res = await currahee(ctx, { variant: "spaghetti", pace: 3.15, drain: 1, ate: ctx.flags.ate });
           if (res.retry) return res;
           ctx.flags.run2 = { lost: res.lost.length, helped: res.helped.length };
           return res;

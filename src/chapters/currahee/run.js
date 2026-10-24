@@ -110,7 +110,7 @@ export async function currahee(ctx, opts) {
       const k = s < 30 ? 0.7 : s > summitS - 8 && s < summitS + 6 ? 0.75 : 1;
       return basePace * k;
     },
-    sick: (m) => (opts.variant === "spaghetti" ? (sickT[m.id] > 0 ? 0.03 : 0) * (m.player ? (opts.ate ? 1 : 0.4) : 1) : 0),
+    sick: (m) => (opts.variant === "spaghetti" ? (sickT[m.id] > 0 ? 0.016 : 0) * (m.player ? (opts.ate ? 1 : 0.4) : 1) : 0),
     onStraggle: (m) => {
       audio.breath(1, 0);
       if (!flagged.has(m.id)) ui.toast(`${m.sol.short} se está quedando atrás`, 1800);
