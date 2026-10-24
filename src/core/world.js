@@ -1,6 +1,6 @@
 // World model: height field (with carved trenches/craters), colliders, line of sight.
-import { T, clamp, smooth, fbm, segDist, segHit, rng } from "./util.js";
-import { Builder, mat } from "./geo.js";
+import { T, clamp, smooth, fbm, segDist, segHit, rng } from "../engine/util.js";
+import { Builder, mat } from "../engine/geo.js";
 
 export class World {
   constructor(size = 140, opts = {}) {

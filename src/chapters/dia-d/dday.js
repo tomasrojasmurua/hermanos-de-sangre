@@ -1,10 +1,10 @@
 // Chapter: Día D. Part 1 — the night jump near Sainte-Mère-Église (stealth, a bayonet and a cricket).
 // Part 2 — Brécourt Manor, 08:30 (raw assault on the 105 mm battery). Based on Ambrose, ch. «¡Seguidme!».
-import { T, rng, clamp, lerp, fbm, smooth } from "./util.js";
-import { Builder, meshFrom, U, mat } from "./geo.js";
-import { World, buildGround, scatter } from "./world.js";
-import * as P from "./props.js";
-import { setGrade } from "./render.js";
+import { T, rng, clamp, lerp, fbm, smooth } from "../../engine/util.js";
+import { Builder, meshFrom, U, mat } from "../../engine/geo.js";
+import { World, buildGround, scatter } from "../../core/world.js";
+import * as P from "../../core/props.js";
+import { setGrade } from "../../engine/render.js";
 
 // level frame: u = forward (screen up), v = lateral (screen right). Camera yaw π/4.
 const F = [-Math.SQRT1_2, -Math.SQRT1_2], R = [Math.SQRT1_2, -Math.SQRT1_2];
@@ -13,19 +13,7 @@ export const W = (u, v) => [S0[0] + F[0] * u + R[0] * v, S0[1] + F[1] * u + R[1]
 const WL = (list) => list.map(([u, v]) => W(u, v));
 const ANG = Math.atan2(F[0], F[1]); // facing "forward" (toward +u)
 
-export const CAST = {
-  winters: { id: "winters", name: "Tte. Richard Winters", short: "Winters", rank: "Compañía E · 1.er pelotón", rankKey: "lt", portrait: { rank: "lt", skin: "#dba886" }, skin: 0xdba886 },
-  lipton: { id: "lipton", name: "Sgto. Carwood Lipton", short: "Lipton", rank: "Sargento", rankKey: "sgt", portrait: { rank: "sgt", skin: "#d39f7d" }, skin: 0xd39f7d, mustache: true },
-  guarnere: { id: "guarnere", name: "Sgto. Bill Guarnere", short: "Guarnere", rank: "Sargento", rankKey: "sgt", portrait: { rank: "sgt", skin: "#cf9874" }, skin: 0xcf9874 },
-  malarkey: { id: "malarkey", name: "Don Malarkey", short: "Malarkey", rank: "Soldado", portrait: { skin: "#e0b08f" }, skin: 0xe0b08f },
-  toye: { id: "toye", name: "Joe Toye", short: "Toye", rank: "Soldado", portrait: { skin: "#d7a483" }, skin: 0xd7a483 },
-  wynn: { id: "wynn", name: "«Popeye» Wynn", short: "Wynn", rank: "Soldado", portrait: { skin: "#d9a07a" }, skin: 0xd9a07a },
-  compton: { id: "compton", name: "Tte. Buck Compton", short: "Compton", rank: "Teniente", rankKey: "lt", portrait: { rank: "lt", skin: "#d6a07c" }, skin: 0xd6a07c },
-  plesha: { id: "plesha", name: "John Plesha", short: "Plesha", portrait: {} },
-  hendrix: { id: "hendrix", name: "Walter Hendrix", short: "Hendrix", portrait: {} },
-  liebgott: { id: "liebgott", name: "Joe Liebgott", short: "Liebgott", portrait: {} },
-  hall: { id: "hall", name: "John D. Hall", short: "Hall", rank: "Compañía A", portrait: { skin: "#d2a281" }, skin: 0xd2a281 },
-};
+export { CAST } from "../../data/dia-d-cast.js";
 
 // ------------------------------------------------------------------------------------------------
 function sky(scene, top, bottom) {

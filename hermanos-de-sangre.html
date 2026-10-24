@@ -25704,10 +25704,11 @@ void main(){ vec2 d = gl_PointCoord - 0.5; float r = length(d) * 2.0; float a = 
         for (let a = 0; a < this.n; a++) {
           let r = n[a];
           r.t += e;
-          let o = Math.max(0, Math.min(1, (r.t * 60) / r.d)),
-            l = Math.max(0, o - 2.2 / r.d);
-          if (l >= 1 || r.t > 1.8) continue;
-          o >= 1 && !r.hit && ((r.hit = !0), this.onHit && this.onHit(r.bx, r.by, r.bz));
+          let hd = (r.t * 60) / r.d;
+          if (hd >= 1 && !r.hit) ((r.hit = !0), this.onHit && this.onHit(r.bx, r.by, r.bz));
+          if (hd >= 1) continue; // gone on arrival: no trail left behind
+          let o = Math.max(0, Math.min(1, hd)),
+            l = Math.max(0, hd - 2.2 / r.d);
           let c = r.ax + (r.bx - r.ax) * l,
             u = r.ay + (r.by - r.ay) * l,
             h = r.az + (r.bz - r.az) * l,

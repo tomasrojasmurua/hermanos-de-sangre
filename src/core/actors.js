@@ -1,6 +1,6 @@
 // Soldiers: one skinned mesh per man (rigid skinning, one draw call), procedural animation.
-import { T, rng, clamp, lerp } from "./util.js";
-import { Builder, mat } from "./geo.js";
+import { T, rng, clamp, lerp } from "../engine/util.js";
+import { Builder, mat } from "../engine/geo.js";
 
 export const PAL = {
   para: { coat: 0x8a7f55, coat2: 0x766c48, pants: 0x7d744f, boots: 0x5a3c26, helmet: 0x5f5d40, net: 0x46452f, skin: 0xd6a07c, gear: 0xa49c74, paint: 0x2b2a22 },
