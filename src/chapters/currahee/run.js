@@ -9,7 +9,7 @@ import { esc } from "../../engine/ui.js";
 const NAMED = ["lipton", "guarnere", "malarkey", "toye", "muck", "tipper", "christenson", "gordon", "wynn", "martin", "talbert", "nixon"];
 
 const SOBEL_LINES = [
-  "¡Los japos os cogerán!",
+  "¡Los japos os joderán vivos!",
   "¡Adelante, Silver!",
   "¡Más rápido! ¡Esto no es un paseo!",
   "¡El que suba a la ambulancia, se va hoy mismo!",
@@ -292,7 +292,7 @@ export async function currahee(ctx, opts) {
     Object.assign(roster.d, JSON.parse(before));
     G.lockMove = true;
     music.intensity(0.15);
-    await ui.card({ kicker: "Currahee", title: "Winters no sube a la ambulancia", text: "Ningún oficial de la Compañía E se quedó atrás en Currahee. Respira al compás, corre pegado a la columna y vuelve a intentarlo.", next: "Otra vez" });
+    await ui.card({ kicker: "Currahee", title: "Winters no sube a la ambulancia", text: "Winters no puede quedarse atrás: sus hombres lo miran. Respira al compás, corre pegado a la columna y vuelve a intentarlo.", next: "Otra vez" });
     G.lockMove = false;
     return { retry: true };
   }

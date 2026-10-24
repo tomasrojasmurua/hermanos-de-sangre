@@ -4,12 +4,12 @@
 // Hechos del libro en `note`. Lo inventado se marca con `invented: true` (ver docs/inventado.md).
 
 export const COMPANY = [
-  { id: "winters", name: "Tte. Richard Winters", short: "Winters", rank: "Teniente · 2.º pelotón", rankKey: "lt", skin: 0xdba886,
-    stats: { fit: 78, aim: 70, stealth: 60, lead: 85, nerve: 82 }, note: "Cuáquero de Pensilvania. No bebe ni fuma. Los hombres confían en él desde el primer día." },
+  { id: "winters", name: "Tte. Richard Winters", short: "Winters", rank: "Teniente · jefe de pelotón", rankKey: "lt", skin: 0xdba886,
+    stats: { fit: 78, aim: 70, stealth: 60, lead: 85, nerve: 82 }, note: "De Lancaster, Pensilvania. No bebe ni fuma. Los hombres confían en él desde el primer día." },
   { id: "nixon", name: "Tte. Lewis Nixon", short: "Nixon", rank: "Teniente", rankKey: "lt", skin: 0xd8a888,
-    stats: { fit: 58, aim: 55, stealth: 45, lead: 70, nerve: 66 }, note: "Amigo íntimo de Winters. Hijo de una familia rica de Nueva York; brillante y bebedor." },
-  { id: "sobel", name: "Cap. Herbert Sobel", short: "Sobel", rank: "Capitán · jefe de la compañía", rankKey: "cpt", skin: 0xd2a080, mustache: false,
-    stats: { fit: 70, aim: 40, stealth: 30, lead: 35, nerve: 60 }, note: "Exige más que nadie. Niega permisos por «orejas sucias». Corre con los brazos como aspas." },
+    stats: { fit: 58, aim: 55, stealth: 45, lead: 70, nerve: 66 }, note: "Amigo íntimo de Winters. Hijo de una familia rica de Nueva Jersey; brillante y bebedor." },
+  { id: "sobel", name: "Tte. Herbert Sobel", short: "Sobel", rank: "Teniente primero · jefe de la compañía", rankKey: "lt", skin: 0xd2a080, mustache: false,
+    stats: { fit: 70, aim: 40, stealth: 30, lead: 35, nerve: 60 }, note: "Exige más que nadie. Niega permisos por «orejas sucias»." },
   { id: "lipton", name: "Carwood Lipton", short: "Lipton", rank: "Soldado", skin: 0xd39f7d, mustache: true,
     stats: { fit: 72, aim: 66, stealth: 62, lead: 74, nerve: 78 }, note: "De Virginia Occidental. Hijo de minero; perdió a su padre de niño." },
   { id: "guarnere", name: "Bill Guarnere", short: "Guarnere", rank: "Soldado", skin: 0xcf9874,

@@ -7521,11 +7521,11 @@ void main(){
       id: "winters",
       name: "Tte. Richard Winters",
       short: "Winters",
-      rank: "Teniente \xB7 2.\xBA pelot\xF3n",
+      rank: "Teniente \xB7 jefe de pelot\xF3n",
       rankKey: "lt",
       skin: 14395526,
       stats: { fit: 78, aim: 70, stealth: 60, lead: 85, nerve: 82 },
-      note: "Cu\xE1quero de Pensilvania. No bebe ni fuma. Los hombres conf\xEDan en \xE9l desde el primer d\xEDa."
+      note: "De Lancaster, Pensilvania. No bebe ni fuma. Los hombres conf\xEDan en \xE9l desde el primer d\xEDa."
     },
     {
       id: "nixon",
@@ -7535,18 +7535,18 @@ void main(){
       rankKey: "lt",
       skin: 14198920,
       stats: { fit: 58, aim: 55, stealth: 45, lead: 70, nerve: 66 },
-      note: "Amigo \xEDntimo de Winters. Hijo de una familia rica de Nueva York; brillante y bebedor."
+      note: "Amigo \xEDntimo de Winters. Hijo de una familia rica de Nueva Jersey; brillante y bebedor."
     },
     {
       id: "sobel",
-      name: "Cap. Herbert Sobel",
+      name: "Tte. Herbert Sobel",
       short: "Sobel",
-      rank: "Capit\xE1n \xB7 jefe de la compa\xF1\xEDa",
-      rankKey: "cpt",
+      rank: "Teniente primero \xB7 jefe de la compa\xF1\xEDa",
+      rankKey: "lt",
       skin: 13803648,
       mustache: false,
       stats: { fit: 70, aim: 40, stealth: 30, lead: 35, nerve: 60 },
-      note: "Exige m\xE1s que nadie. Niega permisos por \xABorejas sucias\xBB. Corre con los brazos como aspas."
+      note: "Exige m\xE1s que nadie. Niega permisos por \xABorejas sucias\xBB."
     },
     {
       id: "lipton",
@@ -8695,7 +8695,7 @@ void main(){
   // src/chapters/currahee/run.js
   var NAMED = ["lipton", "guarnere", "malarkey", "toye", "muck", "tipper", "christenson", "gordon", "wynn", "martin", "talbert", "nixon"];
   var SOBEL_LINES = [
-    "\xA1Los japos os coger\xE1n!",
+    "\xA1Los japos os joder\xE1n vivos!",
     "\xA1Adelante, Silver!",
     "\xA1M\xE1s r\xE1pido! \xA1Esto no es un paseo!",
     "\xA1El que suba a la ambulancia, se va hoy mismo!",
@@ -8955,7 +8955,7 @@ void main(){
       Object.assign(roster.d, JSON.parse(before));
       G.lockMove = true;
       music.intensity(0.15);
-      await ui.card({ kicker: "Currahee", title: "Winters no sube a la ambulancia", text: "Ning\xFAn oficial de la Compa\xF1\xEDa E se qued\xF3 atr\xE1s en Currahee. Respira al comp\xE1s, corre pegado a la columna y vuelve a intentarlo.", next: "Otra vez" });
+      await ui.card({ kicker: "Currahee", title: "Winters no sube a la ambulancia", text: "Winters no puede quedarse atr\xE1s: sus hombres lo miran. Respira al comp\xE1s, corre pegado a la columna y vuelve a intentarlo.", next: "Otra vez" });
       G.lockMove = false;
       return { retry: true };
     }
@@ -9000,7 +9000,7 @@ void main(){
     });
     const sc = cast("sobel");
     const [sx, sz] = W(-75.5, 8.2);
-    G.add({ id: "sobel", name: sc.name, short: "Sobel", side: "us", kit: "hbt", rankKey: "cpt", weapon: "none", skin: sc.skin, seed: 7, x: sx, z: sz, ry: face + Math.PI });
+    G.add({ id: "sobel", name: sc.name, short: "Sobel", side: "us", kit: "hbt", rankKey: "lt", weapon: "none", skin: sc.skin, seed: 7, x: sx, z: sz, ry: face + Math.PI });
     const wc = cast("winters");
     const [wx, wz] = W(-68.5, 6.4);
     G.add({ id: "winters", name: wc.name, short: "Winters", side: "us", kit: "hbt", rankKey: "lt", weapon: "none", skin: wc.skin, seed: 1, x: wx, z: wz, ry: face + Math.PI });
@@ -9157,10 +9157,10 @@ void main(){
           music.sting("summit");
           await ui.card({
             kicker: "Toccoa \xB7 Oto\xF1o de 1942",
-            title: "Ten\xEDamos que sobrevivir a Sobel",
+            title: "Sobrevivir a Sobel",
             text: [
               `Subieron y bajaron Currahee con un par de ambulancias detr\xE1s y los hombres vomitando espaguetis por todo el camino. Los que aceptaron la invitaci\xF3n de los m\xE9dicos fueron expulsados aquel mismo d\xEDa. ${r2.lost ? `De tu pelot\xF3n, ${r2.lost} m\xE1s.` : "De tu pelot\xF3n, nadie."}`,
-              "Sobel quer\xEDa que su compa\xF1\xEDa fuese la mejor del regimiento, y para eso le exig\xEDa m\xE1s que nadie. Negaba los permisos por \xABorejas sucias\xBB. Los hombres lo odiaban. \xABPero \xE9l fue quien nos uni\xF3 \u2014dir\xEDa Winters\u2014. Ten\xEDamos que sobrevivir a Sobel\xBB.",
+              "Sobel quer\xEDa que su compa\xF1\xEDa fuese la mejor del regimiento, y para eso le exig\xEDa m\xE1s que nadie. Negaba los permisos por \xABorejas sucias\xBB. Los hombres lo odiaban, y ese odio com\xFAn los uni\xF3. Sobrevivir a Sobel fue la primera prueba de la Compa\xF1\xEDa E.",
               `Siguen en pie ${left} reclutas de los doce con los que empezaste. Lo que entrenaste aqu\xED se notar\xE1 en Normand\xEDa.`
             ],
             next: "Seguir"

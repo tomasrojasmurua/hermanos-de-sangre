@@ -22,7 +22,7 @@ function muster(G, roster, kit = "hbt") {
   });
   const sc = cast("sobel");
   const [sx, sz] = W(-75.5, 8.2);
-  G.add({ id: "sobel", name: sc.name, short: "Sobel", side: "us", kit: "hbt", rankKey: "cpt", weapon: "none", skin: sc.skin, seed: 7, x: sx, z: sz, ry: face + Math.PI });
+  G.add({ id: "sobel", name: sc.name, short: "Sobel", side: "us", kit: "hbt", rankKey: "lt", weapon: "none", skin: sc.skin, seed: 7, x: sx, z: sz, ry: face + Math.PI });
   const wc = cast("winters");
   const [wx, wz] = W(-68.5, 6.4);
   G.add({ id: "winters", name: wc.name, short: "Winters", side: "us", kit: "hbt", rankKey: "lt", weapon: "none", skin: wc.skin, seed: 1, x: wx, z: wz, ry: face + Math.PI });
@@ -182,10 +182,10 @@ export const CURRAHEE = {
         music.sting("summit");
         await ui.card({
           kicker: "Toccoa · Otoño de 1942",
-          title: "Teníamos que sobrevivir a Sobel",
+          title: "Sobrevivir a Sobel",
           text: [
             `Subieron y bajaron Currahee con un par de ambulancias detrás y los hombres vomitando espaguetis por todo el camino. Los que aceptaron la invitación de los médicos fueron expulsados aquel mismo día. ${r2.lost ? `De tu pelotón, ${r2.lost} más.` : "De tu pelotón, nadie."}`,
-            "Sobel quería que su compañía fuese la mejor del regimiento, y para eso le exigía más que nadie. Negaba los permisos por «orejas sucias». Los hombres lo odiaban. «Pero él fue quien nos unió —diría Winters—. Teníamos que sobrevivir a Sobel».",
+            "Sobel quería que su compañía fuese la mejor del regimiento, y para eso le exigía más que nadie. Negaba los permisos por «orejas sucias». Los hombres lo odiaban, y ese odio común los unió. Sobrevivir a Sobel fue la primera prueba de la Compañía E.",
             `Siguen en pie ${left} reclutas de los doce con los que empezaste. Lo que entrenaste aquí se notará en Normandía.`,
           ],
           next: "Seguir",
