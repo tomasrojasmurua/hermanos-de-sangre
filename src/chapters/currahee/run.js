@@ -327,7 +327,7 @@ export async function currahee(ctx, opts) {
   // the column's boots fall on the cadence (two steps a beat), the breath beats carry a guide pulse
   // on the effects bus, and a heartbeat comes in when Winters is running out of air
   G.quietSteps = true;
-  G.focusR = Math.min(innerHeight * 0.55, 230); // the whole column, not just Winters, shows through the pines
+  G.focusR = Math.min(innerHeight * 0.3, 120); // the whole column, not just Winters, shows through the pines
   music.onBeat = (t, b, spb) => {
     if (G.paused) return;
     const P = col.p, mv = win.st.move;

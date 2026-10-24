@@ -4317,10 +4317,12 @@ Plane:ui,Skeleton:to,Bone:Fa,SkinnedMesh:Qr,MathUtils:_n,REVISION:"170"};})();
     fireCol: { value: new T.Color(0, 0, 0) },
     firePos: { value: new T.Vector3() },
     paint: { value: 1 },
-    focus: { value: new T.Vector4(-9999, -9999, 0, 0) }
+    focus: { value: new T.Vector4(-9999, -9999, 0, 0) },
     // player: px x, px y, world y, radius px
+    focusD: { value: -1 }
+    // window depth just in front of the player: only nearer surfaces dissolve
   };
-  function painterly(shader, { rim = false, sway = false, enemy = false, ground = false, occlude = false } = {}) {
+  function painterly(shader, { rim = false, sway = false, canopy = false, enemy = false, ground = false, occlude = false } = {}) {
     shader.uniforms.uTime = U.time;
     shader.uniforms.uWind = U.wind;
     shader.uniforms.rimColor = enemy ? U.rimEnemy : U.rimColor;
@@ -4328,9 +4330,10 @@ Plane:ui,Skeleton:to,Bone:Fa,SkinnedMesh:Qr,MathUtils:_n,REVISION:"170"};})();
     shader.uniforms.firePos = U.firePos;
     shader.uniforms.uPaint = U.paint;
     shader.uniforms.uFocus = U.focus;
+    shader.uniforms.uFocusD = U.focusD;
     shader.uniforms.worldRim = U.worldRim;
     shader.vertexShader = shader.vertexShader.replace("#include <common>", `#include <common>
-varying vec3 vWP; uniform float uTime; uniform float uWind;`).replace(
+varying vec3 vWP; uniform float uTime; uniform float uWind;${canopy ? "\nattribute float aSway;" : ""}`).replace(
       "#include <begin_vertex>",
       `#include <begin_vertex>
 ${sway ? `{
@@ -4344,6 +4347,13 @@ ${sway ? `{
   float w = sin(uTime * 1.7 + ph) * 0.6 + sin(uTime * 3.1 + ph * 1.7) * 0.25;
   transformed.x += w * h * h * 0.08 * uWind;
   transformed.z += w * h * h * 0.05 * uWind;
+}` : ""}${canopy ? `{
+  // merged trees sit in world space: sway by height above their own ground, phased per spot, gently
+  float ph = position.x * 0.21 + position.z * 0.17;
+  float w = sin(uTime * 0.9 + ph) * 0.7 + sin(uTime * 1.6 + ph * 1.3) * 0.3;
+  float h = clamp(aSway, 0.0, 12.0);
+  transformed.x += w * h * h * 0.0035 * uWind;
+  transformed.z += w * h * h * 0.0022 * uWind;
 }` : ""}`
     ).replace("#include <worldpos_vertex>", `#include <worldpos_vertex>
   #ifdef USE_INSTANCING
@@ -4357,7 +4367,7 @@ ${sway ? `{
 varying vec3 vWP; uniform vec3 rimColor; uniform vec3 fireCol; uniform vec3 firePos; uniform float uPaint;
 float ph(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
 float pn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(ph(i),ph(i+vec2(1,0)),f.x),mix(ph(i+vec2(0,1)),ph(i+vec2(1,1)),f.x),f.y); }
-uniform vec4 uFocus; uniform vec3 worldRim;
+uniform vec4 uFocus; uniform float uFocusD; uniform vec3 worldRim;
 float bayer4(vec2 p){ vec2 q = mod(floor(p), 4.0); float i = q.x + q.y * 4.0;
   return (i==0.?0.:i==1.?8.:i==2.?2.:i==3.?10.:i==4.?12.:i==5.?4.:i==6.?14.:i==7.?6.:i==8.?3.:i==9.?11.:i==10.?1.:i==11.?9.:i==12.?15.:i==13.?7.:i==14.?13.:5.) / 16.0; }`
     ).replace(
@@ -4366,7 +4376,8 @@ float bayer4(vec2 p){ vec2 q = mod(floor(p), 4.0); float i = q.x + q.y * 4.0;
   ${occlude ? `{
     // see-through: canopies and roofs between the camera and your soldier dissolve (screen-door)
     float dpx = length(gl_FragCoord.xy - uFocus.xy);
-    if (vWP.y > uFocus.z + 2.3 && dpx < uFocus.w) {
+    // only what really stands between the camera and the soldier: nearer than him and above his head
+    if (gl_FragCoord.z < uFocusD && vWP.y > uFocus.z + 1.6 && dpx < uFocus.w) {
       float k = 1.0 - smoothstep(uFocus.w * 0.5, uFocus.w, dpx);
       // ordered 4\xD74 screen door: an even veil instead of noisy speckle
       if (k * 0.8 > bayer4(gl_FragCoord.xy)) discard;
@@ -4402,15 +4413,21 @@ float bayer4(vec2 p){ vec2 q = mod(floor(p), 4.0); float i = q.x + q.y * 4.0;
   function mat(kind = "world") {
     if (mats[kind]) return mats[kind];
     const m = new T.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.92, metalness: 0 });
-    const opts = { rim: kind === "char" || kind === "enemy", sway: kind === "foliage", enemy: kind === "enemy", ground: kind === "ground", occlude: kind === "foliage" || kind === "world" };
+    const opts = { rim: kind === "char" || kind === "enemy", sway: kind === "foliage", canopy: kind === "canopy", enemy: kind === "enemy", ground: kind === "ground", occlude: kind === "foliage" || kind === "canopy" || kind === "world" };
     m.onBeforeCompile = (s) => painterly(s, opts);
     m.customProgramCacheKey = () => "p_" + kind;
-    if (kind === "foliage") m.side = 2;
+    if (kind === "foliage" || kind === "canopy") m.side = 2;
     mats[kind] = m;
     return m;
   }
-  function meshFrom(builder, kind = "world", { cast: cast2 = true, recv = true } = {}) {
-    const m = new T.Mesh(builder.build(), mat(kind));
+  function meshFrom(builder, kind = "world", { cast: cast2 = true, recv = true, world = null } = {}) {
+    const g = builder.build();
+    if (kind === "canopy") {
+      const p = g.attributes.position, a = new Float32Array(p.count);
+      for (let i = 0; i < p.count; i++) a[i] = world ? p.getY(i) - world.rawHeight(p.getX(i), p.getZ(i)) : 0;
+      g.setAttribute("aSway", new T.BufferAttribute(a, 1));
+    }
+    const m = new T.Mesh(g, mat(kind));
     m.castShadow = cast2;
     m.receiveShadow = recv;
     return m;
@@ -7594,6 +7611,7 @@ void main(){
   };
 
   // src/core/shell.js
+  var _fd = new T.Vector3();
   var Shell = class {
     constructor() {
       this.q = pickQuality();
@@ -7698,7 +7716,13 @@ void main(){
       if (G.player && G.player.alive && !G.noFocus) {
         const [sx, sy] = G.project(G.player.x, G.player.y + 1, G.player.z);
         U.focus.value.set(sx / innerWidth * R.w, (1 - sy / innerHeight) * R.h, G.player.y, (G.focusR || 95) * (R.h / innerHeight));
-      } else U.focus.value.set(-9999, -9999, 0, 0);
+        this.camera.getWorldDirection(_fd);
+        const [, , nz] = G.project(G.player.x - _fd.x * 1.5, G.player.y + 1 - _fd.y * 1.5, G.player.z - _fd.z * 1.5);
+        U.focusD.value = nz * 0.5 + 0.5;
+      } else {
+        U.focus.value.set(-9999, -9999, 0, 0);
+        U.focusD.value = -1;
+      }
       R.render(this.scene, this.camera, now / 1e3);
       R.adapt(real);
       if (this.fpsEl) this.fpsEl.textContent = `${Math.round(R.fps)} fps \xB7 ${this.q.name} \xB7 res ${Math.round(R.dyn * 100)}% \xB7 ${R.r.info.render.calls} dc`;
@@ -8684,7 +8708,7 @@ void main(){
       c.lerp(n > 0.5 ? clay : clayDark, k * 0.92);
     }, 0.8);
     scene.add(ground);
-    scene.add(meshFrom(B2, "world"), meshFrom(Fo, "foliage"));
+    scene.add(meshFrom(B2, "world"), meshFrom(Fo, "canopy", { world }));
     const N = Math.floor(9e3 * q.grass);
     scene.add(scatter(world, (b) => tuft(b, 10525274), N, (x, z, rr, col) => {
       const [u, v] = UV(x, z);
@@ -9220,7 +9244,7 @@ void main(){
     };
     const unhook = shell2.hook(tick);
     G.quietSteps = true;
-    G.focusR = Math.min(innerHeight * 0.55, 230);
+    G.focusR = Math.min(innerHeight * 0.3, 120);
     music.onBeat = (t, b, spb) => {
       if (G.paused) return;
       const P2 = col.p, mv = win.st.move;

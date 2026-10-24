@@ -154,7 +154,7 @@ export function buildToccoa(ctx) {
     c.lerp(n > 0.5 ? clay : clayDark, k * 0.92);
   }, 0.8);
   scene.add(ground);
-  scene.add(meshFrom(B, "world"), meshFrom(Fo, "foliage"));
+  scene.add(meshFrom(B, "world"), meshFrom(Fo, "canopy", { world }));
   const N = Math.floor(9000 * q.grass);
   scene.add(scatter(world, (b) => tuft(b, 0xa09a5a), N, (x, z, rr, col) => {
     const [u, v] = UV(x, z);

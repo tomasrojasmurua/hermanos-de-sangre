@@ -133,9 +133,10 @@ export const U = {
   firePos: { value: new T.Vector3() },
   paint: { value: 1 },
   focus: { value: new T.Vector4(-9999, -9999, 0, 0) }, // player: px x, px y, world y, radius px
+  focusD: { value: -1 }, // window depth just in front of the player: only nearer surfaces dissolve
 };
 
-function painterly(shader, { rim = false, sway = false, enemy = false, ground = false, occlude = false } = {}) {
+function painterly(shader, { rim = false, sway = false, canopy = false, enemy = false, ground = false, occlude = false } = {}) {
   shader.uniforms.uTime = U.time;
   shader.uniforms.uWind = U.wind;
   shader.uniforms.rimColor = enemy ? U.rimEnemy : U.rimColor;
@@ -143,9 +144,10 @@ function painterly(shader, { rim = false, sway = false, enemy = false, ground = 
   shader.uniforms.firePos = U.firePos;
   shader.uniforms.uPaint = U.paint;
   shader.uniforms.uFocus = U.focus;
+  shader.uniforms.uFocusD = U.focusD;
   shader.uniforms.worldRim = U.worldRim;
   shader.vertexShader = shader.vertexShader
-    .replace("#include <common>", `#include <common>\nvarying vec3 vWP; uniform float uTime; uniform float uWind;`)
+    .replace("#include <common>", `#include <common>\nvarying vec3 vWP; uniform float uTime; uniform float uWind;${canopy ? "\nattribute float aSway;" : ""}`)
     .replace(
       "#include <begin_vertex>",
       `#include <begin_vertex>
@@ -160,6 +162,13 @@ ${sway ? `{
   float w = sin(uTime * 1.7 + ph) * 0.6 + sin(uTime * 3.1 + ph * 1.7) * 0.25;
   transformed.x += w * h * h * 0.08 * uWind;
   transformed.z += w * h * h * 0.05 * uWind;
+}` : ""}${canopy ? `{
+  // merged trees sit in world space: sway by height above their own ground, phased per spot, gently
+  float ph = position.x * 0.21 + position.z * 0.17;
+  float w = sin(uTime * 0.9 + ph) * 0.7 + sin(uTime * 1.6 + ph * 1.3) * 0.3;
+  float h = clamp(aSway, 0.0, 12.0);
+  transformed.x += w * h * h * 0.0035 * uWind;
+  transformed.z += w * h * h * 0.0022 * uWind;
 }` : ""}`
     )
     .replace("#include <worldpos_vertex>", `#include <worldpos_vertex>\n  #ifdef USE_INSTANCING\n vWP = (modelMatrix * instanceMatrix * vec4(transformed,1.0)).xyz;\n  #else\n vWP = (modelMatrix * vec4(transformed,1.0)).xyz;\n  #endif`);
@@ -170,7 +179,7 @@ ${sway ? `{
 varying vec3 vWP; uniform vec3 rimColor; uniform vec3 fireCol; uniform vec3 firePos; uniform float uPaint;
 float ph(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
 float pn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(ph(i),ph(i+vec2(1,0)),f.x),mix(ph(i+vec2(0,1)),ph(i+vec2(1,1)),f.x),f.y); }
-uniform vec4 uFocus; uniform vec3 worldRim;
+uniform vec4 uFocus; uniform float uFocusD; uniform vec3 worldRim;
 float bayer4(vec2 p){ vec2 q = mod(floor(p), 4.0); float i = q.x + q.y * 4.0;
   return (i==0.?0.:i==1.?8.:i==2.?2.:i==3.?10.:i==4.?12.:i==5.?4.:i==6.?14.:i==7.?6.:i==8.?3.:i==9.?11.:i==10.?1.:i==11.?9.:i==12.?15.:i==13.?7.:i==14.?13.:5.) / 16.0; }`
     )
@@ -180,7 +189,8 @@ float bayer4(vec2 p){ vec2 q = mod(floor(p), 4.0); float i = q.x + q.y * 4.0;
   ${occlude ? `{
     // see-through: canopies and roofs between the camera and your soldier dissolve (screen-door)
     float dpx = length(gl_FragCoord.xy - uFocus.xy);
-    if (vWP.y > uFocus.z + 2.3 && dpx < uFocus.w) {
+    // only what really stands between the camera and the soldier: nearer than him and above his head
+    if (gl_FragCoord.z < uFocusD && vWP.y > uFocus.z + 1.6 && dpx < uFocus.w) {
       float k = 1.0 - smoothstep(uFocus.w * 0.5, uFocus.w, dpx);
       // ordered 4×4 screen door: an even veil instead of noisy speckle
       if (k * 0.8 > bayer4(gl_FragCoord.xy)) discard;
@@ -218,16 +228,23 @@ const mats = {};
 export function mat(kind = "world") {
   if (mats[kind]) return mats[kind];
   const m = new T.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.92, metalness: 0 });
-  const opts = { rim: kind === "char" || kind === "enemy", sway: kind === "foliage", enemy: kind === "enemy", ground: kind === "ground", occlude: kind === "foliage" || kind === "world" };
+  const opts = { rim: kind === "char" || kind === "enemy", sway: kind === "foliage", canopy: kind === "canopy", enemy: kind === "enemy", ground: kind === "ground", occlude: kind === "foliage" || kind === "canopy" || kind === "world" };
   m.onBeforeCompile = (s) => painterly(s, opts);
   m.customProgramCacheKey = () => "p_" + kind;
-  if (kind === "foliage") m.side = 2;
+  if (kind === "foliage" || kind === "canopy") m.side = 2;
   mats[kind] = m;
   return m;
 }
 
-export function meshFrom(builder, kind = "world", { cast = true, recv = true } = {}) {
-  const m = new T.Mesh(builder.build(), mat(kind));
+export function meshFrom(builder, kind = "world", { cast = true, recv = true, world = null } = {}) {
+  const g = builder.build();
+  if (kind === "canopy") {
+    // each vertex remembers how high it stands above the ground under it, so hills don't amplify the sway
+    const p = g.attributes.position, a = new Float32Array(p.count);
+    for (let i = 0; i < p.count; i++) a[i] = world ? p.getY(i) - world.rawHeight(p.getX(i), p.getZ(i)) : 0;
+    g.setAttribute("aSway", new T.BufferAttribute(a, 1));
+  }
+  const m = new T.Mesh(g, mat(kind));
   m.castShadow = cast;
   m.receiveShadow = recv;
   return m;

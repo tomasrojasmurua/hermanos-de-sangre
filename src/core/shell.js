@@ -12,6 +12,8 @@ import { UI } from "../engine/ui.js";
 import { Cones } from "../engine/cones.js";
 import { Game } from "./game.js";
 
+const _fd = new T.Vector3();
+
 export class Shell {
   constructor() {
     this.q = pickQuality();
@@ -119,7 +121,14 @@ export class Shell {
     if (G.player && G.player.alive && !G.noFocus) {
       const [sx, sy] = G.project(G.player.x, G.player.y + 1, G.player.z);
       U.focus.value.set((sx / innerWidth) * R.w, (1 - sy / innerHeight) * R.h, G.player.y, (G.focusR || 95) * (R.h / innerHeight));
-    } else U.focus.value.set(-9999, -9999, 0, 0);
+      // depth of a point 1.5 m in front of the soldier, toward the camera (orthographic: depth is linear)
+      this.camera.getWorldDirection(_fd);
+      const [, , nz] = G.project(G.player.x - _fd.x * 1.5, G.player.y + 1 - _fd.y * 1.5, G.player.z - _fd.z * 1.5);
+      U.focusD.value = nz * 0.5 + 0.5;
+    } else {
+      U.focus.value.set(-9999, -9999, 0, 0);
+      U.focusD.value = -1;
+    }
     R.render(this.scene, this.camera, now / 1000);
     R.adapt(real);
     if (this.fpsEl) this.fpsEl.textContent = `${Math.round(R.fps)} fps · ${this.q.name} · res ${Math.round(R.dyn * 100)}% · ${R.r.info.render.calls} dc`;

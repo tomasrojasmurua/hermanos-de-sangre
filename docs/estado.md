@@ -25,6 +25,8 @@
 | Fidelidad histórica | 6,5 (correcciones aplicadas) | | |
 Sin errores de consola en el capítulo completo.
 
+**Primera prueba en teléfono (iPhone):** los pinos del cerro se movían como figuras sueltas. Dos causas: el balanceo del viento usaba la altura sobre el nivel del mar (en el cerro, decenas de metros) y no la altura del árbol, y el círculo de transparencia tramaba cualquier copa cercana aunque no tapara a nadie. Ahora los pinos fusionados usan el material `canopy`, que guarda por vértice la altura sobre su suelo (`aSway`) y se mece poco. La transparencia solo afecta lo que está entre la cámara y el soldado (`uFocusD`, profundidad) y el radio de la carrera bajó de 230 a 120 px.
+
 **Pendiente menor:** el balbuceo de las voces sigue sonando sintético; el título podría mostrar a la compañía formada; probar en un teléfono real (las pruebas usan Chromium sin GPU a ~4 fps).
 
 **Cambio de regla en el Día D:** Winters sobrevive a la guerra en el libro, así que si cae en Brécourt se vuelve al punto de control. Se quitó la rama «Lipton toma el mando».
