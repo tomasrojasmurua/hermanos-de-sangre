@@ -1,5 +1,7 @@
 # usage: run.py name 'steps-json'   steps: [["wait",ms],["shot","tag"],["click","css"],["eval","js"],["key","KeyW",ms]]
-import sys, asyncio, json
+import sys, asyncio, json, os
+ROOT=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+os.makedirs(os.path.join(ROOT,'shots'),exist_ok=True)
 from playwright.async_api import async_playwright
 name=sys.argv[1]; steps=json.loads(sys.argv[2]); q=sys.argv[3] if len(sys.argv)>3 else "?q=mid"
 async def main():
@@ -9,11 +11,11 @@ async def main():
         logs=[]
         pg.on('console', lambda m: logs.append(m.type+': '+m.text) if m.type in ('error','warning') else None)
         pg.on('pageerror', lambda e: logs.append('PAGEERROR: '+str(e)))
-        await pg.goto('file:///home/claude/dday/dist/dev.html'+q)
+        await pg.goto('file://'+os.path.join(ROOT,'dia-d.html')+q)
         for s in steps:
             k=s[0]
             if k=='wait': await pg.wait_for_timeout(s[1])
-            elif k=='shot': await pg.screenshot(timeout=120000, path=f'/home/claude/dday/shots/{name}_{s[1]}.png')
+            elif k=='shot': await pg.screenshot(timeout=120000, path=os.path.join(ROOT,'shots',f'{name}_{s[1]}.png'))
             elif k=='click':
                 try: await pg.click(s[1], timeout=8000)
                 except Exception as e: logs.append('CLICKFAIL '+s[1])

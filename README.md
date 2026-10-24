@@ -2,32 +2,48 @@
 
 Juego para navegador inspirado en *Hermanos de sangre* de Stephen E. Ambrose. Pensado para jugarse en el celular (pantalla vertical, controles táctiles), aunque también funciona en el escritorio.
 
-## Cómo abrirlo
+## Cómo jugar
 
-- **Bastogne (juego principal):** abre `hermanos-de-sangre.html` en el navegador. Es un único archivo autocontenido; solo necesita internet para las fuentes de Google.
-- **Día D, modo soldado (prototipo):** abre `dia-d.html`. También es un único archivo autocontenido, así que se puede descargar y abrir en el celular. (`dia-d/index.html` es la versión de desarrollo y necesita los archivos de su carpeta al lado.)
+- `index.html`: portada con el menú de capítulos.
+- `hermanos-de-sangre.html`: **Bastogne**.
+- `dia-d.html`: **Día D, modo soldado** (prototipo).
 
-Si el repositorio tiene GitHub Pages activado, `index.html` en la raíz enlaza a ambos.
+Los dos juegos son archivos únicos autocontenidos, así que se pueden descargar y abrir en el celular. Solo necesitan internet para las fuentes de Google. Añade `?fps=1` a la URL para ver los fps.
 
-Añade `?fps=1` a la URL para ver los fps.
+**No edites estos `.html` a mano:** se generan desde `src/` con `npm run build` (ver abajo). Se guardan en git para que GitHub Pages y la descarga directa sigan funcionando.
 
-## Reconstruir el Día D
+## Estructura
 
-El código fuente modular está en `dia-d/src/` (punto de entrada `main.js`). Tras modificarlo, vuelve a generar el paquete con [esbuild](https://esbuild.github.io/):
-
-```sh
-cd dia-d
-npx esbuild src/main.js --bundle --format=iife --outfile=dia-d.js
+```
+src/
+  engine/            motor compartido: render, geometría, efectos, audio, controles, UI, conos de visión
+  core/              juego: soldados y combate (game), modelos (actors), terreno (world), objetos (props)
+  data/              solo datos: armas, reparto del Día D
+  chapters/
+    dia-d/           arranque y guardado (main), mapas (dday), guion (story), plantilla HTML
+    bastogne/        head.html + game.js (incluye Three.js) + tail.html
+lib/three-runtime.js Three.js r170 como script global (lo usa el Día D)
+scripts/build.mjs    genera dia-d.html y hermanos-de-sangre.html
+tools/               pruebas con Playwright y sondas, por capítulo
+docs/estado.md       estado y pendientes
 ```
 
-Después regenera `dia-d.html` (un solo archivo) incrustando `lib/three-runtime.js` y `dia-d.js` en lugar de sus etiquetas `<script src>` de `dia-d/index.html`.
+Bastogne nació como un solo archivo y todavía no usa `src/engine` ni `src/core`; pasarlo al motor común es un paso posterior.
 
-Three.js no se importa como módulo: lo carga `lib/three-runtime.js` como script global antes de `dia-d.js`.
+## Compilar
+
+Requiere Node 18 o superior.
+
+```sh
+npm install
+npm run build   # genera dia-d.html y hermanos-de-sangre.html
+npm run dev     # reconstruye dia-d.html cada vez que cambias algo en src/
+```
 
 ## Herramientas de prueba
 
-`dia-d/tools/` contiene scripts de Playwright (`run.py`, `auto_night.py`, `auto_bre.py`, `gallery.py`) y sondas JS para recorrer el juego automáticamente y sacar capturas. Las rutas en `run.py` apuntan al entorno donde se escribieron; ajústalas antes de usarlas.
+`tools/dia-d/` y `tools/bastogne/` tienen scripts de Playwright (Python) para recorrer el juego sin pantalla y sacar capturas en `shots/`. Abren los `.html` de la raíz, así que corre `npm run build` antes.
 
 ## Estado
 
-Ver [`estado-dia-d.md`](estado-dia-d.md).
+Ver [`docs/estado.md`](docs/estado.md).

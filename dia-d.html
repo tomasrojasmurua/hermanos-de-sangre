@@ -4037,7 +4037,7 @@ Plane:ui,Skeleton:to,Bone:Fa,SkinnedMesh:Qr,MathUtils:_n,REVISION:"170"};})();
 </script>
 <script>
 (() => {
-  // src/util.js
+  // src/engine/util.js
   var T = window.THREE;
   var clamp = (v, a, b) => v < a ? a : v > b ? b : v;
   var lerp = (a, b, t) => a + (b - a) * t;
@@ -4110,7 +4110,7 @@ Plane:ui,Skeleton:to,Bone:Fa,SkinnedMesh:Qr,MathUtils:_n,REVISION:"170"};})();
     return t > 0 && t < 1 && u > 0 && u < 1;
   }
 
-  // src/geo.js
+  // src/engine/geo.js
   var _m = new T.Matrix4();
   var _q = new T.Quaternion();
   var _e = new T.Euler();
@@ -4336,7 +4336,7 @@ float bayer4(vec2 p){ vec2 q = mod(floor(p), 4.0); float i = q.x + q.y * 4.0;
     return m;
   }
 
-  // src/render.js
+  // src/engine/render.js
   function pickQuality() {
     const q2 = new URLSearchParams(location.search).get("q");
     const mobile = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) || navigator.maxTouchPoints > 1 && innerWidth < 1100;
@@ -4519,7 +4519,7 @@ void main(){
     }
   }
 
-  // src/fx.js
+  // src/engine/fx.js
   var Particles = class {
     constructor(scene2, max = 1500, { additive = false, soft = 1 } = {}) {
       this.max = max;
@@ -4813,7 +4813,7 @@ void main(){
     }
   };
 
-  // src/audio.js
+  // src/engine/audio.js
   var Audio = class {
     constructor() {
       this.ctx = null;
@@ -5074,7 +5074,7 @@ void main(){
     }
   };
 
-  // src/input.js
+  // src/engine/input.js
   var Input = class {
     constructor(root) {
       this.mx = 0;
@@ -5175,7 +5175,7 @@ void main(){
   };
   var KEYMAP = { Space: "fire", KeyJ: "fire", KeyC: "crouch", KeyG: "grenade", KeyH: "heal", KeyE: "act", KeyR: "reload", Enter: "act", KeyQ: "call" };
 
-  // src/ui.js
+  // src/engine/ui.js
   var $ = (s, r = document) => r.querySelector(s);
   var el = (tag, cls, html) => {
     const e = document.createElement(tag);
@@ -5481,7 +5481,7 @@ void main(){
     }
   };
 
-  // src/actors.js
+  // src/core/actors.js
   var PAL = {
     para: { coat: 9076565, coat2: 7760968, pants: 8221775, boots: 5913638, helmet: 6249792, net: 4605231, skin: 14065788, gear: 10787956, paint: 2828834 },
     heer: { coat: 7238760, coat2: 6120280, pants: 5791316, boots: 1907996, helmet: 4869960, net: 3948857, skin: 13869699, gear: 2302752, paint: null },
@@ -5718,7 +5718,7 @@ void main(){
     return (out || new T.Vector3()).copy(_v2).applyMatrix4(g.matrixWorld);
   }
 
-  // src/game.js
+  // src/data/weapons.js
   var WEAPONS = {
     knife: { melee: true },
     m1: { clip: 8, rate: 0.3, dmg: 60, range: 42, acc: 0.78, reload: 1.9, sound: "m1", tracer: [3.4, 2.1, 0.8] },
@@ -5727,6 +5727,8 @@ void main(){
     mp40: { clip: 32, rate: 0.12, dmg: 22, range: 24, acc: 0.34, reload: 2.4, sound: "mp40", tracer: [3.2, 1.6, 0.6] },
     mg42: { clip: 50, rate: 0.055, dmg: 24, range: 55, acc: 0.2, reload: 4, sound: "mg", tracer: [3.6, 1.4, 0.45] }
   };
+
+  // src/core/game.js
   var _v3 = new T.Vector3();
   var _v22 = new T.Vector3();
   var _dir = new T.Vector3();
@@ -6679,7 +6681,7 @@ void main(){
     }
   };
 
-  // src/world.js
+  // src/core/world.js
   var World = class {
     constructor(size = 140, opts = {}) {
       this.size = size;
@@ -6882,7 +6884,7 @@ void main(){
     return im;
   }
 
-  // src/props.js
+  // src/core/props.js
   var GREENS = [4151852, 4612655, 3493415, 5138995, 3098660, 5599800];
   var DARKGREEN = [2900001, 3361066, 2636319];
   var NIGHT_G = [3099194, 3494463, 2769461, 3889732, 2506799, 4218954];
@@ -7309,13 +7311,7 @@ void main(){
     return Math.hypot(x - (s.ax + dx * t), z - (s.az + dz * t));
   }
 
-  // src/dday.js
-  var F = [-Math.SQRT1_2, -Math.SQRT1_2];
-  var R = [Math.SQRT1_2, -Math.SQRT1_2];
-  var S0 = [35.35, 35.35];
-  var W = (u, v) => [S0[0] + F[0] * u + R[0] * v, S0[1] + F[1] * u + R[1] * v];
-  var WL = (list) => list.map(([u, v]) => W(u, v));
-  var ANG = Math.atan2(F[0], F[1]);
+  // src/data/dia-d-cast.js
   var CAST = {
     winters: { id: "winters", name: "Tte. Richard Winters", short: "Winters", rank: "Compa\xF1\xEDa E \xB7 1.er pelot\xF3n", rankKey: "lt", portrait: { rank: "lt", skin: "#dba886" }, skin: 14395526 },
     lipton: { id: "lipton", name: "Sgto. Carwood Lipton", short: "Lipton", rank: "Sargento", rankKey: "sgt", portrait: { rank: "sgt", skin: "#d39f7d" }, skin: 13868925, mustache: true },
@@ -7329,6 +7325,14 @@ void main(){
     liebgott: { id: "liebgott", name: "Joe Liebgott", short: "Liebgott", portrait: {} },
     hall: { id: "hall", name: "John D. Hall", short: "Hall", rank: "Compa\xF1\xEDa A", portrait: { skin: "#d2a281" }, skin: 13804161 }
   };
+
+  // src/chapters/dia-d/dday.js
+  var F = [-Math.SQRT1_2, -Math.SQRT1_2];
+  var R = [Math.SQRT1_2, -Math.SQRT1_2];
+  var S0 = [35.35, 35.35];
+  var W = (u, v) => [S0[0] + F[0] * u + R[0] * v, S0[1] + F[1] * u + R[1] * v];
+  var WL = (list) => list.map(([u, v]) => W(u, v));
+  var ANG = Math.atan2(F[0], F[1]);
   function sky(scene2, top, bottom) {
     const g = new T.SphereGeometry(400, 16, 8);
     const m = new T.ShaderMaterial({
@@ -7662,7 +7666,7 @@ void main(){
     setGrade(post, { topGlow: [0, 0, 0], exposure: 1, sat: 0.64, con: 1.06, shT: [0.88, 0.95, 1.08], hiT: [1.03, 1, 0.95], lift: [0.02, 0.025, 0.03], vig: 0.5, grain: 0.045, bloomK: 0.4 });
   }
 
-  // src/story.js
+  // src/chapters/dia-d/story.js
   var ANG2 = Math.atan2(-Math.SQRT1_2, -Math.SQRT1_2);
   var dirTo = (a, b) => Math.atan2(b[0] - a[0], b[1] - a[1]);
   function spawn(g, o, u, v, extra = {}) {
@@ -8307,7 +8311,7 @@ void main(){
     return lines;
   };
 
-  // src/cones.js
+  // src/engine/cones.js
   var RAYS = 15;
   var CALM = new T.Color(15909198);
   var ALERT = new T.Color(14238763);
@@ -8437,7 +8441,7 @@ void main(){
     return g;
   }
 
-  // src/main.js
+  // src/chapters/dia-d/main.js
   var SAVE_KEY = "hds_dia_d_v1";
   var loadSave = () => {
     try {

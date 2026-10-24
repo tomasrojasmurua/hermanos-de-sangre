@@ -1,8 +1,8 @@
 // Mission scripts for the Día D chapter. Each part is an async script that can resume from a checkpoint.
-import { T, clamp, rng } from "./util.js";
+import { T, clamp, rng } from "../../engine/util.js";
 import { W, CAST, GUNS, TRENCH } from "./dday.js";
-import { Builder, meshFrom } from "./geo.js";
-import * as P from "./props.js";
+import { Builder, meshFrom } from "../../engine/geo.js";
+import * as P from "../../core/props.js";
 
 const ANG = Math.atan2(-Math.SQRT1_2, -Math.SQRT1_2);
 const dirTo = (a, b) => Math.atan2(b[0] - a[0], b[1] - a[1]);
