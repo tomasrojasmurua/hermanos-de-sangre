@@ -90,6 +90,9 @@ export async function currahee(ctx, opts) {
     G.scene.add(m);
     return m;
   });
+  if (!lvl.ambGeo.boundingBox) lvl.ambGeo.computeBoundingBox();
+  const bb = lvl.ambGeo.boundingBox;
+  const ambHalf = Math.max(bb.max.z - bb.min.z, bb.max.x - bb.min.x) / 2;
   // ---- the column
   const grade = (s, dir) => {
     const a = route.at(s), b = route.at(s + 2 * dir);
@@ -108,6 +111,8 @@ export async function currahee(ctx, opts) {
     grade,
     input,
     ambulances: ambs,
+    ambGap: 2 + ambHalf,
+    ambReach: ambHalf + 0.6,
     pace: (s) => {
       // Sobel pushes harder on the climb and eases a touch on the summit
       const k = s < 30 ? 0.7 : s > summitS - 8 && s < summitS + 6 ? 0.75 : 1;
@@ -116,10 +121,12 @@ export async function currahee(ctx, opts) {
     sick: (m) => (opts.variant === "spaghetti" ? (sickT[m.id] > 0 ? 0.016 : 0) * (m.player ? (opts.ate ? 1 : 0.4) : 1) : 0),
     onStraggle: (m) => {
       audio.breath(1, 0);
+      m.sol.noLabel = true;
       if (!flagged.has(m.id)) ui.toast(`${m.sol.short} se está quedando atrás`, 1800);
       flagged.add(m.id);
     },
     onRecover: (m) => {
+      m.sol.noLabel = false;
       ui.say("Winters", r() < 0.5 ? `Vamos, ${m.sol.short}. Conmigo.` : `Un paso más, ${m.sol.short}. Y otro.`, 1.8);
       roster.bond("winters", m.id, 6);
       roster.mood(m.id, 4);
@@ -288,7 +295,7 @@ export async function currahee(ctx, opts) {
       audio.chant("currahee", 10, sobel.x, sobel.z);
       ui.sayNow("", "La cima. Abajo, el campamento parece de juguete. Ahora, de vuelta.", 3);
       G.setObjective("De vuelta al campamento", ...W(-62, 0));
-      if (opts.variant === "first") ui.toast("Bajando cuesta menos aliento. Que nadie quede atrás.", 3000);
+      if (opts.variant === "first") setTimeout(() => ui.toast("Bajando cuesta menos aliento. Que nadie quede atrás.", 3000), 3200);
     }
     // markers for the men who are fading
     for (const m of col.flagged()) {
@@ -328,7 +335,35 @@ export async function currahee(ctx, opts) {
   };
   // the run ends back at the parade ground; leaving it any way (abort included) cleans up
   try {
-    await G.until(() => failed || col.s >= route.total - 2);
+    for (;;) {
+      await G.until(() => failed || col.s >= route.total - 2);
+      if (!(failed && summitDone)) break;
+      // a checkpoint at the summit: the way down is replayed, not the whole run
+      G.paused = true;
+      await ui.card({ kicker: "Currahee", title: "La ambulancia te alcanza", text: "Winters no puede quedarse atrás: sus hombres lo miran. Vuelves a la cima para la bajada.", next: "Desde la cima" });
+      col.s = summitS + 4;
+      for (const m of col.men) {
+        if (m.state === "lost") continue;
+        const sl = col.slot(m.rank, m.lane);
+        m.sol.x = sl.x;
+        m.sol.z = sl.z;
+        m.lag = 0;
+        m.state = "ok";
+        m.stam = Math.max(m.stam, 0.6);
+        m.sol.noLabel = false;
+      }
+      const ws2 = col.slot(1, 1.9);
+      win.x = ws2.x;
+      win.z = ws2.z;
+      col.p.s = ws2.s;
+      col.p.px = null;
+      col.p.stam = 0.8;
+      G.cam.x = win.x;
+      G.cam.z = win.z;
+      failed = false;
+      behindT = 0;
+      G.paused = false;
+    }
   } finally {
     unhook();
     music.onBeat = null;

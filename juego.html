@@ -156,7 +156,7 @@ button{font:inherit;color:inherit}
 .title .tleft{display:flex;flex-direction:column;justify-content:center;max-width:52%}
 .title .tleft h1{font-size:clamp(44px,9.5vh + 2vw,96px);margin:6px 0 10px}
 .title .tleft blockquote{margin:6px 0 0;padding:0}
-.title .tright{display:flex;flex-direction:column;justify-content:center;gap:10px;width:min(300px,42vw)}
+.title .tright{display:flex;flex-direction:column;justify-content:center;align-self:center;gap:10px;width:min(300px,42vw)}
 .title .tright{background:rgba(10,9,7,.55);padding:14px;border-radius:3px;box-shadow:0 0 40px 20px rgba(10,9,7,.45)}
 .title .tright .foot{margin-top:4px;font-size:11.5px;line-height:1.3;color:#c9bfa9}
 .title .cont{width:100%}
@@ -166,7 +166,8 @@ button{font:inherit;color:inherit}
 .ch em{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-family:'IM Fell English SC',serif;font-style:normal;font-size:15px;color:#e3c27a;width:40px;text-align:center}
 .ch b{display:block;font-family:'IM Fell English SC',serif;font-weight:400;font-size:20px;line-height:1.05}
 .ch small{display:block;font-family:'Special Elite',monospace;font-size:11px;letter-spacing:.06em;color:#b8ae98}
-.ch.proto{opacity:.72}
+.ch.proto{opacity:.78}
+.ch .tag{position:absolute;right:10px;top:8px;font:600 10px 'Barlow Condensed';letter-spacing:.12em;text-transform:uppercase;color:#a59c88;border:1px solid rgba(233,224,203,.25);border-radius:2px;padding:1px 5px}
 /* paper cards: wider, two columns of text would be too much; cap height to the short side */
 @media (orientation:landscape){
   .paper{width:min(560px,92vw);max-height:calc(100vh - 24px);padding:16px 22px 14px}
@@ -194,7 +195,7 @@ button{font:inherit;color:inherit}
 #runhud .breath .target{position:absolute;inset:-2px;border-radius:50%;border:2px dashed rgba(244,226,166,.55);pointer-events:none}
 #runhud .breath .combo{position:absolute;top:-30px;left:50%;transform:translateX(-50%);font-style:normal;font-weight:700;font-size:18px;color:#f4e2a6;text-shadow:0 1px 4px #000}
 #runhud .breath kbd{display:none;position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font:600 11px 'Barlow Condensed';letter-spacing:.08em;color:#bcb29e;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:1px 6px}
-@media (pointer:fine){#runhud .breath kbd{display:block}}
+@media (pointer:fine){#runhud .breath kbd{display:block;bottom:8px}#runhud .breath .core{margin-top:-10px}.stickzone{display:none}}
 #runhud .breath.window .ring{border-color:#f4e2a6;opacity:1;box-shadow:0 0 18px rgba(227,194,122,.7)}
 #runhud .breath .core{display:flex;flex-direction:column;align-items:center;line-height:1}
 #runhud .breath b{font-size:18px;letter-spacing:.06em;text-transform:uppercase}
@@ -203,14 +204,16 @@ button{font:inherit;color:inherit}
 #runhud .breath.ok{background:rgba(111,143,90,.7)}
 #runhud .breath.miss{background:rgba(141,44,37,.7)}
 body[data-run] #btns .fire,body[data-run] #btns .crouch,body[data-run] #btns .nade,body[data-run] #btns .heal,body[data-run] #btns .call,body[data-run] #who .hp,body[data-run] #who .status{display:none!important}
-body[data-run] #btns{bottom:calc(18px + var(--safe-b));right:calc(146px + env(safe-area-inset-right,0px));width:auto;height:60px}
-body[data-run] #btns .act{bottom:26px;right:0;height:52px;font-size:17px}
+body[data-run] #btns{bottom:calc(158px + var(--safe-b));right:calc(24px + env(safe-area-inset-right,0px));width:auto;height:60px}
+body[data-run] #btns .act{bottom:0;right:0;height:52px;font-size:17px}
 body[data-run] #who{display:none!important}
 body[data-run] #obj{top:calc(10px + var(--safe-t));left:auto;right:calc(64px + env(safe-area-inset-right,0px));transform:none;max-width:min(46vw,380px)}
 body[data-run] #obj.new{animation:none}
 body[data-run] #toast{top:calc(64px + var(--safe-t));left:auto;right:calc(64px + env(safe-area-inset-right,0px));transform:none;max-width:min(42vw,360px)}
 body[data-run] #toast.on{transform:none}
-.mk.strag{font-size:13px;font-weight:700;color:#ffd7c9;background:rgba(122,40,32,.85);padding:3px 8px;border-radius:10px;border:1px solid rgba(255,160,130,.5);animation:blink 1s infinite}
+.mk.strag{font-size:14px;font-weight:700;color:#fff;background:#b8362a;padding:4px 10px;border-radius:12px;border:2px solid #ffd7c9;box-shadow:0 0 14px rgba(224,90,74,.8)}
+.mk.strag span{display:inline-block;animation:stragPulse .8s ease-in-out infinite}
+@keyframes stragPulse{50%{transform:scale(1.15)}}
 body[data-run] #sub{top:calc(98px + var(--safe-t));bottom:auto;left:calc(12px + env(safe-area-inset-left,0px));transform:none;max-width:min(40vw,340px)}
 body[data-run] #sub.pop{animation:none}
 body[data-run] .ghost{bottom:calc(64px + var(--safe-b))}
@@ -7551,7 +7554,7 @@ void main(){
           if (e.ai.mode === "alert" && this.night) ui.mark("e" + e.id, sx, sy, "!", "alert");
           else if (e.aware > 0.15 && e.ai.mode !== "alert") ui.mark("e" + e.id, sx, sy, `<b style="--k:${clamp(e.aware, 0, 1).toFixed(2)}">?</b>`, "sus");
         }
-        const near = this.soldiers.filter((a) => a.side === "us" && a !== p && a.alive && this.dist(a, p) < 9).sort((a, b) => this.dist(a, p) - this.dist(b, p));
+        const near = this.soldiers.filter((a) => a.side === "us" && a !== p && a.alive && !a.noLabel && this.dist(a, p) < 9).sort((a, b) => this.dist(a, p) - this.dist(b, p));
         const placed = [];
         near.forEach((a, i) => {
           if (i > 2 && !a.down) return;
@@ -8715,7 +8718,10 @@ void main(){
       this.total = this.len[this.len.length - 1];
     }
     at(s) {
-      s = clamp(s, 0, this.total);
+      if (s < 0 || s > this.total) {
+        const end = s < 0 ? 0 : this.total, a2 = this.at(end), k = s - end;
+        return { x: a2.x + a2.dx * k, z: a2.z + a2.dz * k, dx: a2.dx, dz: a2.dz };
+      }
       let i = 1;
       while (i < this.len.length - 1 && this.len[i] < s) i++;
       const a = this.p[i - 1], b = this.p[i];
@@ -8808,7 +8814,7 @@ void main(){
         if (m.state === "flag") {
           m.lag += dt * (0.9 + (0.18 - m.stam) * 4);
           m.sol.st.slump = damp(m.sol.st.slump || 0, 1, 3, dt);
-          if ((this.slot(m.rank, 0).s - this.dir * m.lag - this.ambS()) * this.dir < 0.6) {
+          if ((this.slot(m.rank, 0).s - this.dir * m.lag - this.ambS()) * this.dir < (this.cfg.ambReach ?? 0.6)) {
             m.state = "lost";
             this.lostCount++;
             cfg.onLost && cfg.onLost(m);
@@ -8836,7 +8842,7 @@ void main(){
       this.updatePlayer(dt, pace, ctx);
     }
     ambS() {
-      return this.tailS() - this.dir * 4.5;
+      return this.tailS() - this.dir * (this.cfg.ambGap ?? 4.5);
     }
     updatePlayer(dt, pace, ctx) {
       const p = this.cfg.player, G = this.G, P2 = this.p;
@@ -8854,7 +8860,7 @@ void main(){
       if (pr.off > 6) pr = this.route.project(p.x, p.z, P2.s, 30, hd);
       P2.s = pr.s;
       const l = this.cfg.input ? this.cfg.input.axis().l : 1;
-      const sprint = lerp(2.9, 5, clamp(P2.stam * 1.4, 0, 1));
+      const sprint = Math.max(pace * 1.12, lerp(2.9, 5, clamp(P2.stam * 1.4, 0, 1)));
       const cruise = Math.min(sprint, pace * 1.06);
       const want = l < 0.85 ? cruise / Math.max(0.3, l) : sprint;
       p.speed = Math.min(want, 9);
@@ -8898,7 +8904,7 @@ void main(){
       best.stam = 0.62;
       best.help = (best.help || 0) + 0.18;
       best.helped = (best.helped || 0) + 1;
-      this.p.stam = clamp(this.p.stam - 0.14, 0, 1);
+      this.p.stam = clamp(this.p.stam - (this.p.stam < 0.3 ? 0.08 : 0.14), 0, 1);
       this.cfg.onRecover && this.cfg.onRecover(best);
       return best;
     }
@@ -8985,6 +8991,9 @@ void main(){
       G.scene.add(m);
       return m;
     });
+    if (!lvl.ambGeo.boundingBox) lvl.ambGeo.computeBoundingBox();
+    const bb = lvl.ambGeo.boundingBox;
+    const ambHalf = Math.max(bb.max.z - bb.min.z, bb.max.x - bb.min.x) / 2;
     const grade = (s, dir) => {
       const a = route.at(s), b = route.at(s + 2 * dir);
       return (G.world.height(b.x, b.z) - G.world.height(a.x, a.z)) / 2;
@@ -9002,6 +9011,8 @@ void main(){
       grade,
       input,
       ambulances: ambs,
+      ambGap: 2 + ambHalf,
+      ambReach: ambHalf + 0.6,
       pace: (s) => {
         const k = s < 30 ? 0.7 : s > summitS - 8 && s < summitS + 6 ? 0.75 : 1;
         return basePace * k;
@@ -9009,10 +9020,12 @@ void main(){
       sick: (m) => opts.variant === "spaghetti" ? (sickT[m.id] > 0 ? 0.016 : 0) * (m.player ? opts.ate ? 1 : 0.4 : 1) : 0,
       onStraggle: (m) => {
         audio.breath(1, 0);
+        m.sol.noLabel = true;
         if (!flagged.has(m.id)) ui.toast(`${m.sol.short} se est\xE1 quedando atr\xE1s`, 1800);
         flagged.add(m.id);
       },
       onRecover: (m) => {
+        m.sol.noLabel = false;
         ui.say("Winters", r() < 0.5 ? `Vamos, ${m.sol.short}. Conmigo.` : `Un paso m\xE1s, ${m.sol.short}. Y otro.`, 1.8);
         roster.bond("winters", m.id, 6);
         roster.mood(m.id, 4);
@@ -9166,7 +9179,7 @@ void main(){
         audio.chant("currahee", 10, sobel.x, sobel.z);
         ui.sayNow("", "La cima. Abajo, el campamento parece de juguete. Ahora, de vuelta.", 3);
         G.setObjective("De vuelta al campamento", ...W(-62, 0));
-        if (opts.variant === "first") ui.toast("Bajando cuesta menos aliento. Que nadie quede atr\xE1s.", 3e3);
+        if (opts.variant === "first") setTimeout(() => ui.toast("Bajando cuesta menos aliento. Que nadie quede atr\xE1s.", 3e3), 3200);
       }
       for (const m of col.flagged()) {
         let [sx, sy] = G.project(m.sol.x, m.sol.y + 2.3, m.sol.z);
@@ -9200,7 +9213,34 @@ void main(){
       if (P2.stam < 0.35) audio.heartAt(P2.stam < 0.2 ? 0.8 : 0.55, t);
     };
     try {
-      await G.until(() => failed || col.s >= route.total - 2);
+      for (; ; ) {
+        await G.until(() => failed || col.s >= route.total - 2);
+        if (!(failed && summitDone)) break;
+        G.paused = true;
+        await ui.card({ kicker: "Currahee", title: "La ambulancia te alcanza", text: "Winters no puede quedarse atr\xE1s: sus hombres lo miran. Vuelves a la cima para la bajada.", next: "Desde la cima" });
+        col.s = summitS + 4;
+        for (const m of col.men) {
+          if (m.state === "lost") continue;
+          const sl = col.slot(m.rank, m.lane);
+          m.sol.x = sl.x;
+          m.sol.z = sl.z;
+          m.lag = 0;
+          m.state = "ok";
+          m.stam = Math.max(m.stam, 0.6);
+          m.sol.noLabel = false;
+        }
+        const ws2 = col.slot(1, 1.9);
+        win.x = ws2.x;
+        win.z = ws2.z;
+        col.p.s = ws2.s;
+        col.p.px = null;
+        col.p.stam = 0.8;
+        G.cam.x = win.x;
+        G.cam.z = win.z;
+        failed = false;
+        behindT = 0;
+        G.paused = false;
+      }
     } finally {
       unhook();
       music.onBeat = null;
@@ -9468,7 +9508,7 @@ void main(){
     G.player = null;
     G.camSpan = 20;
     G.cam.span = 20;
-    const [x0, z0] = W(-96, -4);
+    const [x0, z0] = W(-90, 14);
     G.cam.x = x0;
     G.cam.z = z0;
     shell.music.set("calm", 0.3);
@@ -9488,7 +9528,7 @@ void main(){
     <div class="tright">
       ${cont ? `<button class="btn big cont" id="t-cont">Continuar</button>` : ""}
       <div class="chlist" role="list">
-        ${LIST.map((c2) => `<button class="ch ${c2.ready ? "" : "proto"}" data-id="${c2.id}" ${c2.href ? `data-href="${c2.href}"` : ""}><em>${c2.n}</em><b>${esc(c2.title)}</b><small>${esc(c2.sub)}${c2.ready ? "" : " \xB7 prototipo"}</small></button>`).join("")}
+        ${LIST.map((c2) => `<button class="ch ${c2.ready ? "" : "proto"}" data-id="${c2.id}" ${c2.href ? `data-href="${c2.href}"` : ""}><em>${c2.n}</em><b>${esc(c2.title)}</b><small>${esc(c2.sub)}</small>${c2.ready ? "" : `<span class="tag">prototipo</span>`}</button>`).join("")}
       </div>
       <div class="foot">Basado en \xABHermanos de sangre\xBB, de Stephen E. Ambrose \xB7 Usa aud\xEDfonos</div>
     </div>`;

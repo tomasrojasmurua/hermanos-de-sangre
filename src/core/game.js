@@ -957,7 +957,7 @@ export class Game {
         else if (e.aware > 0.15 && e.ai.mode !== "alert") ui.mark("e" + e.id, sx, sy, `<b style="--k:${clamp(e.aware, 0, 1).toFixed(2)}">?</b>`, "sus");
       }
       // ally names: only the three nearest (plus anyone wounded), so labels never pile up
-      const near = this.soldiers.filter((a) => a.side === "us" && a !== p && a.alive && this.dist(a, p) < 9).sort((a, b) => this.dist(a, p) - this.dist(b, p));
+      const near = this.soldiers.filter((a) => a.side === "us" && a !== p && a.alive && !a.noLabel && this.dist(a, p) < 9).sort((a, b) => this.dist(a, p) - this.dist(b, p));
       const placed = [];
       near.forEach((a, i) => {
         if (i > 2 && !a.down) return;

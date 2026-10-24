@@ -11,7 +11,11 @@ export class Route {
     this.total = this.len[this.len.length - 1];
   }
   at(s) {
-    s = clamp(s, 0, this.total);
+    // beyond the ends the road carries straight on, so a long column behind the start isn't piled up
+    if (s < 0 || s > this.total) {
+      const end = s < 0 ? 0 : this.total, a = this.at(end), k = s - end;
+      return { x: a.x + a.dx * k, z: a.z + a.dz * k, dx: a.dx, dz: a.dz };
+    }
     let i = 1;
     while (i < this.len.length - 1 && this.len[i] < s) i++;
     const a = this.p[i - 1], b = this.p[i];
@@ -110,7 +114,7 @@ export class Column {
         m.lag += dt * (0.9 + (0.18 - m.stam) * 4);
         m.sol.st.slump = damp(m.sol.st.slump || 0, 1, 3, dt);
         // caught up by the ambulance at the tail
-        if ((this.slot(m.rank, 0).s - this.dir * m.lag - this.ambS()) * this.dir < 0.6) {
+        if ((this.slot(m.rank, 0).s - this.dir * m.lag - this.ambS()) * this.dir < (this.cfg.ambReach ?? 0.6)) {
           m.state = "lost";
           this.lostCount++;
           cfg.onLost && cfg.onLost(m);
@@ -139,7 +143,8 @@ export class Column {
     this.updatePlayer(dt, pace, ctx);
   }
   ambS() {
-    return this.tailS() - this.dir * 4.5;
+    // the truck's centre sits a gap plus half its length behind the last rank, so it never drives through men
+    return this.tailS() - this.dir * (this.cfg.ambGap ?? 4.5);
   }
   updatePlayer(dt, pace, ctx) {
     const p = this.cfg.player, G = this.G, P = this.p;
@@ -163,7 +168,8 @@ export class Column {
     // half-pressed on glass is hard; holding a rhythm should be the skill). Pushing the stick to
     // the rim sprints, and only running faster than the column costs breath.
     const l = this.cfg.input ? this.cfg.input.axis().l : 1;
-    const sprint = lerp(2.9, 5.0, clamp(P.stam * 1.4, 0, 1));
+    // even spent, Winters can sprint a little faster than the column, so going back for a man is never a trap
+    const sprint = Math.max(pace * 1.12, lerp(2.9, 5.0, clamp(P.stam * 1.4, 0, 1)));
     const cruise = Math.min(sprint, pace * 1.06);
     const want = l < 0.85 ? cruise / Math.max(0.3, l) : sprint;
     p.speed = Math.min(want, 9);
@@ -208,7 +214,7 @@ export class Column {
     best.stam = 0.62;
     best.help = (best.help || 0) + 0.18;
     best.helped = (best.helped || 0) + 1;
-    this.p.stam = clamp(this.p.stam - 0.14, 0, 1);
+    this.p.stam = clamp(this.p.stam - (this.p.stam < 0.3 ? 0.08 : 0.14), 0, 1);
     this.cfg.onRecover && this.cfg.onRecover(best);
     return best;
   }

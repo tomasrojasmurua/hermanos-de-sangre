@@ -32,7 +32,7 @@ function title() {
   G.player = null;
   G.camSpan = 20;
   G.cam.span = 20;
-  const [x0, z0] = W(-96, -4);
+  const [x0, z0] = W(-90, 14);
   G.cam.x = x0;
   G.cam.z = z0;
   shell.music.set("calm", 0.3);
@@ -52,7 +52,7 @@ function title() {
     <div class="tright">
       ${cont ? `<button class="btn big cont" id="t-cont">Continuar</button>` : ""}
       <div class="chlist" role="list">
-        ${LIST.map((c) => `<button class="ch ${c.ready ? "" : "proto"}" data-id="${c.id}" ${c.href ? `data-href="${c.href}"` : ""}><em>${c.n}</em><b>${esc(c.title)}</b><small>${esc(c.sub)}${c.ready ? "" : " · prototipo"}</small></button>`).join("")}
+        ${LIST.map((c) => `<button class="ch ${c.ready ? "" : "proto"}" data-id="${c.id}" ${c.href ? `data-href="${c.href}"` : ""}><em>${c.n}</em><b>${esc(c.title)}</b><small>${esc(c.sub)}</small>${c.ready ? "" : `<span class="tag">prototipo</span>`}</button>`).join("")}
       </div>
       <div class="foot">Basado en «Hermanos de sangre», de Stephen E. Ambrose · Usa audífonos</div>
     </div>`;
