@@ -343,10 +343,10 @@ async function dirtyJob(camp, week, day, what, signed) {
   const v = await camp.card({
     kicker: "Compañía E · Orden del día",
     title: "Asunto: servicio",
-    text: `1. El teniente R. D. Winters ${what} esta tarde (${day.label.toLowerCase()}).\n\n${signed}\n\n¿Quién se queda al frente del pelotón?`,
+    text: `1. El teniente R. D. Winters ${what} esta tarde (${day.label.toLowerCase()}).\n\n${signed}\n\nEl sargento del pelotón, del Ejército de siempre, se queda al mando. ¿A quién le pides que tire de los hombres?`,
     choices: [
-      { label: "Lipton", sub: "Sereno y ordenado. Los hombres trabajarán casi igual que contigo.", value: "lipton" },
-      { label: "Guarnere", sub: "Los hombres se reirán más. Puede acabar en pelea, y Sobel se enteraría.", value: "guarnere" },
+      { label: "A Lipton", sub: "Sereno y ordenado. Los hombres trabajarán casi igual que contigo.", value: "lipton" },
+      { label: "A Guarnere", sub: "Los hombres se reirán más. Puede acabar en pelea, y Sobel se enteraría.", value: "guarnere" },
     ],
   });
   stamp(audio);

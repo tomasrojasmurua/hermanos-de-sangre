@@ -9,7 +9,7 @@ Sobel manda la compañía; Winters solo manda su pelotón. El modo base es la se
    - Arriba, cinco medidores del pelotón: **Forma**, **Fatiga**, **Moral**, **Orden** (cómo están las taquillas para el sábado) y **Sobel** (su tensión con Winters). Al elegir, el medidor muestra la flecha de lo que va a cambiar.
 2. **Vivir la semana**: la cámara recorre el campamento y el pelotón hace lo que elegiste (calistenia en el campo de revista, armas en los bancos, taquillas frente al barracón, descanso a la sombra). Cada bloque dura unos segundos y puede acelerarse (⏩). Los cambios saltan sobre los medidores.
 3. **Sucesos** (tarjetas con decisión o viñetas cortas) interrumpen la semana.
-4. **Inspección del sábado**: Sobel recorre la fila y apunta hombres. Puedes interceder por uno.
+4. **Inspección del sábado**: Sobel recorre la fila y apunta hombres. Después, fuera de la vista de la compañía, Winters puede hablar con Sobel en privado, ayudar al castigado o dejarlo estar.
 5. **Fin de semana**: quién sale de pase y quién se queda en el barracón. Resumen.
 
 ## Actividades de la tarde
@@ -25,7 +25,7 @@ Cada noche se recupera algo de fatiga y el orden se deteriora un poco; el fin de
 
 ## Sucesos (del libro, salvo los marcados)
 - **Sink mira la calistenia de Winters** (toda la compañía; Winters en la tarima): «¿Cuántas veces ha hecho calistenia esta compañía?» «Tres veces, señor.» Unos días después lo asciende a teniente primero sin consultar a Sobel. Ocurre siempre: es historia. Sube mucho el roce con Sobel.
-- **Trabajos sucios** desde el ascenso: inspección de letrinas y oficial de comedor. Llegan como órdenes escritas a máquina; esa tarde el pelotón entrena sin Winters. *Inventado:* eliges quién se queda al frente (Lipton: rinde casi igual; Guarnere: más moral y riesgo de pelea). Si el roce sigue creciendo en la semana 2, llegan más.
+- **Trabajos sucios** desde el ascenso: inspección de letrinas y oficial de comedor. Llegan como órdenes escritas a máquina; esa tarde el pelotón entrena sin Winters. *Inventado:* el sargento del pelotón (del Ejército de siempre, sin nombre) queda al mando y eliges a quién le pides que tire de los hombres (Lipton: rinden casi igual; Guarnere: más moral y riesgo de pelea). Si el roce sigue creciendo en la semana 2, llegan más.
 - **Veinte flexiones** por una falta menor.
 - **Orejas sucias / taquillas sucias** en la inspección: tres o cuatro pases negados por «orejas sucias» siempre, y hasta media docena más por «taquillas sucias» según el **Orden**. *Inventado:* después, fuera de la vista de la compañía, Winters puede hablar con Sobel en privado, ayudar al castigado con la taquilla o dejarlo estar. Winters nunca le lleva la contraria a Sobel en público.
 - **Los pases**: no hay pueblo cerca; cerveza en la cantina.

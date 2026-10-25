@@ -35,6 +35,7 @@ export const COMPANY = [
 ];
 
 // Reclutas sin nombre: el desempeño del jugador decide cuántos aguantan Toccoa (invented: true).
-export const RECRUIT_NAMES = ["Hale", "Purdy", "Osborne", "Kessler", "Dukeman", "Ramírez", "Whitlock", "Barrow", "Sisk", "Nolan", "Pryor", "Haddad"];
+// none of these surnames appears in the book (checked: Hale, Dukeman, Ramírez and Sisk were real men of Easy and were replaced)
+export const RECRUIT_NAMES = ["Lowry", "Purdy", "Osborne", "Kessler", "Tolliver", "Castañeda", "Whitlock", "Barrow", "Rourke", "Nolan", "Pryor", "Haddad"];
 
 export const CHAPTER_ORDER = ["currahee", "aldbourne", "dia-d", "carentan", "holanda", "mourmelon", "bastogne", "haguenau", "kaufering", "berchtesgaden"];
