@@ -1,5 +1,7 @@
-// Las carreras a Currahee: modo acción. Tú eres Winters dentro de la columna de Sobel.
-// Respira al compás de la cadencia, no te quedes atrás de las ambulancias, y vuelve por los que flaquean.
+// Las carreras a Currahee: modo acción. Tú eres Winters y cierras la columna de Sobel.
+// Vas al paso de la columna; los que flaquean se van quedando atrás entre las filas: alcánzalos antes de que
+// te pasen. Respira al compás, esprinta cuando haga falta (gasta aliento) y no te salgas del camino.
+// Si se te pasan demasiados o Sobel te pilla fuera del camino tres veces, la compañía vuelve a empezar.
 import { T, clamp, damp, rng } from "../../engine/util.js";
 import { Route, Column } from "../../core/column.js";
 import { cast } from "../../core/roster.js";
@@ -58,6 +60,9 @@ function hud(ui, input) {
     <div class="pace" aria-label="Tu lugar en la columna">
       <span class="end amb">✚ Ambulancia</span><span class="track"><i class="danger"></i><b class="me"></b></span><span class="end head">Sobel</span>
     </div>
+    <div class="tally"><span>Se te pasan <b class="pas"></b></span><span>Faltas <b class="fal"></b></span></div>
+    <div class="offroad">¡Al camino!</div>
+    <button class="sprint" data-b="sprint" aria-label="Esprintar">Esprint<small>gasta aliento</small><kbd>Mayús</kbd></button>
     <button class="breath" data-b="breath" aria-label="Respirar al compás"><span class="target"></span><span class="ring"></span><span class="core"><b>Respirar</b><small class="hint">al compás</small><em class="combo"></em></span><kbd>Espacio</kbd></button>`;
   ui.root.querySelector("#hud").appendChild(el);
   const b = el.querySelector(".breath");
@@ -72,7 +77,26 @@ function hud(ui, input) {
   };
   b.addEventListener("pointerup", up);
   b.addEventListener("pointercancel", up);
+  // sprint is held, not tapped
+  const sp = el.querySelector(".sprint");
+  sp.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    input.held.sprint = true;
+    sp.classList.add("down");
+  });
+  const spUp = () => {
+    input.held.sprint = false;
+    sp.classList.remove("down");
+  };
+  sp.addEventListener("pointerup", spUp);
+  sp.addEventListener("pointercancel", spUp);
+  sp.addEventListener("pointerleave", spUp);
   return {
+    sprint: sp,
+    tally: el.querySelector(".tally"),
+    pas: el.querySelector(".tally .pas"),
+    fal: el.querySelector(".tally .fal"),
+    offroad: el.querySelector(".offroad"),
     el,
     bar: el.querySelector(".aliento i"),
     ali: el.querySelector(".aliento"),
@@ -147,8 +171,10 @@ export async function currahee(ctx, opts) {
     drain: opts.drain,
     grade,
     input,
+    tail: true, // Winters closes the column
+    maxFlag: opts.variant === "first" ? 2 : 3,
     ambulances: ambs,
-    ambGap: 2 + ambHalf,
+    ambGap: 5 + ambHalf, // room for Winters between the last rank and the truck
     ambReach: ambHalf + 0.6,
     pace: (s) => {
       // Sobel pushes harder on the climb and eases a touch on the summit
@@ -169,6 +195,15 @@ export async function currahee(ctx, opts) {
       roster.bond("winters", m.id, 6);
       roster.mood(m.id, 4);
       helped.add(m.id);
+    },
+    onPass: (m) => {
+      passed++;
+      audio.vibrate([60, 40, 60]);
+      ui.toast(`${m.sol.short} se te ha pasado (${passed} de ${maxPass})`, 2000);
+      H.tally.classList.remove("flash");
+      void H.tally.offsetWidth;
+      H.tally.classList.add("flash");
+      if (passed >= maxPass) failWhy = failWhy || "pasados";
     },
     onLost: (m) => {
       if (m.named) {
@@ -195,6 +230,8 @@ export async function currahee(ctx, opts) {
     },
   });
   const flagged = new Set(), helped = new Set(), lost = [], carried = [];
+  const maxPass = opts.variant === "first" ? 3 : 4, maxFaults = 3;
+  let passed = 0, faults = 0, failWhy = null, offT = 0;
   window.__run = { col, win, music, summitS, route }; // for test bots (tools/currahee)
   // place everyone in their slot before the whistle
   for (const m of col.men) {
@@ -206,7 +243,10 @@ export async function currahee(ctx, opts) {
   const h0 = route.at(start);
   sobel.x = h0.x;
   sobel.z = h0.z;
-  const ws = col.slot(1, 1.9);
+  win.driven = true; // the column's tail moves him (core/column.js updateTail)
+  col.p.s = col.tailS();
+  col.p.lat = 0; // between the two files
+  const ws = route.at(col.p.s);
   win.x = ws.x;
   win.z = ws.z;
   win.ry = Math.atan2(ws.dx, ws.dz);
@@ -227,11 +267,16 @@ export async function currahee(ctx, opts) {
   G.lockMove = false;
   music.set("drive", 0.45);
   audio.setBed(0.32);
-  G.setObjective(opts.variant === "first" ? "Corre con la columna hasta la cima" : "Que nadie de tu pelotón suba a la ambulancia", ...lvl.summit);
+  G.setObjective(opts.variant === "first" ? "Cierra la columna hasta la cima" : "Que nadie de tu pelotón suba a la ambulancia", ...lvl.summit);
   const touch = matchMedia("(pointer: coarse)").matches;
-  if (opts.variant === "first") ui.toast(touch ? "Arrastra a la izquierda para correr. Toca «Respirar» cuando el anillo llegue al aro." : "WASD para correr · Espacio para respirar cuando el anillo llegue al aro · E para empujar", 4800);
-  else ui.toast("Que no suba nadie de tu pelotón a la ambulancia.", 3200);
-  let lastLine = null, windT = 0, bag = [], tutHelp = false, ambT = 0, fadeAt = opts.variant === "first" ? [110, 190] : [], silentT = 0, nextLine = 6, phaseUp = true, summitDone = false, behindT = 0, stepT = 0, lastBreathOk = false, tipsShown = 0;
+  if (opts.variant === "first") {
+    ui.toast("Cierras la columna. Los que flaquean se quedan atrás: alcánzalos antes de que te pasen.", 4200);
+    setTimeout(() => ui.toast(touch ? "Suelta el stick y vas al paso. Adelante para subir por la columna, atrás para dejarte caer. «Respirar» al compás; «Esprint» gasta aliento." : "Sin teclas vas al paso · W/S sube o baja por la columna · A/D de lado · Espacio respira al compás · Mayús esprinta", 5200), 4500);
+    setTimeout(() => ui.toast("No te salgas del camino: Sobel lo ve todo.", 3000), 10500);
+  } else ui.toast("Cierras la columna. Que no se te pase nadie.", 3200);
+  const fadeGap = opts.variant === "first" ? 40 : 30;
+  let nextFade = opts.variant === "first" ? 55 : 40;
+  let lastLine = null, windT = 0, bag = [], tutHelp = false, ambT = 0, silentT = 0, nextLine = 6, phaseUp = true, summitDone = false, behindT = 0, stepT = 0, lastBreathOk = false, tipsShown = 0;
   let failed = false;
   let gaspT = 9;
   const gBag = {};
@@ -271,7 +316,7 @@ export async function currahee(ctx, opts) {
     // where you are in the column
     const rel = clamp(P.rel ?? 0.5, -0.15, 1.15);
     H.me.style.left = `${(clamp(rel, 0, 1) * 100).toFixed(1)}%`;
-    const warn = rel < 0.12;
+    const warn = P.dAmb != null ? P.dAmb < 1.6 : rel < 0.12;
     if (warn && !H.pace.classList.contains("warn")) audio.vibrate([40, 60, 40]);
     H.pace.classList.toggle("warn", warn);
     // the ambulance idles audibly behind you
@@ -311,18 +356,38 @@ export async function currahee(ctx, opts) {
         }
       }
     }
-    // the first run teaches helping: the two weakest recruits fade at set points
-    if (fadeAt.length && col.s > fadeAt[0]) {
-      fadeAt.shift();
-      const weak = col.men.filter((m) => !m.named && m.state === "ok").sort((a, b) => a.fit - b.fit)[0];
+    // men fade at intervals, weaker ones more often, anywhere in the column (near the head they take longer to reach you)
+    if (col.s > nextFade) {
+      nextFade += fadeGap * (0.75 + r() * 0.5);
+      const pool = col.men.filter((m) => m.state === "ok" && !m.passed).sort((a, b) => a.fit + r() * 25 - (b.fit + r() * 25));
+      const weak = pool[0];
       if (weak) {
         weak.stam = 0.15;
-        if (!tutHelp) {
+        if (!tutHelp && opts.variant === "first") {
           tutHelp = true;
-          setTimeout(() => ui.toast(`Vuelve por ${weak.sol.short}: acércate y pulsa «Empujar»${touch ? "" : " (E)"}.`, 4200), 1900);
+          setTimeout(() => ui.toast(`${weak.sol.short} flaquea y se queda atrás. Ve a su encuentro y tócalo.`, 3600), 1200);
         }
       }
     }
+    // the road: Sobel sees everyone who cuts across or wanders off it
+    const offRoad = P.off > 2.5;
+    H.offroad.classList.toggle("on", offRoad);
+    if (offRoad) {
+      offT += dt;
+      if (offT > 1.6) {
+        offT = -1.5; // a grace period before the next fault
+        faults++;
+        P.stam = clamp(P.stam - 0.15, 0, 1);
+        audio.vibrate([80, 50, 80]);
+        ui.sayNow("Sobel", faults < maxFaults ? `¡Winters! ¡Ese no es el camino! ¡Al sendero!` : "¡Winters! ¡Ya basta!", 2);
+        if (faults >= maxFaults) failWhy = failWhy || "faltas";
+      }
+    } else offT = Math.max(offT < 0 ? offT : 0, offT - dt);
+    H.pas.textContent = "●".repeat(passed) + "○".repeat(Math.max(0, maxPass - passed));
+    H.fal.textContent = "⚑".repeat(faults) + "·".repeat(Math.max(0, maxFaults - faults));
+    H.pas.classList.toggle("hit", passed > 0);
+    H.fal.classList.toggle("hit", faults > 0);
+    H.sprint.classList.toggle("off", P.stam < 0.05);
     // spaghetti: men retching by the road
     if (opts.variant === "spaghetti") {
       for (const m of col.men) {
@@ -367,19 +432,13 @@ export async function currahee(ctx, opts) {
       sy = clamp(sy, 108, innerHeight - 40); // below the position bar
       ui.mark("st" + m.id, sx, sy, `<span>${off ? "◀ " : ""}${esc(m.sol.short)}</span>`, "strag");
     }
-    // the action button when a fading man is within reach
-    const near = col.flagged().find((m) => Math.hypot(m.sol.x - win.x, m.sol.z - win.z) < 2.6);
-    ui.setAct(near ? `Empujar a ${near.sol.short}` : null);
-    if (near && input.consume("act")) {
-      col.helpNearest(2.6);
-      ui.setAct(null);
-    }
-    // too far behind: the ambulances are right behind you
-    if (rel < 0.02) {
+    // too far behind: the ambulance is right behind you
+    if (P.dAmb != null ? P.dAmb < 0.4 : rel < 0.02) {
       behindT += dt;
       if (behindT > 0.4 && behindT - dt <= 0.4) ui.toast("¡La ambulancia te alcanza! Corre.", 1600);
-      if (behindT > 4.5) failed = true;
+      if (behindT > 4.5) failWhy = failWhy || "ambulancia";
     } else behindT = Math.max(0, behindT - dt * 2);
+    if (failWhy) failed = true;
   };
   const unhook = shell.hook(tick);
   // the column's boots fall on the cadence (two steps a beat), the breath beats carry a guide pulse
@@ -400,37 +459,10 @@ export async function currahee(ctx, opts) {
   };
   // the run ends back at the parade ground; leaving it any way (abort included) cleans up
   try {
-    for (;;) {
-      await G.until(() => failed || col.s >= route.total - 2);
-      if (!(failed && summitDone)) break;
-      // a checkpoint at the summit: the way down is replayed, not the whole run
-      G.paused = true;
-      await ui.card({ kicker: "Currahee", title: "La ambulancia te alcanza", text: "Winters no puede quedarse atrás: sus hombres lo miran. Vuelves a la cima para la bajada.", next: "Desde la cima" });
-      // restart with the whole column, ambulance included, already on the way down
-      col.s = summitS + (col.s - col.ambS()) + 8;
-      for (const m of col.men) {
-        if (m.state === "lost") continue;
-        const sl = col.slot(m.rank, m.lane);
-        m.sol.x = sl.x;
-        m.sol.z = sl.z;
-        m.lag = 0;
-        m.state = "ok";
-        m.stam = Math.max(m.stam, 0.6);
-        m.sol.noLabel = false;
-      }
-      const ws2 = col.slot(1, 1.9);
-      win.x = ws2.x;
-      win.z = ws2.z;
-      col.p.s = ws2.s;
-      col.p.px = null;
-      col.p.stam = 0.8;
-      G.cam.x = win.x;
-      G.cam.z = win.z;
-      failed = false;
-      behindT = 0;
-      G.paused = false;
-    }
+    await G.until(() => failed || col.s >= route.total - 2);
   } finally {
+    win.driven = false;
+    input.held.sprint = false;
     for (const m of col.men) if (m.sol) m.sol.faceAlong = null;
     sobel.faceAlong = null;
     unhook();
@@ -447,10 +479,17 @@ export async function currahee(ctx, opts) {
   window.__run = null;
   ambs.forEach((m) => G.scene.remove(m));
   if (failed) {
+    // Sobel's way: the whole company goes back to the bottom and runs it again (nobody washed out, nobody tired)
     Object.assign(roster.d, JSON.parse(before));
     G.lockMove = true;
     music.intensity(0.15);
-    await ui.card({ kicker: "Currahee", title: "Winters no sube a la ambulancia", text: "Winters no puede quedarse atrás: sus hombres lo miran. Respira al compás, corre pegado a la columna y vuelve a intentarlo.", next: "Otra vez" });
+    audio.whistle(sobel.x, sobel.z, true);
+    const why = {
+      pasados: [`Se te han pasado ${passed} hombres`, "«¡Compañía, alto! ¿A esto le llaman correr? ¡Abajo todos! ¡Otra vez desde el principio!»\n\nWinters cierra la columna: el que flaquea tiene que encontrarlo a él antes que a la ambulancia. Ve a su encuentro y tócalo; suelta el stick para volver al paso."],
+      faltas: ["Fuera del camino", "«¡Winters! ¿Se cree que esto es un paseo por el campo? ¡Compañía, abajo! ¡Desde el principio!»\n\nSobel no perdona un atajo. Mantente en el sendero rojo."],
+      ambulancia: ["La ambulancia te alcanza", "«¡Su teniente se ha dejado alcanzar por la ambulancia! ¡Abajo todos! ¡Otra vez!»\n\nCuando te quedes sin aliento, respira al compás; esprinta solo para alcanzar a un hombre."],
+    }[failWhy || "ambulancia"];
+    await ui.card({ kicker: "Currahee · Sobel", title: why[0], text: why[1], next: "Otra vez desde abajo" });
     G.lockMove = false;
     return { retry: true };
   }

@@ -5,25 +5,29 @@ window.__bot = function (mode = "good") {
   S.hook(() => {
     const R = window.__run;
     if (!R) return;
-    const { col, win, music } = R;
+    const { col, win, music, route } = R;
     const inp = S.input;
+    // tail mode: go to meet the nearest man who is fading (ahead of you), otherwise hold the tail on the road
+    const fl = col.flagged().filter((m) => !m.passed).sort((a, b) => Math.hypot(a.sol.x - win.x, a.sol.z - win.z) - Math.hypot(b.sol.x - win.x, b.sol.z - win.z))[0];
     let tx, tz;
-    const fl = col.flagged()[0];
     if (mode === "good" && fl) { tx = fl.sol.x; tz = fl.sol.z; }
-    else { const sl = col.slot(mode === "lazy" ? 40 : 2, 1.6); tx = sl.x; tz = sl.z; }
+    else {
+      const s = mode === "lazy" ? col.tailS() - 10 * col.dir : col.tailS();
+      const a = route.at(s);
+      tx = a.x; tz = a.z;
+    }
     let dx = tx - win.x, dz = tz - win.z;
     const d = Math.hypot(dx, dz);
-    if (mode === "lazy") { inp.mx = 0; inp.my = 0; }
-    else if (d < 0.4) { inp.mx = inp.my = 0; }
+    if (mode === "lazy" || d < 0.5) { inp.mx = 0; inp.my = 0; }
     else {
       dx /= d; dz /= d;
-      const k = Math.min(1, d / 1.5);
+      const k = Math.min(1, d / 3);
       inp.mx = (dx * 0.707 - dz * 0.707) * k;
       inp.my = (dx * 0.707 + dz * 0.707) * k;
     }
+    inp.held.sprint = mode === "good" && fl && d > 7 && col.p.stam > 0.45;
     const b = music.breath();
     if (mode === "good" && b.err < 0.08 && !window.__bb) { inp.press("breath"); window.__bb = 1; setTimeout(() => { inp.release("breath"); window.__bb = 0; }, 260); }
-    if (mode === "good" && fl && Math.hypot(fl.sol.x - win.x, fl.sol.z - win.z) < 2.4) inp.press("act"), inp.release("act");
   });
 };
 // clicks through paper cards (first choice / next) so a whole chapter can run unattended

@@ -1,5 +1,14 @@
 # Hermanos de Sangre · estado
 
+## Las carreras a Currahee, rehechas tras la prueba en teléfono
+El jugador sentía que no pasaba nada si no ayudaba, que costaba ir al paso y que cortar camino no tenía consecuencias. Ahora (`core/column.js` modo `tail`, `chapters/currahee/run.js`):
+- **Winters cierra la columna.** Sin tocar el stick va al paso; adelante sube por la columna, atrás se deja caer, de lado cruza el camino.
+- **Los rezagados** se quedan atrás tropezando hacia el borde del camino. Si Winters los toca, se rehacen (más fuerza y 25 s sin volver a flaquear) y vuelven a su sitio. Si se le pasan tres (cuatro en la de los espaguetis), Sobel manda a la compañía abajo, a empezar otra vez. Como mucho flaquean dos a la vez (tres en la segunda carrera).
+- **Esprint** (se mantiene pulsado): más velocidad a cambio de aliento.
+- **El camino:** fuera del sendero aparece «¡Al camino!»; a los 1,6 s Sobel pone una falta y quita aliento. Tres faltas y se vuelve a empezar.
+- **La ambulancia** tiene más hueco detrás de Winters; si lo alcanza, también se vuelve a empezar.
+- Bot de prueba: el que juega bien termina las dos carreras (5 a 8 rezagados atajados); el que no se mueve pierde por tres que se le pasan.
+
 ## Juego unificado · Capítulo I, Currahee (ronda 2: el modo base)
 **La semana en Toccoa** (`core/week.js`, `core/weekui.js`, `chapters/currahee/semana*.js`; diseño en `docs/diseno-semana.md`). Entre la primera carrera y los espaguetis hay dos semanas de campamento:
 - **Planificar:** Sobel fija las mañanas (Currahee, calistenia, pista, inspección) y tú eliges las tardes del pelotón: calistenia, armas y táctica, preparar la inspección, descanso o pasar la tarde con los hombres. Cinco medidores (Forma, Fatiga, Moral, Orden, Sobel) con una raya que marca cómo acabará la semana si nada se tuerce.

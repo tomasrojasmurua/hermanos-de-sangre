@@ -107,7 +107,9 @@ export class Column {
       const demand = (pace / 3.6) ** 2 * (1 + climb * 3) * (cfg.drain || 1);
       const carry = 0.55 + (m.fit / 100) * 0.7 + (m.help || 0);
       m.stam = clamp(m.stam - (demand - carry) * dt * 0.06 - (cfg.sick?.(m) || 0) * dt, 0, 1);
-      if (m.state === "ok" && m.stam < 0.18 && !m.immune) {
+      // a closer can only chase so many at once: the rest grit their teeth until someone is caught
+      m.immuneT = Math.max(0, (m.immuneT || 0) - dt);
+      if (m.state === "ok" && m.stam < 0.18 && !m.immune && !(m.immuneT > 0) && (!cfg.maxFlag || this.flagged().length < cfg.maxFlag)) {
         m.state = "flag";
         cfg.onStraggle && cfg.onStraggle(m);
       }
@@ -127,7 +129,9 @@ export class Column {
       }
       const target = this.route.at(sl.s - this.dir * m.lag);
       const nx = -target.dz, nz = target.dx;
-      const tx = target.x + nx * m.lane + Math.sin(G.t * 0.7 + m.wob) * 0.12, tz = target.z + nz * m.lane;
+      // a man who flags stumbles out to the edge of the road, so catching him takes a move across
+      m.lat = damp(m.lat ?? m.lane, m.state === "flag" && cfg.tail ? Math.sign(m.lane) * 1.9 : m.lane, 1.4, dt);
+      const tx = target.x + nx * m.lat + Math.sin(G.t * 0.7 + m.wob) * 0.12, tz = target.z + nz * m.lat;
       const d = Math.hypot(tx - m.sol.x, tz - m.sol.z);
       const want = pace * (m.state === "flag" ? 0.55 : 1) + d * 1.6;
       m.sol.faceAlong = [target.dx * this.dir, target.dz * this.dir];
@@ -142,7 +146,8 @@ export class Column {
       mesh.position.set(a.x, G.world.height(a.x, a.z), a.z);
       mesh.rotation.y = Math.atan2(a.dx * this.dir, a.dz * this.dir);
     });
-    this.updatePlayer(dt, pace, ctx);
+    if (this.cfg.tail) this.updateTail(dt, pace);
+    else this.updatePlayer(dt, pace, ctx);
   }
   ambS() {
     // the truck's centre sits a gap plus half its length behind the last rank, so it never drives through men
@@ -185,6 +190,70 @@ export class Column {
     const head = this.s, amb = this.ambS();
     P.rel = (P.s - amb) / (head - amb || 1) * this.dir;
     if (this.dir < 0) P.rel = (amb - P.s) / (amb - head || 1);
+  }
+  // ---- tail mode: the player closes the column. He is driven along the road at the column's pace;
+  // the stick moves him up or back through the column and across the road; a sprint button spends breath.
+  // A man who flags drifts back through the ranks: touch him and he recovers; if he gets behind you,
+  // he has passed you (cfg.onPass). Leaving the road is reported through P.off (metres from the centre).
+  updateTail(dt, pace) {
+    const p = this.cfg.player, G = this.G, P = this.p, inp = this.cfg.input;
+    if (!p) return;
+    if (P.s == null || P.lat == null) {
+      P.s = this.tailS();
+      P.lat = 0;
+    }
+    // the stick, in world space, split into along-the-road and across-the-road
+    const ax = inp ? inp.axis() : { x: 0, y: 0, l: 0 };
+    const cy = Math.cos(G.cam.yaw), sy = Math.sin(G.cam.yaw);
+    const wx = ax.x * cy + ax.y * sy, wz = -ax.x * sy + ax.y * cy;
+    const a = this.route.at(P.s);
+    const fx = a.dx * this.dir, fz = a.dz * this.dir, nx = -fz, nz = fx;
+    const along = wx * fx + wz * fz, across = wx * nx + wz * nz;
+    // breath: low breath slows him below the column's pace (he starts to drop back)
+    const spent = P.stam < 0.1 ? 0.88 : P.stam < 0.25 ? 0.95 : 1;
+    const sprint = inp && inp.held.sprint && P.stam > 0.04;
+    const rel = along * (sprint ? 3.2 : 1.6); // m/s relative to the column
+    const v = Math.max(0.4, pace * spent + (sprint && Math.abs(along) < 0.2 ? 2.4 : rel));
+    P.s += v * dt * this.dir;
+    P.lat += across * (sprint ? 3.6 : 2.6) * dt;
+    const b = this.route.at(P.s);
+    const bnx = -b.dz * this.dir, bnz = b.dx * this.dir;
+    p.x = b.x + bnx * P.lat;
+    p.z = b.z + bnz * P.lat;
+    p.faceAlong = [b.dx * this.dir, b.dz * this.dir];
+    p.face(p.x + b.dx * this.dir * 4 + bnx * across * 2, p.z + b.dz * this.dir * 4 + bnz * across * 2, dt, 8);
+    p.st.move = clamp(v / 3.6, 0, 1.2);
+    P.off = Math.abs(P.lat);
+    P.sprinting = sprint;
+    // breath: the hill and the sprint cost it, breathing on the beat gives it back (breathe())
+    const climb = Math.max(0, this.cfg.grade ? this.cfg.grade(P.s, this.dir) : 0);
+    const cost = climb * 0.17 * (this.cfg.drain || 1) + (sprint ? 0.16 : 0) + (rel > 0.3 ? 0.03 : 0) + (this.cfg.sick?.({ id: p.id, player: true }) || 0);
+    P.stam = clamp(P.stam - cost * dt + (this.cfg.regen ?? 0.012) * dt, 0, 1);
+    P.breathT = Math.max(0, P.breathT - dt);
+    // where he is: 0 = at the ambulance, 1 = at the head
+    const head = this.s, amb = this.ambS();
+    P.rel = ((P.s - amb) * this.dir) / ((head - amb) * this.dir || 1);
+    P.dAmb = (P.s - amb) * this.dir - (this.cfg.ambReach ?? 0.6); // metres of road between him and the truck's bumper
+    // stragglers: caught on touch; passed once they are behind him
+    for (const m of this.men) {
+      if (m.state !== "flag") continue;
+      const ms = this.slot(m.rank, 0).s - this.dir * m.lag;
+      const d = Math.hypot(m.sol.x - p.x, m.sol.z - p.z);
+      if (d < 1.25) {
+        // a hand on his back and a word: he finds his legs again, and won't fold for a while
+        m.state = "ok";
+        m.stam = 0.8;
+        m.help = (m.help || 0) + 0.25;
+        m.immuneT = 25;
+        m.helped = (m.helped || 0) + 1;
+        m.passed = false;
+        P.stam = clamp(P.stam - 0.04, 0, 1);
+        this.cfg.onRecover && this.cfg.onRecover(m);
+      } else if (!m.passed && (P.s - ms) * this.dir > 2.2) {
+        m.passed = true;
+        this.cfg.onPass && this.cfg.onPass(m);
+      }
+    }
   }
   // the player breathes on the cadence: ok → stamina back, off-beat → a stitch
   breathe(onBeat) {

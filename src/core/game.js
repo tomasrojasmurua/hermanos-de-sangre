@@ -213,6 +213,7 @@ export class Game {
   updatePlayer(dt) {
     const p = this.player;
     if (!p || !p.alive) return;
+    if (p.driven) return; // moved by a mode of its own (the Currahee column's tail)
     const inp = this.input;
     const ax = inp.axis();
     // screen axis -> world (camera yaw)
