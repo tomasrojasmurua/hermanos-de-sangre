@@ -42,7 +42,6 @@ export class UI {
       <button id="pauseBtn" class="round" aria-label="Pausa">${ICON.pause}</button>
       <div id="obj"><span class="arrow">➤</span><span class="txt"></span><span class="m"></span></div>
       <div id="marks"></div>
-      <div id="sub" class="hidden"><b></b><span></span></div>
       <div id="btns">
         <button class="b act hidden" data-b="act"><span class="lbl"></span></button>
         <button class="b call hidden" data-b="call">${ICON.call}<small>Chicharra</small></button>
@@ -55,6 +54,7 @@ export class UI {
       <div id="qte" class="hidden"><div class="lbl"><span></span><i class="bar"></i></div><button class="b" data-b="qte"><span class="t2"></span></button></div>
       <div class="ghost"><i></i><span>Arrastra para moverte</span></div>
     </div>
+    <div id="sub" class="hidden"><b></b><span></span></div>
     <div id="cards"></div>
     <div id="fade"></div>`;
     this.hud = $("#hud", root);
@@ -175,7 +175,10 @@ export class UI {
   // world-anchored markers: key -> {x,y (screen), text, cls}
   ghostOff() {
     const g = this.root.querySelector(".ghost");
-    if (g && !g.classList.contains("off")) g.classList.add("off");
+    if (g && !g.classList.contains("off")) {
+      g.classList.add("off");
+      setTimeout(() => g.remove(), 900); // learned once, gone for the session
+    }
   }
   mark(key, sx, sy, html, cls = "") {
     if (cls.startsWith("ally")) sx = Math.max(34, Math.min(innerWidth - 34, sx));
@@ -228,6 +231,7 @@ export class UI {
       void this.sub.offsetWidth;
       this.sub.classList.add("pop");
       this.subT = s.dur;
+      if (this.onLine) this.onLine(s.who, s.text);
     }
   }
   get talking() {

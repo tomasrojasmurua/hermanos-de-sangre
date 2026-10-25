@@ -1,4 +1,5 @@
 // Genera los juegos de un solo archivo en la raíz del repo:
+//   juego.html            ← src/main.js (el juego unificado: director + capítulos) + src/shell/index.html
 //   dia-d.html            ← src/chapters/dia-d (módulos ES, empaquetados con esbuild) + lib/three-runtime.js
 //   hermanos-de-sangre.html ← src/chapters/bastogne/{head.html, game.js, tail.html}
 // Uso: npm run build   (una vez)
@@ -21,6 +22,13 @@ function writeDiaD(js) {
     .replace('<script src="lib/three-runtime.js"></script>', () => `<script>\n${read("lib/three-runtime.js")}\n</script>`)
     .replace('<script src="dia-d.js"></script>', () => `<script>\n${js}\n</script>`);
   write("dia-d.html", page);
+}
+
+function writeJuego(js) {
+  const page = read("src/shell/index.html")
+    .replace('<script src="lib/three-runtime.js"></script>', () => `<script>\n${read("lib/three-runtime.js")}\n</script>`)
+    .replace('<script src="juego.js"></script>', () => `<script>\n${js}\n</script>`);
+  write("juego.html", page);
 }
 
 function writeBastogne() {
@@ -54,5 +62,7 @@ if (process.argv.includes("--watch")) {
 } else {
   const r = await esbuild.build(options);
   writeDiaD(r.outputFiles[0].text);
+  const j = await esbuild.build({ ...options, entryPoints: ["src/main.js"] });
+  writeJuego(j.outputFiles[0].text);
   writeBastogne();
 }

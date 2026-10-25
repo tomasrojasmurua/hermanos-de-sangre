@@ -40,6 +40,7 @@ let G = null; // current Game
 let scene = null;
 let lvl = null;
 let save = loadSave() || { part: "night", cp: "n0", lead: "winters" };
+if (save.lead === "lipton") save.lead = "winters"; // the old permadeath branch no longer exists
 let running = false;
 
 function disposeScene(sc) {
@@ -109,7 +110,7 @@ function setupPart(part) {
       await ui.card({
         kicker: "Aún no",
         title: `${nm} no cae aquí`,
-        text: "La historia necesita a este hombre vivo esta noche. Vuelves al último punto de control: lo que ocurra a partir de Brécourt ya no tendrá vuelta atrás.",
+        text: "La historia necesita a este hombre vivo. Vuelves al último punto de control.",
         next: "Reintentar",
       });
       restart();

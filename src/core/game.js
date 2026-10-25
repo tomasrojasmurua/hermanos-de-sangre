@@ -236,7 +236,7 @@ export class Game {
       p.stepT = (p.stepT || 0) - dt * sp;
       if (p.stepT <= 0) {
         p.stepT = 1.6;
-        this.audio.footstep(p.crouch ? 0.4 : 1);
+        if (!this.quietSteps) this.audio.footstep(p.crouch ? 0.4 : 1);
         if (!p.crouch && ax.l > 0.6) this.noise(p.x, p.z, 7, p);
       }
       const last = this.trail[this.trail.length - 1];
@@ -623,7 +623,12 @@ export class Game {
       s.z = cz;
       s.stuckTotal = Math.max(0, (s.stuckTotal || 0) - dt * 0.5);
     }
-    if (!(s.aimT > 0)) s.face(x, z, dt, 8);
+    // a man running in a column looks down the road, not at the exact spot he is closing on
+    if (!(s.aimT > 0)) {
+      const fa = s.faceAlong;
+      if (fa) s.face(s.x + fa[0] * 4, s.z + fa[1] * 4, dt, 8);
+      else s.face(x, z, dt, 8);
+    }
     s.st.move = damp(s.st.move, speedK * (s.crouch ? 0.7 : 1), 10, dt);
     return false;
   }
@@ -957,7 +962,7 @@ export class Game {
         else if (e.aware > 0.15 && e.ai.mode !== "alert") ui.mark("e" + e.id, sx, sy, `<b style="--k:${clamp(e.aware, 0, 1).toFixed(2)}">?</b>`, "sus");
       }
       // ally names: only the three nearest (plus anyone wounded), so labels never pile up
-      const near = this.soldiers.filter((a) => a.side === "us" && a !== p && a.alive && this.dist(a, p) < 9).sort((a, b) => this.dist(a, p) - this.dist(b, p));
+      const near = this.soldiers.filter((a) => a.side === "us" && a !== p && a.alive && !a.noLabel && this.dist(a, p) < 9).sort((a, b) => this.dist(a, p) - this.dist(b, p));
       const placed = [];
       near.forEach((a, i) => {
         if (i > 2 && !a.down) return;
