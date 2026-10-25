@@ -9851,6 +9851,8 @@ void main(){
   }
   var NUM = {
     veinte: [["e", 0.12, 1700], ["i", 0.08], ["e", 0.14, 2400]],
+    veinticuatro: [["e", 0.1, 1700], ["i", 0.06], ["i", 0.06, 4500], ["a", 0.08, 1300], ["o", 0.12, 2400]],
+    veintiocho: [["e", 0.1, 1700], ["i", 0.06], ["i", 0.06, 2400], ["o", 0.08], ["o", 0.12, 4500]],
     treinta: [["e", 0.1, 2400], ["i", 0.08], ["a", 0.18, 2400]]
   };
   function murmur(audio, word, { x, z, n = 12, gain = 0.05 } = {}) {
@@ -9858,9 +9860,9 @@ void main(){
     audio.say(NUM[word], { x, z, voices: n, pitch: 130, gain, spread: 0.03 });
   }
   var COUNT = [[["u", 0.12], ["o", 0.16, 1800]], [["o", 0.2, 2400]], [["e", 0.2, 1300]], [["u", 0.1, 2400], ["a", 0.1, 1300], ["o", 0.14, 2400]]];
-  function count(audio, i, { x, z, n = 10, gain = 0.12 } = {}) {
+  function count(audio, i, { x, z, n = 10, gain = 0.12, pitch } = {}) {
     if (!audio.on) return;
-    audio.say(COUNT[i % 4], { x, z, voices: n, pitch: n > 1 ? 140 : 120, gain, spread: 0.015 });
+    audio.say(COUNT[i % 4], { x, z, voices: n, pitch: pitch ?? (n > 1 ? 140 : 120), gain, spread: 0.015 });
   }
   function meterTick(audio, good) {
     if (!audio.on) return;
@@ -9884,7 +9886,7 @@ void main(){
 .wk .meters{flex:1;display:flex;gap:8px;justify-content:flex-end;min-width:0}
 .mtr{flex:0 1 106px;min-width:60px}
 .mtr i em.mk{position:absolute;top:-2px;width:2px;height:12px;margin-left:-1px;background:rgba(255,255,255,.75)}
-.mtr i em.mk::after{content:attr(data-t);position:absolute;top:13px;left:-12px;font:600 10px 'Barlow Condensed';font-style:normal;color:#cfc6b2;white-space:nowrap}
+.mtr i em.mk::after{content:attr(data-t);position:absolute;top:13px;left:50%;transform:translateX(-50%);font:600 11px 'Barlow Condensed';font-style:normal;color:#cfc6b2;white-space:nowrap}
 .mtr span{display:flex;justify-content:space-between;gap:4px;font:600 12.5px 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#d8cfbb;white-space:nowrap}
 .mtr span em{font-style:normal;color:#f4ecd9}
 .mtr span em s{text-decoration:none;color:#e3c27a}
@@ -9903,7 +9905,7 @@ void main(){
 .cell .ic{font-size:19px;line-height:1;margin-bottom:2px}
 .cell.fixed{background:rgba(214,203,177,.8);color:#2a241b;box-shadow:none;font-size:13.5px}
 .cell.fixed small{color:#2a241b}
-.cell.fixed::after{content:'SOBEL';position:absolute;right:2px;top:3px;transform:rotate(12deg);font:700 10.5px 'Special Elite';letter-spacing:.08em;color:#a3302a;border:1.5px solid #a3302a;padding:0 3px;opacity:.8}
+.cell.fixed::after{content:'SOBEL';position:absolute;right:4px;top:5px;transform:rotate(8deg);font:700 10.5px 'Special Elite';letter-spacing:.08em;color:#a3302a;border:1.5px solid #a3302a;padding:0 3px;opacity:.8}
 .cell.free{cursor:pointer;border:2px dashed rgba(35,29,22,.45);background:rgba(241,234,219,.92)}
 .cell.free.empty{color:#6d6252}
 .cell.free.sel{outline:3px solid #e3c27a;outline-offset:1px;border-style:solid}
@@ -9938,6 +9940,20 @@ void main(){
 .wtag{position:absolute;transform:translate(-50%,-100%);font:600 13px 'Barlow Condensed';letter-spacing:.04em;padding:2px 8px;border-radius:10px;white-space:nowrap;pointer-events:none;
   background:rgba(14,12,9,.7);color:#f4ecd9}
 .wtag.no{background:#a3302a;color:#fff;border:1.5px solid #ffd7c9}
+/* Winters' push-up test */
+.pushg{position:absolute;inset:0;z-index:24;pointer-events:none}
+.pushg .pg-top{position:absolute;left:50%;top:calc(10px + var(--safe-t));transform:translateX(-50%);text-align:center;background:rgba(14,12,9,.7);padding:8px 16px;border-radius:3px;color:#f4ecd9;min-width:260px}
+.pushg .pg-top b{display:block;font:400 18px 'IM Fell English SC',serif}
+.pushg .pg-top .n{display:block;font:600 30px/1.1 'Barlow Condensed';letter-spacing:.04em}
+.pushg .pg-top i{display:block;height:6px;background:rgba(255,255,255,.15);border-radius:3px;margin:4px 0}
+.pushg .pg-top i u{display:block;height:100%;background:#e3c27a;border-radius:3px;transform-origin:left}
+.pushg .pg-top small{font:13px 'Barlow Condensed';color:#d8cfbb}
+.pushg .pg-b{position:absolute;bottom:calc(18px + var(--safe-b));width:110px;height:110px;border-radius:50%;pointer-events:auto;cursor:pointer;touch-action:none;
+  border:3px solid rgba(241,234,219,.6);background:rgba(14,12,9,.55);color:#f4ecd9;font:600 34px/1 'Barlow Condensed'}
+.pushg .pg-b small{display:block;font:13px 'Barlow Condensed';letter-spacing:.08em;text-transform:uppercase}
+.pushg .pg-b.dn{left:calc(22px + env(safe-area-inset-left,0px))}.pushg .pg-b.up{right:calc(22px + env(safe-area-inset-right,0px))}
+.pushg .pg-b.want{border-color:#e3c27a;box-shadow:0 0 18px rgba(227,194,122,.5)}
+.pushg .pg-b.bad{background:rgba(163,48,42,.6)}
 `;
   var styled = false;
   function style() {
@@ -10148,7 +10164,8 @@ void main(){
       for (const t of this.tags.values()) {
         const [x, y] = G.project(t.s.x, t.s.y + 2.15, t.s.z);
         t.el.style.left = x.toFixed(0) + "px";
-        t.el.style.top = Math.max(y, 96).toFixed(0) + "px";
+        t.el.style.top = y.toFixed(0) + "px";
+        t.el.style.opacity = y < 96 ? 0 : 1;
       }
     }
     remove() {
@@ -10226,7 +10243,7 @@ void main(){
         }
       }
       this.dph += dt * sp * 5.2;
-      for (const s of this.G.soldiers) if (s.st.jack || s.st.push || s.st.dig) s.st.dph = this.dph * (s._rate || 1) - (s._off || 0);
+      for (const s of this.G.soldiers) if ((s.st.jack || s.st.push || s.st.dig) && !s._manual) s.st.dph = this.dph * (s._rate || 1) - (s._off || 0);
       G.cam.x = damp(G.cam.x, this.cam.x, 1.4, dt);
       G.cam.z = damp(G.cam.z, this.cam.z, 1.4, dt);
       this.hud && this.hud.placeTags(G);
@@ -10394,7 +10411,10 @@ void main(){
       if (c === last) return;
       last = c;
       const i = c % 6;
-      if (i < 4 && camp.speed === 1 && !ui.talking) count(audio, i, { ...xz(-75, 1), n: 8, gain: 0.11 });
+      if (i === 0) camp._cp = 130 + camp.r() * 20;
+      const mor = camp.week ? camp.week.stats().moral : 60;
+      const low = mor < 50;
+      if (i < 4 && camp.speed === 1 && !ui.talking) count(audio, i, { ...xz(-75, 1), n: low ? 6 : 8, gain: (low ? 0.08 : 0.11) * (i === 3 ? 1.2 : 1), pitch: camp._cp });
     });
     return () => {
       off();
@@ -10464,6 +10484,12 @@ void main(){
     if (away) camp.show([camp.win], false);
     if (away) camp.chat(CHATTER.away);
     else camp.chat(CHATTER[act]);
+    if (act === "taquillas" || act === "armas" || act === "descanso") {
+      const who = away || act === "descanso" ? camp.pick(men) : camp.win;
+      const [u0, v0] = UV(who.x, who.z);
+      camp.pose([who]);
+      camp.walk(who, u0 + 4 + camp.r() * 3, v0 + (camp.r() - 0.5) * 2, { k: 0.3 });
+    }
     return stop;
   }
   async function morningAway(camp, act) {
@@ -10526,12 +10552,12 @@ ${signed}
 
 El sargento del pelot\xF3n, del Ej\xE9rcito de siempre, se queda al mando. Esta tarde toca: ${planned ? planned.label.toLowerCase() : "\u2014"}. \xBFA qui\xE9n le pides que tire de los hombres?`,
       choices: [
-        { label: "A Lipton", sub: "Sereno y ordenado. Los hombres trabajar\xE1n casi igual que contigo.", value: "lipton" },
+        { label: "A Lipton", sub: planned && (planned.fx.fit || planned.fx.aim) ? "Sereno y ordenado. Los hombres entrenar\xE1n casi igual que contigo." : "Sereno y ordenado. Esta tarde no cambia gran cosa: aprender\xE1 a mandar.", value: "lipton" },
         { label: "A Guarnere", sub: "Los hombres se reir\xE1n m\xE1s. Puede acabar en pelea, y Sobel se enterar\xEDa.", value: "guarnere" }
       ]
     });
     stamp(audio);
-    if (what.includes("comedor")) bugle(audio, "rancho", { ...xz(...FLAG), short: camp.speed > 1, level: 0.7 });
+    if (what.includes("comedor")) setTimeout(() => bugle(audio, "rancho", { ...xz(...FLAG), short: camp.speed > 1, level: 0.7 }), 500);
     week.away[day.key] = true;
     if (v === "lipton") {
       week.awayK[day.key] = 0.8;
@@ -10726,6 +10752,7 @@ El sargento del pelot\xF3n, del Ej\xE9rcito de siempre, se queda al mando. Esta 
   async function nightMarch(camp, week) {
     const { ui, audio, roster } = camp.ctx;
     audio.startBed("night");
+    camp.ctx.music.set("silence", 0);
     bugle(audio, "formar", { ...xz(...FLAG), short: camp.speed > 1, level: 0.6 });
     const v = await camp.card({
       kicker: "Mi\xE9rcoles \xB7 21:00",
@@ -10770,11 +10797,13 @@ El sargento del pelot\xF3n, del Ej\xE9rcito de siempre, se queda al mando. Esta 
     });
     audio.paper();
     audio.startBed("georgia");
+    camp.music();
     camp.hud.update();
   }
   async function barracks2(camp, week) {
     const { audio, roster } = camp.ctx;
     audio.startBed("night");
+    camp.ctx.music.set("silence", 0);
     audio.space("room");
     barracksNight(audio);
     const ok = week.state.order >= 55;
@@ -10793,6 +10822,7 @@ El sargento del pelot\xF3n, del Ej\xE9rcito de siempre, se queda al mando. Esta 
     audio.paper();
     audio.space("open");
     audio.startBed("georgia");
+    camp.music();
     camp.hud.update();
   }
   async function sobelTest(camp) {
@@ -10813,7 +10843,7 @@ El sargento del pelot\xF3n, del Ej\xE9rcito de siempre, se queda al mando. Esta 
       ui.sayNow("", n, d / camp.speed);
       if (camp.speed === 1) {
         for (let k = 0; k < 3; k++) setTimeout(() => audio.breath(0.4 + i * 0.15 + k * 0.04, 0, 1.2), k * (d / 3) * 1e3);
-        murmur(audio, i === 3 ? "treinta" : "veinte", { ...xz(-80, 1), n: 12, gain: 0.05 });
+        murmur(audio, ["veinte", "veinticuatro", "veintiocho", "treinta"][i], { ...xz(-80, 1), n: 12, gain: 0.05 });
       }
       await camp.wait(d);
       camp.sobel._rate *= 0.82;
@@ -10822,15 +10852,97 @@ El sargento del pelot\xF3n, del Ej\xE9rcito de siempre, se queda al mando. Esta 
     camp.sobel._rate = 1;
     camp.say("", "Silencio. Cabezas que se sacuden. Nadie sonr\xEDe.", 2.4);
     await camp.wait(2.4);
+    const res = await pushGame(camp);
+    const mine = res.reps >= 30 ? res.time < 11 ? "Winters hace sus treinta de un tir\xF3n, sin cambiar de cara. Los hombres no dicen nada, pero lo han visto." : "Winters hace sus treinta, despacio pero sin pararse." : `Winters se queda en ${res.reps}. Los brazos no le responden; vuelve a empezar y las termina, pero la compa\xF1\xEDa lo ha visto.`;
     await camp.card({
       kicker: "La prueba f\xEDsica",
       title: "Treinta",
-      text: "A los veinticuatro le temblaban los brazos y ten\xEDa la cara roja como un tomate, pero sigui\xF3. Era evidente que a Sobel no le faltaba determinaci\xF3n.\n\nWinters hace las suyas sin detenerse, como casi toda la compa\xF1\xEDa.",
+      text: `A los veinticuatro, a Sobel le temblaban los brazos y ten\xEDa la cara roja como un tomate, pero sigui\xF3. Era evidente que no le faltaba determinaci\xF3n.
+
+${mine}`,
       quote: { t: "Nos consolamos con la idea de que continuaba siendo un cabr\xF3n a pesar de todo.", src: "Ed Tipper" },
       next: "Seguir"
     });
     audio.paper();
     camp.music();
+  }
+  function pushGame(camp) {
+    const { ui, audio, roster, G } = camp.ctx;
+    if (camp.hud?.setSpeed) camp.hud.setSpeed(1);
+    return new Promise((resolve) => {
+      const win = camp.win;
+      camp.place(win, -75.3, -6, FACE_UP);
+      camp.place(camp.sobel, -78, -6.6, FACE_UP + 0.4);
+      camp.pose([win], { push: 1 });
+      win._manual = true;
+      win.st.dph = 0;
+      camp.look(-75.3, -3.5, 9);
+      const fat = roster.get("winters")?.fatigue || 0;
+      const grace = 1.5 - Math.min(0.7, fat / 120);
+      const w = document.createElement("div");
+      w.className = "pushg";
+      w.innerHTML = `<div class="pg-top"><b>Winters \xB7 prueba f\xEDsica</b><span class="n">0 / 30</span><i><u></u></i><small>Toca \u25BC y \u25B2 por turnos, con los dos pulgares. Si te paras, se le van los brazos.</small></div>
+      <button class="pg-b dn" aria-label="Abajo">\u25BC<small>abajo</small></button><button class="pg-b up" aria-label="Arriba">\u25B2<small>arriba</small></button>`;
+      ui.root.appendChild(w);
+      if (camp.hud?.el) camp.hud.el.style.visibility = "hidden";
+      let reps = 0, next = "dn", last = performance.now(), t0 = null, done = false, raf = 0;
+      const n = w.querySelector(".n"), bar = w.querySelector("u");
+      const press = (side) => {
+        if (done) return;
+        const now = performance.now();
+        if (t0 == null) t0 = now;
+        if (side !== next) {
+          audio.vibrate(30);
+          w.querySelector("." + side).classList.add("bad");
+          setTimeout(() => w.querySelector("." + side)?.classList.remove("bad"), 160);
+          return;
+        }
+        last = now;
+        win.st.dph = (reps * 2 + (side === "dn" ? 1 : 2)) * Math.PI;
+        if (side === "up") {
+          reps++;
+          n.textContent = `${reps} / 30`;
+          audio.breath(0.25 + reps * 0.015, 0, 0.9);
+          if (reps % 5 === 0) count(audio, reps / 5 % 4, { x: win.x, z: win.z, n: 10, gain: 0.07 });
+          if (reps >= 30) return finish();
+        }
+        next = side === "dn" ? "up" : "dn";
+        w.querySelectorAll(".pg-b").forEach((b) => b.classList.toggle("want", b.classList.contains(next)));
+      };
+      const finish = () => {
+        done = true;
+        cancelAnimationFrame(raf);
+        removeEventListener("keydown", key);
+        win._manual = false;
+        camp.pose([win]);
+        const time = t0 == null ? 99 : (performance.now() - t0) / 1e3;
+        w.remove();
+        if (camp.hud?.el) camp.hud.el.style.visibility = "";
+        if (reps >= 30) {
+          for (const m of camp.men) roster.mood(m.id, time < 11 ? 3 : 2);
+          roster.tension(time < 11 ? 3 : 1);
+        } else for (const m of camp.men) roster.mood(m.id, -1);
+        camp.hud.update();
+        resolve({ reps, time });
+      };
+      const loop = () => {
+        if (done) return;
+        const held = (performance.now() - last) / 1e3;
+        bar.style.transform = `scaleX(${Math.max(0, 1 - held / grace).toFixed(3)})`;
+        if (t0 != null && held > grace) return finish();
+        raf = requestAnimationFrame(loop);
+      };
+      raf = requestAnimationFrame(loop);
+      w.querySelector(".dn").addEventListener("pointerdown", (e) => (e.preventDefault(), press("dn")));
+      w.querySelector(".up").addEventListener("pointerdown", (e) => (e.preventDefault(), press("up")));
+      const key = (e) => {
+        if (e.code === "ArrowDown" || e.code === "KeyS") press("dn");
+        if (e.code === "ArrowUp" || e.code === "KeyW") press("up");
+      };
+      addEventListener("keydown", key);
+      w.querySelector(".dn").classList.add("want");
+      G.until(() => done).catch(() => !done && finish());
+    });
   }
   async function semana(ctx, n) {
     const { G, ui, audio, music, roster, flags, save: save2 } = ctx;
@@ -10900,7 +11012,7 @@ El sargento del pelot\xF3n, del Ej\xE9rcito de siempre, se queda al mando. Esta 
       hint: n === 1 ? "Toca una tarde y elige qu\xE9 hace tu pelot\xF3n. La raya \xE1mbar de cada medidor marca c\xF3mo acabar\xE1 la semana." : "El jueves por la noche, Sobel revisa los barracones: el Orden vuelve a contar.",
       choices: CHOICES,
       audio,
-      marks: n === 1 ? { orden: { at: 72, label: "sin taquillas sucias" } } : { orden: { at: 55, label: "revista" } }
+      marks: n === 1 ? { orden: { at: 72, label: "sin taquillas sucias" }, sobel: { at: 40, label: "otra orden" } } : { orden: { at: 55, label: "revista" }, sobel: { at: 48, label: "letrinas" } }
     });
     week.plan = plan;
     const H2 = new WeekHUD(ui, week, audio);
@@ -10919,7 +11031,7 @@ El sargento del pelot\xF3n, del Ej\xE9rcito de siempre, se queda al mando. Esta 
           const act = s.act, A = ACTS[act];
           const away = half === "pm" && week.away[d.key];
           H2.day(d.key, `${d.label} \xB7 ${half === "am" ? "ma\xF1ana" : "tarde"}${away ? " \xB7 Winters de servicio" : ""}`, A.long || A.label);
-          if (half === "am" && act !== "inspeccion") {
+          if (half === "am" && act !== "inspeccion" && (camp.speed < 8 || d === days[0])) {
             const full = d.key === "lun" && camp.speed === 1;
             bugle(audio, "diana", { ...xz(...FLAG), short: !full, level: full ? 1 : 0.6 });
             if (full) await camp.wait(bugleLen("diana") * 0.85);
@@ -10986,7 +11098,7 @@ El sargento del pelot\xF3n, del Ej\xE9rcito de siempre, se queda al mando. Esta 
       return m && !m.washedOut && runFit(m) < 56;
     }).length;
     const when = n === 1 ? "si tocara correr ahora" : "en la pr\xF3xima carrera";
-    const tired = risk >= 6 ? `Llegan reventados: ${risk} hombres podr\xEDan flaquear ${when}.` : risk > 0 ? `Cansados pero enteros. ${risk === 1 ? "Un hombre podr\xEDa" : `${risk} hombres podr\xEDan`} flaquear ${when}.` : `Descansados y en forma: nadie deber\xEDa flaquear ${when}.`;
+    const tired = risk >= 6 ? `Llegan reventados: unos ${risk} hombres podr\xEDan flaquear ${when}.` : risk > 0 ? `Cansados pero enteros. ${risk === 1 ? "Alg\xFAn hombre podr\xEDa" : `Unos ${risk} hombres podr\xEDan`} flaquear ${when}.` : `Descansados y en forma: poco riesgo ${when}.`;
     const aim1 = week.avg((m) => m.stats.aim);
     const aimRow = `
 Punter\xEDa: ${Math.round(aim0)} \u2192 ${Math.round(aim1)} (se notar\xE1 en Normand\xEDa)`;

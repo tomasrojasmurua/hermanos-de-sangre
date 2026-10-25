@@ -80,7 +80,7 @@ class Camp {
     }
     // drill in unison: one clock, a small personal lag so a rank isn't a machine
     this.dph += dt * sp * 5.2;
-    for (const s of this.G.soldiers) if (s.st.jack || s.st.push || s.st.dig) s.st.dph = this.dph * (s._rate || 1) - (s._off || 0);
+    for (const s of this.G.soldiers) if ((s.st.jack || s.st.push || s.st.dig) && !s._manual) s.st.dph = this.dph * (s._rate || 1) - (s._off || 0);
     G.cam.x = damp(G.cam.x, this.cam.x, 1.4, dt);
     G.cam.z = damp(G.cam.z, this.cam.z, 1.4, dt);
     this.hud && this.hud.placeTags(G);
@@ -252,7 +252,10 @@ async function calisthenics(camp, { leader = true, company = false } = {}) {
     if (c === last) return;
     last = c;
     const i = c % 6;
-    if (i < 4 && camp.speed === 1 && !ui.talking) count(audio, i, { ...xz(-75, 1), n: 8, gain: 0.11 });
+    if (i === 0) camp._cp = 130 + camp.r() * 20; // each set a little higher or lower
+    const mor = camp.week ? camp.week.stats().moral : 60;
+    const low = mor < 50; // a tired, sullen platoon counts thinner
+    if (i < 4 && camp.speed === 1 && !ui.talking) count(audio, i, { ...xz(-75, 1), n: low ? 6 : 8, gain: (low ? 0.08 : 0.11) * (i === 3 ? 1.2 : 1), pitch: camp._cp });
   });
   return () => {
     off();
@@ -325,6 +328,13 @@ async function afternoon(camp, act, away) {
   if (away) camp.show([camp.win], false);
   if (away) camp.chat(CHATTER.away);
   else camp.chat(CHATTER[act]);
+  // something moves in every afternoon: Winters walks among the men, or a man gets up and wanders off
+  if (act === "taquillas" || act === "armas" || act === "descanso") {
+    const who = away || act === "descanso" ? camp.pick(men) : camp.win;
+    const [u0, v0] = UV(who.x, who.z);
+    camp.pose([who]);
+    camp.walk(who, u0 + 4 + camp.r() * 3, v0 + (camp.r() - 0.5) * 2, { k: 0.3 });
+  }
   return stop;
 }
 
@@ -390,12 +400,12 @@ async function dirtyJob(camp, week, day, what, signed) {
     title: "Asunto: servicio",
     text: `1. El teniente R. D. Winters ${what} esta tarde (${day.label.toLowerCase()}).\n\n${signed}\n\nEl sargento del pelotón, del Ejército de siempre, se queda al mando. Esta tarde toca: ${planned ? planned.label.toLowerCase() : "—"}. ¿A quién le pides que tire de los hombres?`,
     choices: [
-      { label: "A Lipton", sub: "Sereno y ordenado. Los hombres trabajarán casi igual que contigo.", value: "lipton" },
+      { label: "A Lipton", sub: planned && (planned.fx.fit || planned.fx.aim) ? "Sereno y ordenado. Los hombres entrenarán casi igual que contigo." : "Sereno y ordenado. Esta tarde no cambia gran cosa: aprenderá a mandar.", value: "lipton" },
       { label: "A Guarnere", sub: "Los hombres se reirán más. Puede acabar en pelea, y Sobel se enteraría.", value: "guarnere" },
     ],
   });
   stamp(audio);
-  if (what.includes("comedor")) bugle(audio, "rancho", { ...xz(...FLAG), short: camp.speed > 1, level: 0.7 });
+  if (what.includes("comedor")) setTimeout(() => bugle(audio, "rancho", { ...xz(...FLAG), short: camp.speed > 1, level: 0.7 }), 500);
   week.away[day.key] = true;
   if (v === "lipton") {
     week.awayK[day.key] = 0.8;
@@ -605,6 +615,7 @@ async function hole(camp, id) {
 async function nightMarch(camp, week) {
   const { ui, audio, roster } = camp.ctx;
   audio.startBed("night");
+  camp.ctx.music.set("silence", 0);
   bugle(audio, "formar", { ...xz(...FLAG), short: camp.speed > 1, level: 0.6 });
   const v = await camp.card({
     kicker: "Miércoles · 21:00",
@@ -650,6 +661,7 @@ async function nightMarch(camp, week) {
   });
   audio.paper();
   audio.startBed("georgia");
+  camp.music();
   camp.hud.update();
 }
 
@@ -657,6 +669,7 @@ async function nightMarch(camp, week) {
 async function barracks(camp, week) {
   const { audio, roster } = camp.ctx;
   audio.startBed("night");
+  camp.ctx.music.set("silence", 0);
   audio.space("room");
   barracksNight(audio);
   const ok = week.state.order >= 55;
@@ -677,6 +690,7 @@ async function barracks(camp, week) {
   audio.paper();
   audio.space("open");
   audio.startBed("georgia");
+  camp.music();
   camp.hud.update();
 }
 
@@ -700,7 +714,7 @@ async function sobelTest(camp) {
     if (camp.speed === 1) {
       // he's straining: a breath on every push-up, harder each time
       for (let k = 0; k < 3; k++) setTimeout(() => audio.breath(0.4 + i * 0.15 + k * 0.04, 0, 1.2), k * (d / 3) * 1000);
-      murmur(audio, i === 3 ? "treinta" : "veinte", { ...xz(-80, 1), n: 12, gain: 0.05 }); // the men count under their breath
+      murmur(audio, ["veinte", "veinticuatro", "veintiocho", "treinta"][i], { ...xz(-80, 1), n: 12, gain: 0.05 }); // the men count under their breath
     }
     await camp.wait(d);
     camp.sobel._rate *= 0.82;
@@ -709,15 +723,101 @@ async function sobelTest(camp) {
   camp.sobel._rate = 1;
   camp.say("", "Silencio. Cabezas que se sacuden. Nadie sonríe.", 2.4);
   await camp.wait(2.4);
+  // officers included: now it's Winters, in front of the whole company
+  const res = await pushGame(camp);
+  const mine = res.reps >= 30 ? (res.time < 11 ? "Winters hace sus treinta de un tirón, sin cambiar de cara. Los hombres no dicen nada, pero lo han visto." : "Winters hace sus treinta, despacio pero sin pararse.") : `Winters se queda en ${res.reps}. Los brazos no le responden; vuelve a empezar y las termina, pero la compañía lo ha visto.`;
   await camp.card({
     kicker: "La prueba física",
     title: "Treinta",
-    text: "A los veinticuatro le temblaban los brazos y tenía la cara roja como un tomate, pero siguió. Era evidente que a Sobel no le faltaba determinación.\n\nWinters hace las suyas sin detenerse, como casi toda la compañía.",
+    text: `A los veinticuatro, a Sobel le temblaban los brazos y tenía la cara roja como un tomate, pero siguió. Era evidente que no le faltaba determinación.\n\n${mine}`,
     quote: { t: "Nos consolamos con la idea de que continuaba siendo un cabrón a pesar de todo.", src: "Ed Tipper" },
     next: "Seguir",
   });
   audio.paper();
   camp.music();
+}
+
+// Winters' thirty: tap ▼ and ▲ in turn with both thumbs; stall too long and his arms give out (invented)
+function pushGame(camp) {
+  const { ui, audio, roster, G } = camp.ctx;
+  if (camp.hud?.setSpeed) camp.hud.setSpeed(1);
+  return new Promise((resolve) => {
+    const win = camp.win;
+    camp.place(win, -75.3, -6, FACE_UP);
+    camp.place(camp.sobel, -78, -6.6, FACE_UP + 0.4);
+    camp.pose([win], { push: 1 });
+    win._manual = true;
+    win.st.dph = 0;
+    camp.look(-75.3, -3.5, 9);
+    const fat = roster.get("winters")?.fatigue || 0;
+    const grace = 1.5 - Math.min(0.7, fat / 120); // how long he can hold a position before his arms give out
+    const w = document.createElement("div");
+    w.className = "pushg";
+    w.innerHTML = `<div class="pg-top"><b>Winters · prueba física</b><span class="n">0 / 30</span><i><u></u></i><small>Toca ▼ y ▲ por turnos, con los dos pulgares. Si te paras, se le van los brazos.</small></div>
+      <button class="pg-b dn" aria-label="Abajo">▼<small>abajo</small></button><button class="pg-b up" aria-label="Arriba">▲<small>arriba</small></button>`;
+    ui.root.appendChild(w);
+    if (camp.hud?.el) camp.hud.el.style.visibility = "hidden"; // the test has the screen to itself
+    let reps = 0, next = "dn", last = performance.now(), t0 = null, done = false, raf = 0;
+    const n = w.querySelector(".n"), bar = w.querySelector("u");
+    const press = (side) => {
+      if (done) return;
+      const now = performance.now();
+      if (t0 == null) t0 = now;
+      if (side !== next) {
+        // same thumb twice: a wobble, no rep
+        audio.vibrate(30);
+        w.querySelector("." + side).classList.add("bad");
+        setTimeout(() => w.querySelector("." + side)?.classList.remove("bad"), 160);
+        return;
+      }
+      last = now;
+      win.st.dph = (reps * 2 + (side === "dn" ? 1 : 2)) * Math.PI; // down, then up again
+      if (side === "up") {
+        reps++;
+        n.textContent = `${reps} / 30`;
+        audio.breath(0.25 + reps * 0.015, 0, 0.9);
+        if (reps % 5 === 0) count(audio, (reps / 5) % 4, { x: win.x, z: win.z, n: 10, gain: 0.07 }); // the company counts with him
+        if (reps >= 30) return finish();
+      }
+      next = side === "dn" ? "up" : "dn";
+      w.querySelectorAll(".pg-b").forEach((b) => b.classList.toggle("want", b.classList.contains(next)));
+    };
+    const finish = () => {
+      done = true;
+      cancelAnimationFrame(raf);
+      removeEventListener("keydown", key);
+      win._manual = false;
+      camp.pose([win]);
+      const time = t0 == null ? 99 : (performance.now() - t0) / 1000;
+      w.remove();
+      if (camp.hud?.el) camp.hud.el.style.visibility = "";
+      // the men notice an officer who can do what he asks of them (invented)
+      if (reps >= 30) {
+        for (const m of camp.men) roster.mood(m.id, time < 11 ? 3 : 2);
+        roster.tension(time < 11 ? 3 : 1);
+      } else for (const m of camp.men) roster.mood(m.id, -1);
+      camp.hud.update();
+      resolve({ reps, time });
+    };
+    // his arms give out if he stalls
+    const loop = () => {
+      if (done) return;
+      const held = (performance.now() - last) / 1000;
+      bar.style.transform = `scaleX(${Math.max(0, 1 - held / grace).toFixed(3)})`;
+      if (t0 != null && held > grace) return finish();
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    w.querySelector(".dn").addEventListener("pointerdown", (e) => (e.preventDefault(), press("dn")));
+    w.querySelector(".up").addEventListener("pointerdown", (e) => (e.preventDefault(), press("up")));
+    const key = (e) => {
+      if (e.code === "ArrowDown" || e.code === "KeyS") press("dn");
+      if (e.code === "ArrowUp" || e.code === "KeyW") press("up");
+    };
+    addEventListener("keydown", key);
+    w.querySelector(".dn").classList.add("want");
+    G.until(() => done).catch(() => !done && finish()); // aborted (exit to title): clean up
+  });
 }
 
 // ---- the week -----------------------------------------------------------------------------------------
@@ -787,7 +887,7 @@ export async function semana(ctx, n) {
     hint: n === 1 ? "Toca una tarde y elige qué hace tu pelotón. La raya ámbar de cada medidor marca cómo acabará la semana." : "El jueves por la noche, Sobel revisa los barracones: el Orden vuelve a contar.",
     choices: CHOICES,
     audio,
-    marks: n === 1 ? { orden: { at: 72, label: "sin taquillas sucias" } } : { orden: { at: 55, label: "revista" } },
+    marks: n === 1 ? { orden: { at: 72, label: "sin taquillas sucias" }, sobel: { at: 40, label: "otra orden" } } : { orden: { at: 55, label: "revista" }, sobel: { at: 48, label: "letrinas" } },
   });
   week.plan = plan;
   const H = new WeekHUD(ui, week, audio);
@@ -808,7 +908,7 @@ export async function semana(ctx, n) {
         const away = half === "pm" && week.away[d.key];
         H.day(d.key, `${d.label} · ${half === "am" ? "mañana" : "tarde"}${away ? " · Winters de servicio" : ""}`, A.long || A.label);
         // reveille every morning (the whole call on Monday, its opening on the other days)
-        if (half === "am" && act !== "inspeccion") {
+        if (half === "am" && act !== "inspeccion" && (camp.speed < 8 || d === days[0])) {
           const full = d.key === "lun" && camp.speed === 1;
           bugle(audio, "diana", { ...xz(...FLAG), short: !full, level: full ? 1 : 0.6 });
           if (full) await camp.wait(bugleLen("diana") * 0.85); // Monday: the whole call before the company moves off
@@ -877,7 +977,7 @@ export async function semana(ctx, n) {
     return m && !m.washedOut && runFit(m) < 56;
   }).length;
   const when = n === 1 ? "si tocara correr ahora" : "en la próxima carrera";
-  const tired = risk >= 6 ? `Llegan reventados: ${risk} hombres podrían flaquear ${when}.` : risk > 0 ? `Cansados pero enteros. ${risk === 1 ? "Un hombre podría" : `${risk} hombres podrían`} flaquear ${when}.` : `Descansados y en forma: nadie debería flaquear ${when}.`;
+  const tired = risk >= 6 ? `Llegan reventados: unos ${risk} hombres podrían flaquear ${when}.` : risk > 0 ? `Cansados pero enteros. ${risk === 1 ? "Algún hombre podría" : `Unos ${risk} hombres podrían`} flaquear ${when}.` : `Descansados y en forma: poco riesgo ${when}.`;
   const aim1 = week.avg((m) => m.stats.aim);
   const aimRow = `\nPuntería: ${Math.round(aim0)} → ${Math.round(aim1)} (se notará en Normandía)`;
   bugle(audio, "retreta", { ...xz(...FLAG), level: 0.5 });

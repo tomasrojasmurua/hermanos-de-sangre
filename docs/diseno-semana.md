@@ -30,7 +30,7 @@ Cada noche se recupera algo de fatiga y el orden se deteriora un poco; el fin de
 - **Orejas sucias / taquillas sucias** en la inspección: tres o cuatro pases negados por «orejas sucias» siempre, y hasta media docena más por «taquillas sucias» según el **Orden**. *Inventado:* después, fuera de la vista de la compañía, Winters puede hablar con Sobel en privado, ayudar al castigado con la taquilla o dejarlo estar. Winters nunca le lleva la contraria a Sobel en público.
 - **Los pases**: no hay pueblo cerca; cerveza en la cantina.
 - **El hoyo de 6 × 6 × 6 pies**: el que vuelve tarde el domingo cava después de una jornada entera, y después lo rellena.
-- **La prueba física de Sobel** (segunda semana): treinta flexiones; nadie sonrió. Cita literal de Tipper.
+- **La prueba física de Sobel** (segunda semana): treinta flexiones; nadie sonrió. Cita literal de Tipper. *Inventado:* después, las treinta de Winters se juegan: ▼ y ▲ por turnos con los dos pulgares; si te paras demasiado (menos margen cuanto más cansado está), se le van los brazos.
 - **La primera marcha nocturna** (segunda semana): dieciocho kilómetros sin agua; al llegar, Sobel revisa las cantimploras. *Inventado:* la decisión de Winters (cumplir la orden o hacer la vista gorda).
 - *Inventado:* **revista de barracones** el jueves de la semana 2, para que el Orden vuelva a contar; el castigo (marchar con la mochila cargada) es del libro.
 - *Inventado:* las frases de cada hombre en «Con los hombres».

@@ -195,6 +195,8 @@ export function marchColumn(audio, secs = 3.6) {
 // the men murmuring Sobel's count: «veinte», «veinticuatro», «veintiocho», «treinta»
 const NUM = {
   veinte: [["e", 0.12, 1700], ["i", 0.08], ["e", 0.14, 2400]],
+  veinticuatro: [["e", 0.1, 1700], ["i", 0.06], ["i", 0.06, 4500], ["a", 0.08, 1300], ["o", 0.12, 2400]],
+  veintiocho: [["e", 0.1, 1700], ["i", 0.06], ["i", 0.06, 2400], ["o", 0.08], ["o", 0.12, 4500]],
   treinta: [["e", 0.1, 2400], ["i", 0.08], ["a", 0.18, 2400]],
 };
 export function murmur(audio, word, { x, z, n = 12, gain = 0.05 } = {}) {
@@ -204,9 +206,9 @@ export function murmur(audio, word, { x, z, n = 12, gain = 0.05 } = {}) {
 
 // the rank counting a drill aloud: «¡Uno! ¡Dos! ¡Tres! ¡Cuatro!» as a choir of formant shouts
 const COUNT = [[["u", 0.12], ["o", 0.16, 1800]], [["o", 0.2, 2400]], [["e", 0.2, 1300]], [["u", 0.1, 2400], ["a", 0.1, 1300], ["o", 0.14, 2400]]];
-export function count(audio, i, { x, z, n = 10, gain = 0.12 } = {}) {
+export function count(audio, i, { x, z, n = 10, gain = 0.12, pitch } = {}) {
   if (!audio.on) return;
-  audio.say(COUNT[i % 4], { x, z, voices: n, pitch: n > 1 ? 140 : 120, gain, spread: 0.015 });
+  audio.say(COUNT[i % 4], { x, z, voices: n, pitch: pitch ?? (n > 1 ? 140 : 120), gain, spread: 0.015 });
 }
 
 // two short tones when a meter moves: up and bright if it's good news, down and dull if not

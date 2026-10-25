@@ -16,7 +16,7 @@ const CSS = `
 .wk .meters{flex:1;display:flex;gap:8px;justify-content:flex-end;min-width:0}
 .mtr{flex:0 1 106px;min-width:60px}
 .mtr i em.mk{position:absolute;top:-2px;width:2px;height:12px;margin-left:-1px;background:rgba(255,255,255,.75)}
-.mtr i em.mk::after{content:attr(data-t);position:absolute;top:13px;left:-12px;font:600 10px 'Barlow Condensed';font-style:normal;color:#cfc6b2;white-space:nowrap}
+.mtr i em.mk::after{content:attr(data-t);position:absolute;top:13px;left:50%;transform:translateX(-50%);font:600 11px 'Barlow Condensed';font-style:normal;color:#cfc6b2;white-space:nowrap}
 .mtr span{display:flex;justify-content:space-between;gap:4px;font:600 12.5px 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#d8cfbb;white-space:nowrap}
 .mtr span em{font-style:normal;color:#f4ecd9}
 .mtr span em s{text-decoration:none;color:#e3c27a}
@@ -35,7 +35,7 @@ const CSS = `
 .cell .ic{font-size:19px;line-height:1;margin-bottom:2px}
 .cell.fixed{background:rgba(214,203,177,.8);color:#2a241b;box-shadow:none;font-size:13.5px}
 .cell.fixed small{color:#2a241b}
-.cell.fixed::after{content:'SOBEL';position:absolute;right:2px;top:3px;transform:rotate(12deg);font:700 10.5px 'Special Elite';letter-spacing:.08em;color:#a3302a;border:1.5px solid #a3302a;padding:0 3px;opacity:.8}
+.cell.fixed::after{content:'SOBEL';position:absolute;right:4px;top:5px;transform:rotate(8deg);font:700 10.5px 'Special Elite';letter-spacing:.08em;color:#a3302a;border:1.5px solid #a3302a;padding:0 3px;opacity:.8}
 .cell.free{cursor:pointer;border:2px dashed rgba(35,29,22,.45);background:rgba(241,234,219,.92)}
 .cell.free.empty{color:#6d6252}
 .cell.free.sel{outline:3px solid #e3c27a;outline-offset:1px;border-style:solid}
@@ -70,9 +70,23 @@ const CSS = `
 .wtag{position:absolute;transform:translate(-50%,-100%);font:600 13px 'Barlow Condensed';letter-spacing:.04em;padding:2px 8px;border-radius:10px;white-space:nowrap;pointer-events:none;
   background:rgba(14,12,9,.7);color:#f4ecd9}
 .wtag.no{background:#a3302a;color:#fff;border:1.5px solid #ffd7c9}
+/* Winters' push-up test */
+.pushg{position:absolute;inset:0;z-index:24;pointer-events:none}
+.pushg .pg-top{position:absolute;left:50%;top:calc(10px + var(--safe-t));transform:translateX(-50%);text-align:center;background:rgba(14,12,9,.7);padding:8px 16px;border-radius:3px;color:#f4ecd9;min-width:260px}
+.pushg .pg-top b{display:block;font:400 18px 'IM Fell English SC',serif}
+.pushg .pg-top .n{display:block;font:600 30px/1.1 'Barlow Condensed';letter-spacing:.04em}
+.pushg .pg-top i{display:block;height:6px;background:rgba(255,255,255,.15);border-radius:3px;margin:4px 0}
+.pushg .pg-top i u{display:block;height:100%;background:#e3c27a;border-radius:3px;transform-origin:left}
+.pushg .pg-top small{font:13px 'Barlow Condensed';color:#d8cfbb}
+.pushg .pg-b{position:absolute;bottom:calc(18px + var(--safe-b));width:110px;height:110px;border-radius:50%;pointer-events:auto;cursor:pointer;touch-action:none;
+  border:3px solid rgba(241,234,219,.6);background:rgba(14,12,9,.55);color:#f4ecd9;font:600 34px/1 'Barlow Condensed'}
+.pushg .pg-b small{display:block;font:13px 'Barlow Condensed';letter-spacing:.08em;text-transform:uppercase}
+.pushg .pg-b.dn{left:calc(22px + env(safe-area-inset-left,0px))}.pushg .pg-b.up{right:calc(22px + env(safe-area-inset-right,0px))}
+.pushg .pg-b.want{border-color:#e3c27a;box-shadow:0 0 18px rgba(227,194,122,.5)}
+.pushg .pg-b.bad{background:rgba(163,48,42,.6)}
 `;
 let styled = false;
-function style() {
+export function style() {
   if (styled) return;
   styled = true;
   const s = document.createElement("style");
@@ -289,7 +303,8 @@ export class WeekHUD {
     for (const t of this.tags.values()) {
       const [x, y] = G.project(t.s.x, t.s.y + 2.15, t.s.z);
       t.el.style.left = x.toFixed(0) + "px";
-      t.el.style.top = Math.max(y, 96).toFixed(0) + "px"; // never over the ribbon and the meters
+      t.el.style.top = y.toFixed(0) + "px";
+      t.el.style.opacity = y < 96 ? 0 : 1; // under the ribbon and the meters: hidden rather than misplaced
     }
   }
   remove() {

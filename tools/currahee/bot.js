@@ -83,6 +83,13 @@ window.__autoweek = function (order = [0, 3, 2, 1, 4], ff = false) {
       };
       setTimeout(step, 1500);
     }
+    // Winters' push-up test: alternate the two thumbs
+    const pg = document.querySelector(".pushg");
+    if (pg && !window.__pgT) window.__pgT = setInterval(() => {
+      const b = document.querySelector(".pushg .pg-b.want");
+      if (!b) { clearInterval(window.__pgT); window.__pgT = 0; return; }
+      b.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    }, 140);
     const f = document.querySelector(".wkh .ff");
     if (ff && f && !f.classList.contains("on")) f.click(); // ×3
   }, 400);
