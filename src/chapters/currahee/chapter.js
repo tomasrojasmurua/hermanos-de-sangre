@@ -191,9 +191,9 @@ export const CURRAHEE = {
           next: "Seguir",
         });
         await ui.card({
-          kicker: "Fin de la ronda 1",
+          kicker: "Fin de la ronda 2",
           title: "Continuará en Toccoa",
-          text: "Lo que viene en este capítulo: el horario de la semana y los permisos de Sobel, la pista de obstáculos y el campo de tiro, las maniobras nocturnas, la casa de prácticas, los ejercicios de defensa, la marcha a Atlanta y el salto de Fort Benning.",
+          text: "Lo que viene en este capítulo: la pista de obstáculos y el campo de tiro, las maniobras nocturnas, la casa de prácticas, los ejercicios de defensa, la marcha a Atlanta y el salto de Fort Benning.",
           next: "Volver al título",
         });
         off();
