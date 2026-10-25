@@ -213,6 +213,7 @@ export class Game {
   updatePlayer(dt) {
     const p = this.player;
     if (!p || !p.alive) return;
+    if (p.driven) return; // moved by a mode of its own (the Currahee column's tail)
     const inp = this.input;
     const ax = inp.axis();
     // screen axis -> world (camera yaw)
@@ -861,7 +862,7 @@ export class Game {
   // ---- bodies -----------------------------------------------------------------------------------
   updateBody(s, dt) {
     s.flashT = Math.max(0, s.flashT - dt);
-    s.y = damp(s.y, this.world.height(s.x, s.z), 20, dt);
+    s.y = damp(s.y, this.world.height(s.x, s.z) + (s.lift || 0), 20, dt); // lift: standing on a platform
     if (!s.alive) s.st.dead = Math.min(1, s.st.dead + dt * 2.6);
     s.st.throw = Math.max(0, s.st.throw - dt * 2.2);
     s.st.stab = Math.max(0, s.st.stab - dt * 3);

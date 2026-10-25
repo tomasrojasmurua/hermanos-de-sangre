@@ -4934,6 +4934,15 @@ void main(){
       g.setTargetAtTime(depth, t, tc);
       g.setTargetAtTime(1, t + sec, 0.3);
     }
+    // end any duck now (a bugle call cut short by the next scene)
+    unduck() {
+      if (!this.on) return;
+      const t = this.ctx.currentTime;
+      this.duckUntil = 0;
+      if (this.paused) return;
+      this.duckGain.gain.cancelScheduledValues(t);
+      this.duckGain.gain.setTargetAtTime(1, t, 0.4);
+    }
     // paused: music sits far back, the world holds its breath
     pauseMix(on) {
       if (!this.on) return;
@@ -5002,6 +5011,7 @@ void main(){
       return { d: Math.hypot(dx, dz), pan: (dx - dz) * 0.03 };
     }
     _noise(dest, t0, dur, { type = "lowpass", f0 = 1e3, f1 = null, q: q2 = 0.8, gain = 1, attack = 2e-3, rate = 1 } = {}) {
+      if (!(gain > 1e-4)) return;
       const c = this.ctx;
       const s = c.createBufferSource();
       s.buffer = this.noise;
@@ -5020,6 +5030,7 @@ void main(){
       s.stop(t0 + dur + 0.05);
     }
     _tone(dest, t0, dur, freq, { type = "sine", gain = 0.3, f1 = null, attack = 5e-3 } = {}) {
+      if (!(gain > 1e-4)) return;
       const c = this.ctx;
       const o = c.createOscillator();
       o.type = type;
@@ -5430,6 +5441,24 @@ void main(){
         };
         setTimeout(clink, 500);
       }
+      if (kind === "night") {
+        const voices = Array.from({ length: 5 }, () => {
+          const v = { f: 4200 + Math.random() * 900, lv: 0.01 + Math.random() * 0.01, dest: g };
+          if (c.createStereoPanner) {
+            v.dest = c.createStereoPanner();
+            v.dest.pan.value = Math.random() * 1.6 - 0.8;
+            v.dest.connect(g);
+          }
+          return v;
+        });
+        const chirp = (v) => {
+          if (!this.bed || this.bed.g !== g) return;
+          const t = this.ctx.currentTime;
+          if (!this.paused) for (let k = 0; k < 3; k++) this._tone(v.dest, t + k * 0.045, 0.028, v.f, { gain: v.lv });
+          setTimeout(() => chirp(v), 400 + Math.random() * 1200);
+        };
+        voices.forEach((v, i) => setTimeout(() => chirp(v), 200 + i * 230));
+      }
       const s = c.createBufferSource();
       s.buffer = this.noise;
       s.loop = true;
@@ -5438,7 +5467,7 @@ void main(){
       lp.type = "lowpass";
       lp.frequency.value = 300;
       const wg = c.createGain();
-      wg.gain.value = 0.12;
+      wg.gain.value = kind === "night" ? 0.07 : 0.12;
       s.connect(lp).connect(wg).connect(g);
       s.start();
       nodes.push(s);
@@ -6153,6 +6182,55 @@ void main(){
       b[Bi.head].rotation.x = 0.35;
       b[Bi.gun].scale.setScalar(1e-3);
     } else b[Bi.gun].scale.setScalar(1);
+    const dp = st.dph ?? p;
+    if (st.jack > 0) {
+      const k2 = st.jack, o = (1 - Math.cos(dp)) / 2;
+      hips.position.y += Math.abs(Math.sin(dp)) * 0.07 * k2;
+      b[Bi.shL].rotation.set(0, 0, lerp(b[Bi.shL].rotation.z, 0.2 + o * 2.7, k2));
+      b[Bi.shR].rotation.set(0, 0, lerp(b[Bi.shR].rotation.z, -0.2 - o * 2.7, k2));
+      b[Bi.elL].rotation.x = lerp(b[Bi.elL].rotation.x, -0.1, k2);
+      b[Bi.elR].rotation.x = lerp(b[Bi.elR].rotation.x, -0.1, k2);
+      b[Bi.thL].rotation.set(0, 0, o * 0.34 * k2);
+      b[Bi.thR].rotation.set(0, 0, -o * 0.34 * k2);
+      b[Bi.knL].rotation.x = b[Bi.knR].rotation.x = 0;
+    }
+    if (st.push > 0) {
+      const k2 = st.push, down = (1 - Math.cos(dp)) / 2;
+      hips.rotation.x = 1.42 * k2;
+      hips.position.y = lerp(hips.position.y, 0.42 - down * 0.17, k2);
+      for (const i of [Bi.thL, Bi.thR, Bi.knL, Bi.knR]) b[i].rotation.x *= 1 - k2;
+      b[Bi.spine].rotation.x = 0;
+      b[Bi.shL].rotation.set(-1.45 * k2 - down * 0.35 * k2, 0, 0.18 * k2);
+      b[Bi.shR].rotation.set(-1.45 * k2 - down * 0.35 * k2, 0, -0.18 * k2);
+      b[Bi.elL].rotation.x = b[Bi.elR].rotation.x = down * 0.9 * k2;
+      b[Bi.head].rotation.x = -1.2 * k2;
+    }
+    if (st.salute > 0) {
+      const k2 = st.salute;
+      b[Bi.shR].rotation.set(lerp(b[Bi.shR].rotation.x, -1.75, k2), 0, lerp(b[Bi.shR].rotation.z, -0.95, k2));
+      b[Bi.elR].rotation.x = lerp(b[Bi.elR].rotation.x, -2.15, k2);
+    }
+    if (st.dig > 0) {
+      const k2 = st.dig, s2 = Math.sin(dp);
+      hips.position.y -= 0.14 * k2;
+      b[Bi.spine].rotation.x += (0.85 + s2 * 0.28) * k2;
+      b[Bi.knR].rotation.x = 0.45 * k2;
+      b[Bi.shL].rotation.set(lerp(b[Bi.shL].rotation.x, -1 - s2 * 0.6, k2), 0, -0.25 * k2);
+      b[Bi.shR].rotation.set(lerp(b[Bi.shR].rotation.x, -1.1 - s2 * 0.6, k2), 0, 0.25 * k2);
+      b[Bi.elL].rotation.x = b[Bi.elR].rotation.x = -0.4 * k2;
+      b[Bi.thL].rotation.x = -0.35 * k2;
+      b[Bi.knL].rotation.x = 0.5 * k2;
+    }
+    if (st.sit > 0) {
+      const k2 = st.sit;
+      hips.position.y = lerp(hips.position.y, 0.16, k2);
+      b[Bi.thL].rotation.x = b[Bi.thR].rotation.x = -1.35 * k2;
+      b[Bi.knL].rotation.x = b[Bi.knR].rotation.x = 1.9 * k2;
+      b[Bi.spine].rotation.x = 0.25 * k2;
+      b[Bi.shL].rotation.set(-0.9 * k2, 0, -0.1);
+      b[Bi.shR].rotation.set(-0.9 * k2, 0, 0.1);
+      b[Bi.elL].rotation.x = b[Bi.elR].rotation.x = -0.9 * k2;
+    }
     if (st.dead > 0) {
       const d = st.dead;
       hips.position.y = lerp(hips.position.y, 0.16, d);
@@ -6390,6 +6468,7 @@ void main(){
     updatePlayer(dt) {
       const p = this.player;
       if (!p || !p.alive) return;
+      if (p.driven) return;
       const inp = this.input;
       const ax = inp.axis();
       const cy = Math.cos(this.cam.yaw), sy = Math.sin(this.cam.yaw);
@@ -7020,7 +7099,7 @@ void main(){
     // ---- bodies -----------------------------------------------------------------------------------
     updateBody(s, dt) {
       s.flashT = Math.max(0, s.flashT - dt);
-      s.y = damp(s.y, this.world.height(s.x, s.z), 20, dt);
+      s.y = damp(s.y, this.world.height(s.x, s.z) + (s.lift || 0), 20, dt);
       if (!s.alive) s.st.dead = Math.min(1, s.st.dead + dt * 2.6);
       s.st.throw = Math.max(0, s.st.throw - dt * 2.2);
       s.st.stab = Math.max(0, s.st.stab - dt * 3);

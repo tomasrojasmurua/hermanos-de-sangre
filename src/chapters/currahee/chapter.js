@@ -1,8 +1,10 @@
 // Capítulo I · Currahee (Toccoa, julio–diciembre de 1942). Ronda 1: la llegada y las dos subidas.
+// Ronda 2: el modo base, dos semanas de horario del pelotón entre carrera y carrera.
 // Fuente: Ambrose, cap. «Queremos esas alas». Lo inventado está en docs/inventado.md.
 import { T, damp } from "../../engine/util.js";
 import { buildToccoa, W, ANG_RIGHT } from "./places.js";
 import { currahee } from "./run.js";
+import { semana } from "./semana.js";
 import { cast } from "../../core/roster.js";
 
 const FORMATION = ["lipton", "guarnere", "malarkey", "toye", "muck", "tipper", "christenson", "gordon", "wynn", "martin", "talbert"];
@@ -102,30 +104,24 @@ export const CURRAHEE = {
       },
     },
     {
-      id: "semanas",
-      mode: "narrative",
+      id: "semana-1",
+      mode: "base",
       place: "toccoa",
       bed: "georgia",
-      music: { theme: "camp", level: 0.3 },
+      music: { theme: "camp", level: 0.32 },
       async run(ctx) {
-        const { G, ui, roster, flags, audio } = ctx;
-        muster(G, roster, "hbt");
-        const off = drift(ctx, W(-66, 4), W(-58, 2), 14);
-        G.camSpan = 17;
-        const r1 = flags.run1 || { lost: 0, helped: 0 };
-        const left = roster.activeRecruits().length;
-        await ui.card({
-          kicker: "Toccoa · La primera semana",
-          title: "Tres millas arriba, tres abajo",
-          text: [
-            `Aquel primer día la compañía perdió a varios hombres. ${r1.lost ? `De los reclutas que corrían contigo, ${r1.lost} ${r1.lost === 1 ? "subió" : "subieron"} a la ambulancia.` : "De los que corrían contigo, ninguno subió a la ambulancia."} ${r1.helped ? `Volviste por ${r1.helped} ${r1.helped === 1 ? "hombre" : "hombres"}; ellos no lo olvidarán.` : ""}`,
-            "Una semana más tarde ya corrían todo el camino de ida y vuelta. Y cada día la pista de obstáculos, las flexiones, la instrucción en orden cerrado hasta que dolían los pies.",
-            `Quedan ${left} de los reclutas sin nombre de tu pelotón. A los hombres les dijeron que Currahee era una palabra india que significaba «estar solo». Se convirtió en el grito de guerra del 506.º.`,
-          ],
-          next: "Seguir",
-        });
-        audio.paper();
-        off();
+        await semana(ctx, 1);
+        return {};
+      },
+    },
+    {
+      id: "semana-2",
+      mode: "base",
+      place: "toccoa",
+      bed: "georgia",
+      music: { theme: "camp", level: 0.32 },
+      async run(ctx) {
+        await semana(ctx, 2);
         return {};
       },
     },
@@ -164,7 +160,7 @@ export const CURRAHEE = {
       bed: "georgia",
       music: { theme: "drive", level: 0.55 },
       async run(ctx) {
-        const res = await currahee(ctx, { variant: "spaghetti", pace: 3.3, drain: 1.05, ate: ctx.flags.ate });
+        const res = await currahee(ctx, { variant: "spaghetti", pace: 3.25, drain: 0.85, ate: ctx.flags.ate });
         if (res.retry) return res;
         ctx.flags.run2 = { lost: res.lost.length, helped: res.helped.length };
         return res;
@@ -195,9 +191,9 @@ export const CURRAHEE = {
           next: "Seguir",
         });
         await ui.card({
-          kicker: "Fin de la ronda 1",
+          kicker: "Fin de la ronda 2",
           title: "Continuará en Toccoa",
-          text: "Lo que viene en este capítulo: el horario de la semana y los permisos de Sobel, la pista de obstáculos y el campo de tiro, las maniobras nocturnas, la casa de prácticas, los ejercicios de defensa, la marcha a Atlanta y el salto de Fort Benning.",
+          text: "Lo que viene en este capítulo: la pista de obstáculos y el campo de tiro, las maniobras nocturnas, la casa de prácticas, los ejercicios de defensa, la marcha a Atlanta y el salto de Fort Benning.",
           next: "Volver al título",
         });
         off();

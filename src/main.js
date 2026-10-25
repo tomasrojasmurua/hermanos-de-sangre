@@ -131,6 +131,11 @@ shell.ui.onPause = async () => {
       continue;
     }
     if (v === "title") {
+      // leaving mid-moment (a week being lived): put back the state the moment started from
+      if (save.frozen) {
+        Object.assign(save, JSON.parse(save.frozen));
+        delete save.frozen;
+      }
       G.abortScripts();
       shell.hooks.clear();
       shell.music.onBeat = null;
@@ -139,6 +144,7 @@ shell.ui.onPause = async () => {
       shell.ui.subT = 0;
       shell.ui.sub.classList.add("hidden");
       document.getElementById("runhud")?.remove();
+      document.querySelectorAll(".wkh, .wk").forEach((e) => e.remove());
       delete document.body.dataset.run;
       shell.audio.pauseMix(false);
       title();
@@ -155,6 +161,7 @@ if (qs.get("m")) {
   // deep link for tests: ?m=subida-1
   save = freshSave();
   if (qs.get("ate")) save.flags.ate = true;
+  if (qs.get("late")) save.flags.late = qs.get("late"); // e.g. ?m=semana-2&late=r0
   shell.audio.init();
   shell.music.start();
   playChapter("currahee", qs.get("m"));

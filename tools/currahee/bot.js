@@ -5,25 +5,28 @@ window.__bot = function (mode = "good") {
   S.hook(() => {
     const R = window.__run;
     if (!R) return;
-    const { col, win, music } = R;
+    const { col, win, music, route } = R;
     const inp = S.input;
+    // tail mode: go to meet the nearest man who is fading (ahead of you), otherwise hold the tail on the road
+    const fl = col.flagged().filter((m) => !m.passed).sort((a, b) => Math.hypot(a.sol.x - win.x, a.sol.z - win.z) - Math.hypot(b.sol.x - win.x, b.sol.z - win.z))[0];
     let tx, tz;
-    const fl = col.flagged()[0];
     if (mode === "good" && fl) { tx = fl.sol.x; tz = fl.sol.z; }
-    else { const sl = col.slot(mode === "lazy" ? 40 : 2, 1.6); tx = sl.x; tz = sl.z; }
+    else {
+      const s = mode === "lazy" ? col.tailS() - 10 * col.dir : col.tailS();
+      const a = route.at(s);
+      tx = a.x; tz = a.z;
+    }
     let dx = tx - win.x, dz = tz - win.z;
     const d = Math.hypot(dx, dz);
-    if (mode === "lazy") { inp.mx = 0; inp.my = 0; }
-    else if (d < 0.4) { inp.mx = inp.my = 0; }
+    if (mode === "lazy" || d < 0.5) { inp.mx = 0; inp.my = 0; }
     else {
       dx /= d; dz /= d;
-      const k = Math.min(1, d / 1.5);
+      const k = Math.min(1, d / 3);
       inp.mx = (dx * 0.707 - dz * 0.707) * k;
       inp.my = (dx * 0.707 + dz * 0.707) * k;
     }
     const b = music.breath();
     if (mode === "good" && b.err < 0.08 && !window.__bb) { inp.press("breath"); window.__bb = 1; setTimeout(() => { inp.release("breath"); window.__bb = 0; }, 260); }
-    if (mode === "good" && fl && Math.hypot(fl.sol.x - win.x, fl.sol.z - win.z) < 2.4) inp.press("act"), inp.release("act");
   });
 };
 // clicks through paper cards (first choice / next) so a whole chapter can run unattended
@@ -67,3 +70,30 @@ window.__meterStart = function () {
   }, 100);
 };
 window.__meterReport = () => JSON.stringify(Object.fromEntries(Object.entries(window.__meterAcc || {}).map(([k, a]) => [k, { peak: +a.peak.toFixed(1), rms: a.n ? +(a.rmsSum / a.n).toFixed(1) : null, clip: a.clip }])));
+// fills the week planner: a fixed plan (by activity index, cycling) then «Empezar»; ff=true fast-forwards
+window.__autoweek = function (order = [0, 3, 2, 1, 4], ff = false) {
+  setInterval(() => {
+    const w = document.querySelector(".wk");
+    if (w && !w.dataset.bot) {
+      w.dataset.bot = 1;
+      const acts = w.querySelectorAll(".act");
+      let i = 0;
+      const step = () => {
+        const go = w.querySelector(".go");
+        if (!go.classList.contains("off")) return setTimeout(() => go.click(), 1500);
+        acts[order[i++ % order.length]].click();
+        setTimeout(step, 500);
+      };
+      setTimeout(step, 1500);
+    }
+    // Winters' push-up test: alternate the two thumbs
+    const pg = document.querySelector(".pushg");
+    if (pg && !window.__pgT) window.__pgT = setInterval(() => {
+      const b = document.querySelector(".pushg .pg-b.want");
+      if (!b) { clearInterval(window.__pgT); window.__pgT = 0; return; }
+      b.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    }, 140);
+    const f = document.querySelector(".wkh .ff");
+    if (ff && f && !f.classList.contains("on")) f.click(); // ×3
+  }, 400);
+};

@@ -83,6 +83,12 @@ export function loadSave() {
 export function writeSave(s) {
   s.v = SAVE_VERSION;
   s.updated = Date.now();
+  // mid-moment (a week being lived) the roster and flags are frozen at the moment's start, so saving a
+  // setting from the pause menu never stores half a week: resuming replays the moment cleanly
+  if (s.frozen) {
+    const { frozen, ...rest } = s;
+    return safeSet(SAVE_KEY, JSON.stringify({ ...rest, ...JSON.parse(frozen) }));
+  }
   return safeSet(SAVE_KEY, JSON.stringify(s));
 }
 

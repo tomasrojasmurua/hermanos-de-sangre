@@ -1,5 +1,36 @@
 # Hermanos de Sangre · estado
 
+## Las carreras a Currahee, rehechas tras la prueba en teléfono
+El jugador sentía que no pasaba nada si no ayudaba, que costaba ir al paso y que cortar camino no tenía consecuencias. Ahora (`core/column.js` modo `tail`, `chapters/currahee/run.js`):
+- **Winters cierra la columna.** Sin tocar el stick va al paso; adelante sube por la columna, atrás se deja caer, de lado cruza el camino.
+- **Los rezagados** se quedan atrás tropezando hacia el borde del camino. Si Winters los toca, se rehacen (más fuerza y 25 s sin volver a flaquear) y vuelven a su sitio. Si se le pasan tres (cuatro en la de los espaguetis), Sobel manda a la compañía abajo, a empezar otra vez. Como mucho flaquean dos a la vez (tres en la segunda carrera).
+- **Correr a fondo:** con el stick al tope hacia adelante Winters corre más, a cambio de aliento (el botón de esprint se quitó: soltar el stick ya deja a Winters al paso).
+- **El camino:** fuera del sendero aparece «¡Al camino!»; a los 1,6 s Sobel pone una falta y quita aliento. Tres faltas y se vuelve a empezar.
+- **La ambulancia** tiene más hueco detrás de Winters; si lo alcanza, también se vuelve a empezar.
+- Bot de prueba: el que juega bien termina las dos carreras (5 a 8 rezagados atajados); el que no se mueve pierde por tres que se le pasan.
+
+## Juego unificado · Capítulo I, Currahee (ronda 2: el modo base)
+**La semana en Toccoa** (`core/week.js`, `core/weekui.js`, `chapters/currahee/semana*.js`; diseño en `docs/diseno-semana.md`). Entre la primera carrera y los espaguetis hay dos semanas de campamento:
+- **Planificar:** Sobel fija las mañanas (Currahee, calistenia, pista, inspección) y tú eliges las tardes del pelotón: calistenia, armas y táctica, preparar la inspección, descanso o pasar la tarde con los hombres. Cinco medidores (Forma, Fatiga, Moral, Orden, Sobel) con una raya que marca cómo acabará la semana si nada se tuerce.
+- **Vivir la semana:** la cámara recorre el campamento y el pelotón hace lo que elegiste (calistenia al unísono, sentados con las armas, sacando brillo frente al barracón, a la sombra, en corro con Winters). ⏩ acelera ×3.
+- **Sucesos del libro:** Sink mira la calistenia de Winters y lo asciende sin consultar a Sobel; desde entonces, órdenes escritas a máquina mandan a Winters a las letrinas o al comedor y esa tarde el pelotón rinde menos; veinte flexiones; la inspección del sábado con «orejas sucias» y «taquillas sucias» (puedes interceder; Sobel no cede); los pases; el hoyo de 6 × 6 × 6 pies del que volvió tarde; la primera marcha nocturna sin agua y la revisión de cantimploras (decides si haces la vista gorda); las treinta flexiones de Sobel.
+- **Lo que pasa a la carrera:** la forma de cada hombre menos su fatiga, más su moral, decide quién flaquea en la carrera de los espaguetis. En la simulación, un plan equilibrado deja al pelotón en 75,7 de forma efectiva; solo calistenia, en 61 (llegan reventados); solo descanso, en 72.
+- **Sonido nuevo** (`engine/camp-audio.js`): toques de corneta de armónicos naturales (diana, retreta), sello de goma de Sobel, máquina de escribir de las órdenes, pala, conteo coral de la calistenia; la inspección casi en silencio.
+- **Poses nuevas** de los soldados: saltos de tijera, flexiones, saludo, cavar, sentado.
+- **Decisiones durante la semana:** a quién le pides que tire de los hombres cuando Sobel manda a Winters a las letrinas (Lipton o Guarnere); qué hace Winters después de la inspección (hablar con Sobel en privado, ayudar al castigado, dejarlo estar); la marcha nocturna (cumplir la orden o hacer la vista gorda); las treinta flexiones de Winters, que se juegan con los dos pulgares; y la revista de barracones del jueves de la semana 2.
+- **Pausa y guardado:** la pausa funciona en todo el modo; si guardas o sales a mitad de semana, se conserva la semana tal como empezó (nunca a medias).
+- Capturas apaisadas: `docs/capturas/currahee-ronda-2/`.
+
+**Crítica (subagentes, Playwright apaisado 844×390 táctil):**
+| Crítico | Ronda 1 | Ronda 2 | Ronda 3 | Ronda 4 |
+|---|---|---|---|---|
+| Diseño y jugabilidad móvil | 5 | 7 | 7,5 | **8** |
+| Música y sonido | 5 | 7 | **8** | |
+| Fidelidad histórica | 7,5 | **9** | | |
+Sin errores de consola en el capítulo completo (llegada → dos semanas → espaguetis → segunda carrera → cierre).
+
+**Pendiente del modo base:** calibrar con el bot el umbral de «hombres en riesgo»; bus de interfaz seco para el papel y los sellos; llamada y respuesta de Winters en el conteo; un evento de aborto común para quitar escuchas de teclado; comparar la marca de Sobel de la semana 2 con el valor del miércoles. Probar en un teléfono real.
+
 ## Juego unificado · Capítulo I, Currahee (ronda 1)
 `juego.html` es el comienzo del juego completo: un solo programa que recorre el libro y cambia de modo dentro de cada capítulo, con la misma cámara y sin pantallas de carga.
 
@@ -33,7 +64,7 @@ Sin errores de consola en el capítulo completo.
 
 **Cambio de regla en el Día D:** Winters sobrevive a la guerra en el libro, así que si cae en Brécourt se vuelve al punto de control. Se quitó la rama «Lipton toma el mando».
 
-**Pendiente en el Capítulo I (rondas siguientes):** base (horario semanal, permisos y tensión con Sobel), pista de obstáculos y campo de tiro, maniobras nocturnas (sigilo), casa de prácticas (asalto), ejercicios de defensa (línea), marcha a Atlanta y salto en Fort Benning.
+**Pendiente en el Capítulo I (rondas siguientes):** pista de obstáculos y campo de tiro, maniobras nocturnas (sigilo), casa de prácticas (asalto), ejercicios de defensa (línea), marcha a Atlanta y salto en Fort Benning.
 
 ---
 

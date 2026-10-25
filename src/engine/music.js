@@ -9,7 +9,8 @@ const NOTE = (n) => 440 * Math.pow(2, (n - 69) / 12);
 // progressions as MIDI roots per bar; chords are triads built on them (minor unless noted)
 const THEMES = {
   calm: { bpm: 66, prog: [[50, "m"], [46, "M"], [53, "M"], [48, "M"]], layers: { pad: [0, 0.55], lead: [0.2, 0.5] } },
-  camp: { bpm: 84, prog: [[50, "M"], [55, "M"], [50, "M"], [57, "M"]], layers: { pad: [0, 0.4], bass: [0.1, 0.4], lead: [0, 0.45], snare: [0.6, 0.2] } },
+  // in G, the key of the camp's real bugle: its calls use only the G bugle's harmonics (D G B D)
+  camp: { bpm: 84, prog: [[55, "M"], [48, "M"], [55, "M"], [50, "M"]], layers: { pad: [0, 0.4], bass: [0.1, 0.4], lead: [0.5, 0.35], snare: [0.6, 0.2] }, calls: [[50, 55, 59, 55], [55, 59, 62, 59], [50, 50, 55, 59], [62, 59, 55, 50]] },
   drive: { bpm: 96, prog: [[50, "m"], [50, "m"], [46, "M"], [48, "M"], [50, "m"], [53, "M"], [45, "M"], [45, "M"]], layers: { pad: [0, 0.35], bass: [0.15, 0.55], snare: [0, 0.6], timp: [0.45, 0.6], trem: [0.6, 0.35], lead: [0.8, 0.35] } },
   tension: { bpm: 72, prog: [[45, "m"], [45, "m"], [46, "M"], [44, "dim"]], layers: { pad: [0, 0.35], trem: [0.1, 0.45], timp: [0.4, 0.5], bass: [0.6, 0.4] } },
   combat: { bpm: 120, prog: [[45, "m"], [41, "M"], [43, "M"], [40, "M"]], layers: { pad: [0, 0.3], bass: [0, 0.6], snare: [0, 0.6], timp: [0, 0.7], trem: [0.3, 0.45] } },
@@ -124,7 +125,7 @@ export class Music {
     if (L.lead && inBar === 0 && bar % 2 === 0 && bugleOk) {
       // bugle calls: only natural harmonics (a field bugle has no valves); in drive, open fifths over D,
       // a different call each time so it never loops the same four notes
-      const CALLS = cur.name === "drive" ? [[57, 62, 69, 62], [62, 69, 74, 69], [57, 57, 62, 69], [69, 62, 57, 62]] : [[55, 60, 64, 60], [60, 64, 67, 64], [55, 55, 60, 64], [67, 64, 60, 55]];
+      const CALLS = THEMES[cur.name]?.calls || (cur.name === "drive" ? [[57, 62, 69, 62], [62, 69, 74, 69], [57, 57, 62, 69], [69, 62, 57, 62]] : [[55, 60, 64, 60], [60, 64, 67, 64], [55, 55, 60, 64], [67, 64, 60, 55]]);
       const ph = CALLS[(bar / 2) % 4 | 0];
       ph.forEach((n, i) => this._horn(L.lead, t + i * spb * 0.5, spb * (i === 3 ? 1.4 : 0.45), NOTE(n + 12)));
     }
@@ -278,7 +279,7 @@ export class Music {
     const c = this.a.ctx;
     const t = c.currentTime + 0.05;
     const dest = this.a.musicBus;
-    const seq = { summit: [62, 66, 69, 74], arrival: [62, 69, 67, 66], grief: [57, 60, 64, 62], wash: [57, 56] }[kind] || [62];
+    const seq = { summit: [62, 66, 69, 74], arrival: [62, 69, 67, 66], grief: [57, 60, 64, 62], wash: [57, 56], promo: [62, 67, 71, 74] }[kind] || [62]; // promo: the G bugle's own notes, home on the tonic
     seq.forEach((n, i) => this._horn(dest, t + i * 0.42, i === seq.length - 1 ? 1.8 : 0.4, NOTE(n)));
   }
 }

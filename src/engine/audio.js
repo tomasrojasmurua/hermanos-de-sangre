@@ -110,6 +110,15 @@ export class Audio {
     g.setTargetAtTime(depth, t, tc);
     g.setTargetAtTime(1, t + sec, 0.3);
   }
+  // end any duck now (a bugle call cut short by the next scene)
+  unduck() {
+    if (!this.on) return;
+    const t = this.ctx.currentTime;
+    this.duckUntil = 0;
+    if (this.paused) return;
+    this.duckGain.gain.cancelScheduledValues(t);
+    this.duckGain.gain.setTargetAtTime(1, t, 0.4);
+  }
   // paused: music sits far back, the world holds its breath
   pauseMix(on) {
     if (!this.on) return;
@@ -181,6 +190,7 @@ export class Audio {
     return { d: Math.hypot(dx, dz), pan: (dx - dz) * 0.03 };
   }
   _noise(dest, t0, dur, { type = "lowpass", f0 = 1000, f1 = null, q = 0.8, gain = 1, attack = 0.002, rate = 1 } = {}) {
+    if (!(gain > 1e-4)) return; // an exponential ramp cannot reach zero: a silent burst is simply not played
     const c = this.ctx;
     const s = c.createBufferSource();
     s.buffer = this.noise;
@@ -199,6 +209,7 @@ export class Audio {
     s.stop(t0 + dur + 0.05);
   }
   _tone(dest, t0, dur, freq, { type = "sine", gain = 0.3, f1 = null, attack = 0.005 } = {}) {
+    if (!(gain > 1e-4)) return;
     const c = this.ctx;
     const o = c.createOscillator();
     o.type = type;
@@ -618,6 +629,26 @@ export class Audio {
       };
       setTimeout(clink, 500);
     }
+    if (kind === "night") {
+      // a Georgia night: field crickets from several places in the grass, each with its own rate and pitch
+      // one panner per cricket, made once (not one per chirp)
+      const voices = Array.from({ length: 5 }, () => {
+        const v = { f: 4200 + Math.random() * 900, lv: 0.01 + Math.random() * 0.01, dest: g };
+        if (c.createStereoPanner) {
+          v.dest = c.createStereoPanner();
+          v.dest.pan.value = Math.random() * 1.6 - 0.8;
+          v.dest.connect(g);
+        }
+        return v;
+      });
+      const chirp = (v) => {
+        if (!this.bed || this.bed.g !== g) return;
+        const t = this.ctx.currentTime;
+        if (!this.paused) for (let k = 0; k < 3; k++) this._tone(v.dest, t + k * 0.045, 0.028, v.f, { gain: v.lv });
+        setTimeout(() => chirp(v), 400 + Math.random() * 1200);
+      };
+      voices.forEach((v, i) => setTimeout(() => chirp(v), 200 + i * 230));
+    }
     const s = c.createBufferSource();
     s.buffer = this.noise;
     s.loop = true;
@@ -626,7 +657,7 @@ export class Audio {
     lp.type = "lowpass";
     lp.frequency.value = 300;
     const wg = c.createGain();
-    wg.gain.value = 0.12;
+    wg.gain.value = kind === "night" ? 0.07 : 0.12; // at night the low wind steps back for the crickets
     s.connect(lp).connect(wg).connect(g);
     s.start();
     nodes.push(s);

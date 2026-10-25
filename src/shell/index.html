@@ -203,6 +203,13 @@ button{font:inherit;color:inherit}
 #runhud .breath.down{transform:scale(.95)}
 #runhud .breath.ok{background:rgba(111,143,90,.7)}
 #runhud .breath.miss{background:rgba(141,44,37,.7)}
+/* who has got past you, and Sobel's faults for leaving the road */
+#runhud .tally{position:absolute;left:calc(12px + env(safe-area-inset-left,0px));top:calc(94px + var(--safe-t));display:flex;gap:12px;background:var(--hud);border:1px solid var(--line);border-radius:14px;padding:5px 12px;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:#d8cfbb}
+#runhud .tally b{font-weight:600;color:#f4ecd9;letter-spacing:.12em}
+#runhud .tally .hit{color:#ff8a7a}
+#runhud .tally.flash{box-shadow:0 0 0 2px rgba(224,90,74,.7)}
+#runhud .offroad{position:absolute;left:50%;top:calc(46% );transform:translate(-50%,-50%);font:600 22px 'Barlow Condensed';letter-spacing:.1em;text-transform:uppercase;color:#fff;background:rgba(163,48,42,.85);padding:6px 16px;border-radius:4px;opacity:0;transition:opacity .2s;pointer-events:none}
+#runhud .offroad.on{opacity:1}
 body[data-run] #btns .fire,body[data-run] #btns .crouch,body[data-run] #btns .nade,body[data-run] #btns .heal,body[data-run] #btns .call,body[data-run] #who .hp,body[data-run] #who .status{display:none!important}
 body[data-run] #btns{bottom:calc(158px + var(--safe-b));right:calc(24px + env(safe-area-inset-right,0px));width:auto;height:60px}
 body[data-run] #btns .act{bottom:0;right:0;height:52px;font-size:17px}
@@ -214,12 +221,19 @@ body[data-run] #toast.on{transform:none}
 .mk.strag{font-size:14px;font-weight:700;color:#fff;background:#b8362a;padding:4px 10px;border-radius:12px;border:2px solid #ffd7c9;box-shadow:0 0 14px rgba(224,90,74,.8)}
 .mk.strag span{display:inline-block;animation:stragPulse .8s ease-in-out infinite}
 @keyframes stragPulse{50%{transform:scale(1.15)}}
-body[data-run] #sub{top:calc(98px + var(--safe-t));bottom:auto;left:calc(12px + env(safe-area-inset-left,0px));transform:none;max-width:min(40vw,340px)}
+body[data-run] #sub{top:calc(132px + var(--safe-t));bottom:auto;left:calc(12px + env(safe-area-inset-left,0px));transform:none;max-width:min(40vw,340px)}
 body[data-run] #sub.pop{animation:none}
 body[data-run] .ghost{bottom:calc(64px + var(--safe-b))}
 @media (pointer:fine){.ghost{display:none}}
 /* narrative mode: no HUD, cards and subtitles only */
 body[data-mode=narrative] #sub{bottom:calc(16px + var(--safe-b))}
+/* base mode (the week): the game HUD is hidden but the pause button stays, above the planner */
+body[data-mode=base] #hud.hidden{display:block!important}
+body[data-mode=base] #hud>:not(#pauseBtn){display:none!important}
+body[data-mode=base] #pauseBtn{z-index:26}
+body[data-mode=base] #sub{bottom:calc(14px + var(--safe-b));left:calc(14px + env(safe-area-inset-left,0px));transform:none;max-width:min(44vw,400px)}
+/* a card at night: the scene goes dark behind the paper */
+.dim.night{background:radial-gradient(ellipse at center,rgba(8,10,18,.88),rgba(2,3,6,.98))}
 /* portrait on a phone: ask to rotate */
 #rotate{display:none}
 @media (orientation:portrait) and (pointer:coarse){

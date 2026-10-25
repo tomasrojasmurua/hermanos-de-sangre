@@ -9,7 +9,8 @@ Juego para navegador inspirado en *Hermanos de sangre* de Stephen E. Ambrose. Pe
 - `hermanos-de-sangre.html`: **Bastogne**.
 - `dia-d.html`: **Día D, modo soldado** (prototipo vertical; se pasará al juego unificado).
 
-Controles en `juego.html`: arrastra a la izquierda para moverte; botón derecho para la acción del momento (en Currahee, «Respirar» al compás). Teclado: WASD/flechas, B o Espacio para respirar, E para ayudar.
+Controles en `juego.html`: arrastra a la izquierda para moverte; botón derecho para la acción del momento. En las carreras de Currahee Winters cierra la columna: sin tocar el stick va al paso; adelante o atrás para moverse por la columna, de lado para cruzar el camino; con el stick a fondo corre más, pero gasta aliento; «Respirar» al compás. Teclado: WASD/flechas, Espacio o B para respirar.
+En la semana (modo base): toca una tarde con el pulgar izquierdo y una actividad con el derecho; durante la semana, ⏩ acelera. Teclado: 1–5 elige actividad, Intro empieza, F acelera.
 
 Los dos juegos son archivos únicos autocontenidos, así que se pueden descargar y abrir en el celular. Solo necesitan internet para las fuentes de Google. Añade `?fps=1` a la URL para ver los fps.
 
@@ -21,19 +22,23 @@ Los dos juegos son archivos únicos autocontenidos, así que se pueden descargar
 src/
   main.js            entrada del juego unificado: título, capítulos, pausa
   shell/index.html   plantilla HTML y CSS apaisada del juego unificado
-  engine/            motor compartido: render, geometría, efectos, audio (buses, voces, ambientes), música adaptativa, controles, UI, escenario
+  engine/            motor compartido: render, geometría, efectos, audio (buses, voces, ambientes), sonidos del campamento
+                     (camp-audio: corneta, sello, máquina de escribir), música adaptativa, controles, UI, escenario
   core/              juego: soldados y combate (game), modelos (actors), terreno (world), objetos (props),
                      caparazón y bucle (shell), director de escenas (director), modos (modes),
-                     plantilla persistente (roster), guardado versionado (save), columnas en marcha (column)
+                     plantilla persistente (roster), guardado versionado (save), columnas en marcha (column),
+                     modo base: la semana como datos (week) y su tablero e interfaz (weekui)
   data/              solo datos: armas, la compañía (company), reparto del Día D
   chapters/
-    currahee/        Capítulo I: momentos (chapter), mapa de Toccoa (places), objetos (props), la carrera (run)
+    currahee/        Capítulo I: momentos (chapter), mapa de Toccoa (places), objetos (props), la carrera (run),
+                     la semana en el campamento (semana, semana-data)
     dia-d/           arranque y guardado (main), mapas (dday), guion (story), plantilla HTML
     bastogne/        head.html + game.js (incluye Three.js) + tail.html
 lib/three-runtime.js Three.js r170 como script global (lo usa el Día D)
 scripts/build.mjs    genera juego.html, dia-d.html y hermanos-de-sangre.html
 tools/               pruebas con Playwright y sondas, por capítulo
 docs/estado.md       estado y pendientes
+docs/diseno-semana.md diseño del modo base (la semana en Toccoa)
 docs/inventado.md    lo que el juego inventa respecto al libro
 docs/creditos.md     licencias y autores
 ```
