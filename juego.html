@@ -5306,7 +5306,7 @@ void main(){
     // ---- voices: short formant-synthesised shouts (no recorded dialogue) --------------------------------
     // vowels: a e i o u ; returns end time
     vowel(dest, t, dur, v, pitch, gain = 0.2, glide = 0) {
-      const F = { a: [800, 1150, 2900], e: [480, 1720, 2520], i: [300, 2200, 2950], o: [500, 900, 2600], u: [330, 760, 2400] }[v] || [600, 1e3, 2600];
+      const F2 = { a: [800, 1150, 2900], e: [480, 1720, 2520], i: [300, 2200, 2950], o: [500, 900, 2600], u: [330, 760, 2400] }[v] || [600, 1e3, 2600];
       const c = this.ctx;
       const o = c.createOscillator();
       o.type = "sawtooth";
@@ -5323,7 +5323,7 @@ void main(){
       g.gain.setValueAtTime(gain, t + dur * 0.7);
       g.gain.exponentialRampToValueAtTime(1e-4, t + dur);
       const amps = [1, 0.5, 0.25];
-      F.forEach((f, k) => {
+      F2.forEach((f, k) => {
         const bp = c.createBiquadFilter();
         bp.type = "bandpass";
         bp.frequency.value = f;
@@ -5670,8 +5670,8 @@ void main(){
       if (L.trem && inBar === 0) this._trem(L.trem, t, spb * 4, NOTE(chord[2] + 24));
       const bugleOk = cur.name !== "drive" || bar % 8 === 0 || bar % 8 === 4;
       if (L.lead && inBar === 0 && bar % 2 === 0 && bugleOk) {
-        const CALLS = cur.name === "drive" ? [[57, 62, 69, 62], [62, 69, 74, 69], [57, 57, 62, 69], [69, 62, 57, 62]] : [[55, 60, 64, 60], [60, 64, 67, 64], [55, 55, 60, 64], [67, 64, 60, 55]];
-        const ph = CALLS[bar / 2 % 4 | 0];
+        const CALLS2 = cur.name === "drive" ? [[57, 62, 69, 62], [62, 69, 74, 69], [57, 57, 62, 69], [69, 62, 57, 62]] : [[55, 60, 64, 60], [60, 64, 67, 64], [55, 55, 60, 64], [67, 64, 60, 55]];
+        const ph = CALLS2[bar / 2 % 4 | 0];
         ph.forEach((n, i) => this._horn(L.lead, t + i * spb * 0.5, spb * (i === 3 ? 1.4 : 0.45), NOTE(n + 12)));
       }
     }
@@ -6628,6 +6628,53 @@ void main(){
       b[Bi.head].rotation.x = 0.35;
       b[Bi.gun].scale.setScalar(1e-3);
     } else b[Bi.gun].scale.setScalar(1);
+    const dp = st.dph ?? p;
+    if (st.jack > 0) {
+      const k2 = st.jack, o = (1 - Math.cos(dp)) / 2;
+      hips.position.y += Math.abs(Math.sin(dp)) * 0.07 * k2;
+      b[Bi.shL].rotation.set(0, 0, lerp(b[Bi.shL].rotation.z, 0.2 + o * 2.7, k2));
+      b[Bi.shR].rotation.set(0, 0, lerp(b[Bi.shR].rotation.z, -0.2 - o * 2.7, k2));
+      b[Bi.elL].rotation.x = lerp(b[Bi.elL].rotation.x, -0.1, k2);
+      b[Bi.elR].rotation.x = lerp(b[Bi.elR].rotation.x, -0.1, k2);
+      b[Bi.thL].rotation.set(0, 0, o * 0.34 * k2);
+      b[Bi.thR].rotation.set(0, 0, -o * 0.34 * k2);
+      b[Bi.knL].rotation.x = b[Bi.knR].rotation.x = 0;
+    }
+    if (st.push > 0) {
+      const k2 = st.push, down = (1 - Math.cos(dp)) / 2;
+      hips.rotation.x = 1.42 * k2;
+      hips.position.y = lerp(hips.position.y, 0.42 - down * 0.17, k2);
+      for (const i of [Bi.thL, Bi.thR, Bi.knL, Bi.knR]) b[i].rotation.x *= 1 - k2;
+      b[Bi.spine].rotation.x = 0;
+      b[Bi.shL].rotation.set(-1.45 * k2 - down * 0.35 * k2, 0, 0.18 * k2);
+      b[Bi.shR].rotation.set(-1.45 * k2 - down * 0.35 * k2, 0, -0.18 * k2);
+      b[Bi.elL].rotation.x = b[Bi.elR].rotation.x = down * 0.9 * k2;
+      b[Bi.head].rotation.x = -1.2 * k2;
+    }
+    if (st.salute > 0) {
+      const k2 = st.salute;
+      b[Bi.shR].rotation.set(lerp(b[Bi.shR].rotation.x, -1.75, k2), 0, lerp(b[Bi.shR].rotation.z, -0.95, k2));
+      b[Bi.elR].rotation.x = lerp(b[Bi.elR].rotation.x, -2.15, k2);
+    }
+    if (st.dig > 0) {
+      const k2 = st.dig, s2 = Math.sin(dp);
+      b[Bi.spine].rotation.x += (0.55 + s2 * 0.2) * k2;
+      b[Bi.shL].rotation.set(lerp(b[Bi.shL].rotation.x, -1 - s2 * 0.6, k2), 0, -0.25 * k2);
+      b[Bi.shR].rotation.set(lerp(b[Bi.shR].rotation.x, -1.1 - s2 * 0.6, k2), 0, 0.25 * k2);
+      b[Bi.elL].rotation.x = b[Bi.elR].rotation.x = -0.4 * k2;
+      b[Bi.thL].rotation.x = -0.35 * k2;
+      b[Bi.knL].rotation.x = 0.5 * k2;
+    }
+    if (st.sit > 0) {
+      const k2 = st.sit;
+      hips.position.y = lerp(hips.position.y, 0.16, k2);
+      b[Bi.thL].rotation.x = b[Bi.thR].rotation.x = -1.35 * k2;
+      b[Bi.knL].rotation.x = b[Bi.knR].rotation.x = 1.9 * k2;
+      b[Bi.spine].rotation.x = 0.25 * k2;
+      b[Bi.shL].rotation.set(-0.9 * k2, 0, -0.1);
+      b[Bi.shR].rotation.set(-0.9 * k2, 0, 0.1);
+      b[Bi.elL].rotation.x = b[Bi.elR].rotation.x = -0.9 * k2;
+    }
     if (st.dead > 0) {
       const d = st.dead;
       hips.position.y = lerp(hips.position.y, 0.16, d);
@@ -8295,7 +8342,7 @@ void main(){
     m.receiveShadow = true;
     return m;
   }
-  function scatter(world, builderFn, count, placeFn, kind = "foliage", seed = 3, cast2 = false) {
+  function scatter(world, builderFn, count2, placeFn, kind = "foliage", seed = 3, cast2 = false) {
     const b = new Builder(seed);
     builderFn(b);
     const geo = b.build();
@@ -8303,12 +8350,12 @@ void main(){
       const n = geo.attributes.normal;
       for (let i = 0; i < n.count; i++) n.setXYZ(i, 0, 1, 0);
     }
-    const im = new T.InstancedMesh(geo, mat(kind), count);
+    const im = new T.InstancedMesh(geo, mat(kind), count2);
     const r = rng(seed);
     const m4 = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), v = new T.Vector3(), sc = new T.Vector3();
     const col = new T.Color();
     let k = 0;
-    for (let tries = 0; tries < count * 6 && k < count; tries++) {
+    for (let tries = 0; tries < count2 * 6 && k < count2; tries++) {
       const x = (r() - 0.5) * world.size * 0.96, z = (r() - 0.5) * world.size * 0.96;
       const res = placeFn(x, z, r, col);
       if (!res) continue;
@@ -8370,7 +8417,7 @@ void main(){
 
   // src/chapters/currahee/props.js
   var PINE = [5203252, 5926714, 4612143, 6453314, 4151081];
-  function pine(world, B2, F, x, z, s = 1, r = rng(Math.floor(x * 13 + z * 7))) {
+  function pine(world, B2, F2, x, z, s = 1, r = rng(Math.floor(x * 13 + z * 7))) {
     const y = world.rawHeight(x, z);
     const h = (8 + r() * 5) * s;
     const lean = (r() - 0.5) * 0.06;
@@ -8379,7 +8426,7 @@ void main(){
     for (let i = 0; i < crowns; i++) {
       const a = r() * 6.28, d = (0.3 + r() * 0.9) * s;
       const hy = y + h * (0.74 + r() * 0.3);
-      F.ico((0.75 + r() * 0.5) * s, r.pick(PINE), { x: x + Math.cos(a) * d, y: hy, z: z + Math.sin(a) * d, sy: 0.62, rx: r() * 3, ry: r() * 3 }, { jit: 0.16, grad: { y0: y + h * 0.6, y1: y + h * 1.1, k: 0.4 } });
+      F2.ico((0.75 + r() * 0.5) * s, r.pick(PINE), { x: x + Math.cos(a) * d, y: hy, z: z + Math.sin(a) * d, sy: 0.62, rx: r() * 3, ry: r() * 3 }, { jit: 0.16, grad: { y0: y + h * 0.6, y1: y + h * 1.1, k: 0.4 } });
     }
     for (let i = 0; i < 2; i++) {
       const a = r() * 6.28;
@@ -8387,10 +8434,10 @@ void main(){
     }
     world.addSeg(x - 0.01, z, x + 0.01, z, 0.3 * s, 2, "trunk");
   }
-  function scrub(world, F, x, z, s = 1, r = rng(Math.floor(x * 5 + z * 11))) {
+  function scrub(world, F2, x, z, s = 1, r = rng(Math.floor(x * 5 + z * 11))) {
     const y = world.rawHeight(x, z);
     for (let i = 0; i < 3 + Math.floor(r() * 3); i++)
-      F.ico(s * (0.35 + r() * 0.35), r.pick([6255160, 7109180, 5597231, 8028740]), { x: x + (r() - 0.5) * s * 1.4, y: y + s * 0.3, z: z + (r() - 0.5) * s * 1.4, sy: 0.75, ry: r() * 3 }, { jit: 0.18, grad: { y0: y, y1: y + 1, k: 0.35 } });
+      F2.ico(s * (0.35 + r() * 0.35), r.pick([6255160, 7109180, 5597231, 8028740]), { x: x + (r() - 0.5) * s * 1.4, y: y + s * 0.3, z: z + (r() - 0.5) * s * 1.4, sy: 0.75, ry: r() * 3 }, { jit: 0.18, grad: { y0: y, y1: y + 1, k: 0.35 } });
   }
   function barracks(world, B2, x, z, ang, w = 18, d = 6.5) {
     const y = world.rawHeight(x, z);
@@ -8425,10 +8472,10 @@ void main(){
   }
   function waterTower(world, B2, x, z) {
     const y = world.rawHeight(x, z);
-    const H = 14;
-    for (const [sx, sz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) B2.box(0.3, H, 0.3, 7233098, { x: x + sx * 1.8, y: y + H / 2, z: z + sz * 1.8, rx: -sz * 0.04, rz: sx * 0.04 }, { jit: 0.08 });
+    const H2 = 14;
+    for (const [sx, sz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) B2.box(0.3, H2, 0.3, 7233098, { x: x + sx * 1.8, y: y + H2 / 2, z: z + sz * 1.8, rx: -sz * 0.04, rz: sx * 0.04 }, { jit: 0.08 });
     for (let k = 1; k < 4; k++) {
-      const hy = y + H / 4 * k;
+      const hy = y + H2 / 4 * k;
       for (const [a, b2] of [[0, 1], [1, 0]]) {
         B2.box(a ? 3.8 : 0.12, 0.12, b2 ? 3.8 : 0.12, 7233098, { x, y: hy, z: z + 1.8 });
         B2.box(a ? 3.8 : 0.12, 0.12, b2 ? 3.8 : 0.12, 7233098, { x, y: hy, z: z - 1.8 });
@@ -8436,28 +8483,28 @@ void main(){
         B2.box(0.12, 0.12, 3.8, 7233098, { x: x - 1.8, y: hy, z });
       }
     }
-    B2.cyl(2.6, 2.6, 4, 12, 8022610, { x, y: y + H + 2, z }, { jit: 0.06 });
-    for (let i = 0; i < 4; i++) B2.cyl(2.65, 2.65, 0.12, 12, 4078132, { x, y: y + H + 0.5 + i * 1.1, z });
-    B2.cone(2.8, 1.4, 12, 4867646, { x, y: y + H + 4.7, z });
+    B2.cyl(2.6, 2.6, 4, 12, 8022610, { x, y: y + H2 + 2, z }, { jit: 0.06 });
+    for (let i = 0; i < 4; i++) B2.cyl(2.65, 2.65, 0.12, 12, 4078132, { x, y: y + H2 + 0.5 + i * 1.1, z });
+    B2.cone(2.8, 1.4, 12, 4867646, { x, y: y + H2 + 4.7, z });
     world.addRect(x, z, 2.1, 2.1, 0, 3, "tower");
   }
   function jumpTower(world, B2, x, z, ang) {
     const y = world.rawHeight(x, z);
-    const H = 10;
+    const H2 = 10;
     const tf = (lx, ly, lz, ex2 = {}) => ({ x: x + lx * Math.cos(ang) + lz * Math.sin(ang), y: y + ly, z: z - lx * Math.sin(ang) + lz * Math.cos(ang), ry: ang, ...ex2 });
-    for (const [sx, sz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) B2.box(0.25, H + 1.2, 0.25, 8021580, tf(sx * 1.4, (H + 1.2) / 2, sz * 1.4), { jit: 0.08 });
+    for (const [sx, sz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) B2.box(0.25, H2 + 1.2, 0.25, 8021580, tf(sx * 1.4, (H2 + 1.2) / 2, sz * 1.4), { jit: 0.08 });
     for (let k = 1; k <= 5; k++) for (const s of [-1, 1]) {
       B2.box(2.9, 0.1, 0.1, 8021580, tf(0, k * 2, s * 1.4, { rz: k % 2 ? 0.6 : -0.6 }));
       B2.box(0.1, 0.1, 2.9, 8021580, tf(s * 1.4, k * 2, 0, { rx: k % 2 ? 0.6 : -0.6 }));
     }
-    B2.box(3.2, 0.18, 3.2, 9073752, tf(0, H, 0));
-    for (const s of [-1, 1]) B2.box(3.2, 1, 0.08, 9073752, tf(0, H + 0.6, s * 1.6));
+    B2.box(3.2, 0.18, 3.2, 9073752, tf(0, H2, 0));
+    for (const s of [-1, 1]) B2.box(3.2, 1, 0.08, 9073752, tf(0, H2 + 0.6, s * 1.6));
     for (let k = 0; k < 10; k++) B2.box(0.8, 0.08, 0.3, 9073752, tf(1.9, k + 0.5, -1.2 + k % 2 * 2.4));
     const len = 30;
     const ex = x + Math.sin(ang + Math.PI / 2) * len, ez = z + Math.cos(ang + Math.PI / 2) * len;
     const ey = world.rawHeight(ex, ez) + 1.6;
-    const mx = (x + ex) / 2, mz = (z + ez) / 2, my = (y + H + 0.6 + ey) / 2;
-    const dl = Math.hypot(ex - x, ez - z), dy = ey - (y + H + 0.6);
+    const mx = (x + ex) / 2, mz = (z + ez) / 2, my = (y + H2 + 0.6 + ey) / 2;
+    const dl = Math.hypot(ex - x, ez - z), dy = ey - (y + H2 + 0.6);
     B2.box(0.03, 0.03, Math.hypot(dl, dy), 2763306, { x: mx, y: my, z: mz, ry: Math.atan2(ex - x, ez - z), rx: -Math.atan2(dy, dl), order: "YXZ" });
     B2.post(0.3, 2, 0.3, 7233098, { x: ex, y: ey - 1.6, z: ez });
     B2.box(4, 0.08, 4, 13153418, { x: ex - Math.sin(ang + Math.PI / 2) * 2, y: ey - 1.58, z: ez - Math.cos(ang + Math.PI / 2) * 2, ry: ang });
@@ -9048,7 +9095,7 @@ void main(){
       const c = cast(id) || roster.get(id);
       const rec = roster.get(id);
       const sol = G.add({ id, name: c.name, short: c.short, side: "us", kit: "pt", weapon: "none", skin: c.skin, mustache: c.mustache, seed: 100 + i, speed: 5.2 });
-      const fit = (rec?.stats?.fit ?? 60) - (rec?.fatigue ?? 0) * 0.25;
+      const fit = (rec?.stats?.fit ?? 60) - (rec?.fatigue ?? 0) * 0.22 + ((rec?.morale ?? 60) - 60) * 0.08;
       men.push({ sol, id, named: !!cast(id), fit });
     });
     const sobelC = cast("sobel");
@@ -9148,7 +9195,7 @@ void main(){
     G.camSpan = 15;
     G.objective = null;
     document.body.dataset.run = "1";
-    const H = hud(ui, input);
+    const H2 = hud(ui, input);
     ui.setWho(win);
     G.lockMove = true;
     audio.whistle(sobel.x, sobel.z, true);
@@ -9176,31 +9223,31 @@ void main(){
       col.update(dt, ctx);
       const P2 = col.p;
       const b = music.breath();
-      H.ring.style.transform = `scale(${(1.35 - b.phase * 0.35).toFixed(3)})`;
-      H.ring.style.opacity = (0.25 + b.phase * 0.75).toFixed(2);
-      H.btn.classList.toggle("window", b.err < 0.16);
+      H2.ring.style.transform = `scale(${(1.35 - b.phase * 0.35).toFixed(3)})`;
+      H2.ring.style.opacity = (0.25 + b.phase * 0.75).toFixed(2);
+      H2.btn.classList.toggle("window", b.err < 0.16);
       if (input.consume("breath") || input.consume("fire")) {
         const ok = col.breathe(b.err < 0.16);
         audio.breath(ok ? 0.25 + 0.1 / (1 + col.p.combo) : 0.9, 0, 1.6);
         audio.hit(ok);
-        H.combo.textContent = ok && col.p.combo >= 2 ? `\xD7${col.p.combo}` : "";
-        H.btn.classList.remove("ok", "miss");
-        void H.btn.offsetWidth;
-        H.btn.classList.add(ok ? "ok" : "miss");
+        H2.combo.textContent = ok && col.p.combo >= 2 ? `\xD7${col.p.combo}` : "";
+        H2.btn.classList.remove("ok", "miss");
+        void H2.btn.offsetWidth;
+        H2.btn.classList.add(ok ? "ok" : "miss");
         if (ok && !lastBreathOk && opts.variant === "first" && tipsShown === 0) {
           tipsShown = 1;
           ui.toast("As\xED. Respirar al comp\xE1s te devuelve el aliento.", 2e3);
         }
         lastBreathOk = ok;
       }
-      H.bar.style.transform = `scaleX(${P2.stam.toFixed(3)})`;
-      H.ali.classList.toggle("low", P2.stam < 0.25);
+      H2.bar.style.transform = `scaleX(${P2.stam.toFixed(3)})`;
+      H2.ali.classList.toggle("low", P2.stam < 0.25);
       win.st.slump = damp(win.st.slump || 0, P2.stam < 0.2 ? 0.7 : 0, 3, dt);
       const rel = clamp(P2.rel ?? 0.5, -0.15, 1.15);
-      H.me.style.left = `${(clamp(rel, 0, 1) * 100).toFixed(1)}%`;
+      H2.me.style.left = `${(clamp(rel, 0, 1) * 100).toFixed(1)}%`;
       const warn = rel < 0.12;
-      if (warn && !H.pace.classList.contains("warn")) audio.vibrate([40, 60, 40]);
-      H.pace.classList.toggle("warn", warn);
+      if (warn && !H2.pace.classList.contains("warn")) audio.vibrate([40, 60, 40]);
+      H2.pace.classList.toggle("warn", warn);
       ambT -= dt;
       if (ambT <= 0 && ambs[0]) {
         ambT = 2.4;
@@ -9353,7 +9400,7 @@ void main(){
     }
     G.objective = null;
     ui.setAct(null);
-    H.remove();
+    H2.remove();
     delete document.body.dataset.run;
     window.__run = null;
     ambs.forEach((m) => G.scene.remove(m));
@@ -9388,6 +9435,1095 @@ void main(){
     for (let i = 0; i < 10; i++)
       fx.smoke.emit({ x: s.x + Math.sin(s.ry) * 0.3, y: s.y + 1.3, z: s.z + Math.cos(s.ry) * 0.3, vx: Math.sin(s.ry) * 1.5 + (Math.random() - 0.5), vy: 0.5, vz: Math.cos(s.ry) * 1.5 + (Math.random() - 0.5), life: 0.7, s0: 0.1, s1: 0.06, c0: [0.72, 0.6, 0.38, 1], c1: [0.6, 0.48, 0.3, 0.8], grav: 9, floor: G.world.height(s.x, s.z) + 0.02 });
     s.st.slump = 1;
+  }
+
+  // src/core/week.js
+  var METERS = [
+    { id: "forma", label: "Forma", good: 1 },
+    { id: "cansancio", label: "Fatiga", good: -1 },
+    { id: "moral", label: "Moral", good: 1 },
+    { id: "orden", label: "Orden", good: 1 },
+    { id: "sobel", label: "Sobel", good: -1 }
+  ];
+  var Week = class _Week {
+    // cfg: { roster, men: [ids], lead: "winters", days: [{key, label, am, pm}], acts: {id: {...}}, state }
+    //   day.am / day.pm: {act, fixed: true} for the commander's blocks, "free" for the player's, null for nothing
+    //   act.fx: {fit, fatigue, morale, order, tension, aim, lead, bond}  (per block, at full effect)
+    constructor(cfg) {
+      Object.assign(this, cfg);
+      this.state = cfg.state || { order: 40 };
+      this.plan = {};
+      this.away = {};
+      this.log = [];
+    }
+    freeDays() {
+      return this.days.filter((d) => d.pm === "free");
+    }
+    slot(day, half) {
+      const s = day[half];
+      if (s === "free") return this.plan[day.key] ? { act: this.plan[day.key], fixed: false } : null;
+      return s || null;
+    }
+    avg(fn) {
+      let n = 0, t = 0;
+      for (const id of this.men) {
+        const m = this.roster.get(id);
+        if (!m || m.washedOut) continue;
+        t += fn(m);
+        n++;
+      }
+      return n ? t / n : 0;
+    }
+    stats() {
+      return {
+        forma: this.avg((m) => m.stats.fit),
+        cansancio: this.avg((m) => m.fatigue || 0),
+        moral: this.avg((m) => m.morale ?? 60),
+        orden: this.state.order,
+        sobel: this.roster.d.company.sobelTension
+      };
+    }
+    // what the meters would move by if this activity ran now (for the arrows in the planner)
+    preview(actId, k = 1) {
+      const fx = this.acts[actId]?.fx || {};
+      const tired = this.stats().cansancio;
+      const gain = 1 - clamp(tired / 140, 0, 0.6);
+      return {
+        forma: (fx.fit || 0) * k * gain,
+        cansancio: (fx.fatigue || 0) * k,
+        moral: (fx.morale || 0) * k,
+        orden: (fx.order || 0) * k,
+        sobel: fx.tension || 0
+      };
+    }
+    // run one block on the roster; k scales it (a leader away on a dirty job: the men train at 60 %)
+    apply(actId, k = 1, { who = null } = {}) {
+      const fx = this.acts[actId]?.fx || {};
+      const before = this.stats();
+      const ids = who || this.men;
+      for (const id of ids) {
+        const m = this.roster.get(id);
+        if (!m || m.washedOut) continue;
+        if (fx.fit) this.roster.train(id, "fit", fx.fit * k);
+        if (fx.aim) this.roster.train(id, "aim", fx.aim * k);
+        if (fx.lead && !m.invented) this.roster.train(id, "lead", fx.lead * k);
+        if (fx.fatigue) this.roster.tire(id, fx.fatigue * (fx.fatigue > 0 ? 1 : k));
+        if (fx.morale) this.roster.mood(id, fx.morale * k);
+      }
+      if (fx.fatigue && this.lead) this.roster.tire(this.lead, fx.fatigue * 0.8);
+      if (fx.order) this.state.order = clamp(this.state.order + fx.order * k, 0, 100);
+      if (fx.tension) this.roster.tension(fx.tension);
+      return this.delta(before);
+    }
+    // overnight: the men sleep some of it off and the barracks get a little untidier
+    night({ rest = 12, mess = 6 } = {}) {
+      const before = this.stats();
+      for (const id of this.men.concat(this.lead ? [this.lead] : [])) this.roster.rest(id, rest);
+      this.state.order = clamp(this.state.order - mess, 0, 100);
+      return this.delta(before);
+    }
+    delta(before) {
+      const now = this.stats(), d = {};
+      for (const k in now) d[k] = now[k] - before[k];
+      return d;
+    }
+    // where the meters end the week if nothing unexpected happens: replays the plan on a copy
+    project(plan = this.plan) {
+      const R = new this.roster.constructor(JSON.parse(JSON.stringify(this.roster.d)));
+      const w = new _Week({ ...this, roster: R, state: { ...this.state } });
+      w.plan = { ...plan };
+      for (const d of this.days) {
+        for (const half of ["am", "pm"]) {
+          const s = w.slot(d, half);
+          if (s && w.acts[s.act]?.fx) w.apply(s.act, this.away[d.key] && half === "pm" ? 0.6 : 1);
+        }
+        if (!d.noNight) w.night();
+      }
+      return w.stats();
+    }
+    // a direct nudge from an event: {fatigue, morale, order, tension, fit} on everyone (or `who`)
+    nudge(fx, who) {
+      const id = "_n" + Math.random();
+      this.acts[id] = { fx };
+      const d = this.apply(id, 1, { who });
+      delete this.acts[id];
+      return d;
+    }
+  };
+
+  // src/core/weekui.js
+  var CSS = `
+.wk{position:absolute;inset:0;z-index:22;display:grid;grid-template-columns:1fr min(36vw,300px);grid-template-rows:auto 1fr auto;gap:8px 12px;
+  padding:calc(8px + var(--safe-t)) calc(12px + env(safe-area-inset-right,0px)) calc(8px + var(--safe-b)) calc(12px + env(safe-area-inset-left,0px));
+  background:linear-gradient(90deg,rgba(14,12,9,.82),rgba(14,12,9,.55) 60%,rgba(14,12,9,.82));pointer-events:auto;color:#efe6d2;animation:wkIn .45s ease}
+@keyframes wkIn{from{opacity:0}to{opacity:1}}
+.wk .hd{grid-column:1/3;display:flex;align-items:center;gap:14px;min-width:0}
+.wk .hd .t{flex:0 0 auto}
+.wk .hd .t small{display:block;font:12px 'Special Elite',monospace;letter-spacing:.12em;text-transform:uppercase;color:#e3c27a}
+.wk .hd .t b{display:block;font:400 22px/1 'IM Fell English SC',serif;color:#f4ecd9}
+.wk .meters{flex:1;display:flex;gap:8px;justify-content:flex-end;min-width:0}
+.mtr{flex:0 1 92px;min-width:58px}
+.mtr span{display:flex;justify-content:space-between;font:600 12px 'Barlow Condensed',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#d8cfbb}
+.mtr span em{font-style:normal;color:#f4ecd9}
+.mtr i{display:block;position:relative;height:7px;margin-top:3px;background:rgba(255,255,255,.14);border-radius:4px;overflow:visible}
+.mtr i b{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:#c9bd96;transition:width .5s}
+.mtr i u{position:absolute;top:-3px;width:3px;height:13px;margin-left:-1px;background:#f4ecd9;border-radius:1px;transition:left .35s;box-shadow:0 0 0 1px rgba(0,0,0,.5)}
+.mtr.bad i b{background:#b8503f}.mtr.good i b{background:#8fae6a}
+.mtr .pop{position:absolute;right:0;top:-18px;font:700 13px 'Barlow Condensed';animation:pop 1.6s ease forwards;pointer-events:none}
+@keyframes pop{0%{opacity:0;transform:translateY(6px)}20%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-6px)}}
+.wk .board{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:6px;min-height:0}
+.day{display:grid;grid-template-rows:auto 1fr 1fr;gap:5px;min-width:0}
+.day h4{margin:0;text-align:center;font:600 13px 'Barlow Condensed';letter-spacing:.12em;text-transform:uppercase;color:#d8cfbb}
+.cell{position:relative;border-radius:3px;padding:6px 5px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;min-height:0;
+  font:400 14px/1.05 'IM Fell English',Georgia,serif;color:#2a241b;background:radial-gradient(ellipse at 30% 20%,#f1eadb,#d9cdb3);box-shadow:0 2px 6px rgba(0,0,0,.45);overflow:hidden}
+.cell small{display:block;margin-top:3px;font:11px 'Special Elite',monospace;letter-spacing:.04em;color:#6d6252}
+.cell .ic{font-size:20px;line-height:1;margin-bottom:3px}
+.cell.fixed{background:radial-gradient(ellipse at 30% 20%,#e6dcc6,#c9bc9f)}
+.cell.fixed::after{content:'SOBEL';position:absolute;right:-6px;bottom:6px;transform:rotate(-14deg);font:700 10px 'Special Elite';letter-spacing:.1em;color:#a3302a;border:1.5px solid #a3302a;padding:1px 4px;opacity:.75}
+.cell.fixed.cmd::after{content:var(--stamp)}
+.cell.free{cursor:pointer;border:2px dashed rgba(35,29,22,.45);background:rgba(241,234,219,.82)}
+.cell.free.empty{color:#6d6252}
+.cell.free.sel{outline:3px solid #e3c27a;outline-offset:1px;border-style:solid}
+.cell.away::before{content:'Winters: ' attr(data-away);position:absolute;left:0;right:0;top:0;background:#7b2a22;color:#f4ecd9;font:600 10px 'Barlow Condensed';letter-spacing:.06em;padding:1px 0}
+.cell.none{background:rgba(241,234,219,.18);box-shadow:none;color:#bfb6a2}
+.cell.done{opacity:.45}.cell.now{outline:3px solid #e3c27a}
+.wk .pal{grid-row:2/4;grid-column:2;display:flex;flex-direction:column;gap:6px;min-height:0}
+.act{appearance:none;display:grid;grid-template-columns:30px 1fr;align-items:center;gap:2px 8px;text-align:left;padding:5px 10px;min-height:46px;border-radius:3px;cursor:pointer;
+  border:1px solid rgba(241,234,219,.35);background:rgba(241,234,219,.08);color:#f4ecd9}
+.act .ic{grid-row:1/3;font-size:21px;text-align:center}
+.act b{font:400 17px/1 'IM Fell English SC',serif}
+.act small{font:12.5px/1.15 'Barlow Condensed',sans-serif;letter-spacing:.02em;color:#d8cfbb}
+.act:active,.act.hit{background:rgba(227,194,122,.28)}
+.wk .go{margin-top:auto;min-height:50px;font:600 17px 'Barlow Condensed';letter-spacing:.08em;text-transform:uppercase;border:0;border-radius:2px;cursor:pointer;background:#e9e0cb;color:#1d1a16;box-shadow:0 3px 0 #8a7c5c}
+.wk .go:disabled{opacity:.4}
+.wk .hint{grid-column:1;font:15px 'IM Fell English',serif;font-style:italic;color:#e4dccb;align-self:center}
+/* during the week: a ribbon of days, the meters and a fast-forward button */
+.wkh{position:absolute;inset:0;z-index:12;pointer-events:none}
+.wkh .rib{position:absolute;left:calc(12px + env(safe-area-inset-left,0px));top:calc(8px + var(--safe-t));display:flex;gap:4px;pointer-events:none}
+.wkh .rib i{font:600 12px 'Barlow Condensed';letter-spacing:.1em;text-transform:uppercase;color:#d8cfbb;background:rgba(14,12,9,.6);padding:4px 7px;border-radius:2px;font-style:normal}
+.wkh .rib i.now{background:#e9e0cb;color:#1d1a16}.wkh .rib i.past{opacity:.5}
+.wkh .blk{position:absolute;left:calc(12px + env(safe-area-inset-left,0px));top:calc(36px + var(--safe-t));max-width:46vw;background:rgba(14,12,9,.62);padding:6px 10px;border-radius:2px;color:#f4ecd9}
+.wkh .blk small{display:block;font:11.5px 'Special Elite';letter-spacing:.12em;text-transform:uppercase;color:#e3c27a}
+.wkh .blk b{font:400 20px/1.1 'IM Fell English SC',serif}
+.wkh .meters{position:absolute;right:calc(70px + env(safe-area-inset-right,0px));top:calc(10px + var(--safe-t));display:flex;gap:8px;background:rgba(14,12,9,.55);padding:6px 10px;border-radius:3px}
+.wkh .meters .mtr{flex:0 0 70px;min-width:0}
+.wkh .ff{position:absolute;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(14px + var(--safe-b));width:56px;height:56px;border-radius:50%;pointer-events:auto;cursor:pointer;
+  border:2px solid rgba(241,234,219,.5);background:rgba(14,12,9,.6);color:#f4ecd9;font:600 15px 'Barlow Condensed';letter-spacing:.04em}
+.wkh .ff.on{background:#e9e0cb;color:#1d1a16}
+.wkh .ff kbd{display:block;font:10px 'Barlow Condensed';opacity:.7}
+.wtag{position:absolute;transform:translate(-50%,-100%);font:600 13px 'Barlow Condensed';letter-spacing:.04em;padding:2px 8px;border-radius:10px;white-space:nowrap;pointer-events:none;
+  background:rgba(14,12,9,.7);color:#f4ecd9}
+.wtag.no{background:#a3302a;color:#fff;border:1.5px solid #ffd7c9}
+.wtag.yes{background:#4d6b3a;color:#fff}
+@media (pointer:fine){.wkh .ff kbd{display:block}}
+@media (pointer:coarse){.wkh .ff kbd{display:none}}
+`;
+  var styled = false;
+  function style() {
+    if (styled) return;
+    styled = true;
+    const s = document.createElement("style");
+    s.textContent = CSS;
+    document.head.appendChild(s);
+  }
+  function meterHTML() {
+    return METERS.map((m) => `<div class="mtr" data-m="${m.id}"><span>${m.label}<em></em></span><i><b></b><u></u></i></div>`).join("");
+  }
+  function setMeters(root, st, proj) {
+    for (const m of METERS) {
+      const e = root.querySelector(`.mtr[data-m="${m.id}"]`);
+      if (!e) continue;
+      const v = Math.max(0, Math.min(100, st[m.id]));
+      e.querySelector("b").style.width = v.toFixed(1) + "%";
+      e.querySelector("em").textContent = Math.round(v);
+      const u = e.querySelector("u");
+      if (proj) {
+        u.style.display = "";
+        u.style.left = Math.max(0, Math.min(100, proj[m.id])).toFixed(1) + "%";
+      } else u.style.display = "none";
+      const goodness = m.good > 0 ? v : 100 - v;
+      e.classList.toggle("bad", goodness < 35);
+      e.classList.toggle("good", goodness > 70);
+    }
+  }
+  function popMeters(root, d) {
+    for (const m of METERS) {
+      const v = d[m.id];
+      if (!v || Math.abs(v) < 0.5) continue;
+      const e = root.querySelector(`.mtr[data-m="${m.id}"] i`);
+      if (!e) continue;
+      const p = document.createElement("div");
+      p.className = "pop";
+      const good = Math.sign(v) === m.good;
+      p.style.color = good ? "#b7d98f" : "#f0a08f";
+      p.textContent = (v > 0 ? "+" : "\u2212") + Math.abs(Math.round(v));
+      e.appendChild(p);
+      setTimeout(() => p.remove(), 1700);
+    }
+  }
+  function planWeek(ui, week, { title: title2, kicker, hint, choices, audio, labels = {} }) {
+    style();
+    return new Promise((resolve) => {
+      const w = document.createElement("div");
+      w.className = "wk";
+      const days = week.days;
+      w.innerHTML = `
+      <div class="hd"><div class="t"><small>${esc(kicker)}</small><b>${esc(title2)}</b></div><div class="meters">${meterHTML()}</div></div>
+      <div class="board" style="--n:${days.length}">${days.map((d) => `<div class="day" data-k="${d.key}"><h4>${esc(d.short || d.label)}</h4>${cellHTML(d, "am")}${cellHTML(d, "pm")}</div>`).join("")}</div>
+      <div class="pal">${choices.map((id) => {
+        const a = week.acts[id];
+        return `<button class="act" data-a="${id}"><span class="ic">${a.icon}</span><b>${esc(a.label)}</b><small>${esc(a.hint)}</small></button>`;
+      }).join("")}
+        <button class="go" disabled>Empezar la semana</button></div>
+      <div class="hint">${esc(hint || "")}</div>`;
+      function cellHTML(d, half) {
+        const s = d[half];
+        if (s === "free") return `<div class="cell free empty" data-d="${d.key}" role="button"><span class="ic">\xB7</span>Tarde libre<small>elige</small></div>`;
+        if (!s) return `<div class="cell none">${half === "am" ? "" : "\u2014"}</div>`;
+        const a = week.acts[s.act];
+        const stamp2 = s.by ? ` cmd" style="--stamp:'${s.by}'` : "";
+        return `<div class="cell fixed${stamp2}"><span class="ic">${a.icon}</span>${esc(a.label)}<small>${half === "am" ? "ma\xF1ana" : labels.pm || "tarde"}</small></div>`;
+      }
+      const free = week.freeDays().map((d) => d.key);
+      let sel = free.find((k) => !week.plan[k]) || free[0];
+      const refresh = () => {
+        for (const k of free) {
+          const c = w.querySelector(`.cell.free[data-d="${k}"]`);
+          const a = week.acts[week.plan[k]];
+          c.classList.toggle("empty", !a);
+          c.classList.toggle("sel", k === sel);
+          c.innerHTML = a ? `<span class="ic">${a.icon}</span>${esc(a.label)}<small>tarde</small>` : `<span class="ic">\xB7</span>Tarde libre<small>elige</small>`;
+        }
+        const all = free.every((k) => week.plan[k]);
+        w.querySelector(".go").disabled = !all;
+        setMeters(w, week.stats(), week.project());
+      };
+      w.querySelectorAll(".cell.free").forEach((c) => c.onclick = () => {
+        sel = c.dataset.d;
+        audio?.paper();
+        refresh();
+      });
+      w.querySelectorAll(".act").forEach((b) => b.onclick = () => {
+        if (!sel) sel = free.find((k) => !week.plan[k]) || free[free.length - 1];
+        week.plan[sel] = b.dataset.a;
+        audio?.pencil();
+        b.classList.remove("hit");
+        void b.offsetWidth;
+        b.classList.add("hit");
+        setTimeout(() => b.classList.remove("hit"), 200);
+        const i = free.indexOf(sel);
+        sel = free.slice(i + 1).concat(free.slice(0, i)).find((k) => !week.plan[k]) || sel;
+        refresh();
+      });
+      w.querySelector(".go").onclick = () => {
+        removeEventListener("keydown", key);
+        audio?.paper();
+        w.remove();
+        resolve({ ...week.plan });
+      };
+      const key = (e) => {
+        const n = +e.key;
+        if (n >= 1 && n <= choices.length) w.querySelectorAll(".act")[n - 1].click();
+        if (e.key === "Enter" && !w.querySelector(".go").disabled) {
+          removeEventListener("keydown", key);
+          w.querySelector(".go").click();
+        }
+      };
+      addEventListener("keydown", key);
+      ui.cards.appendChild(w);
+      refresh();
+    });
+  }
+  var WeekHUD = class {
+    constructor(ui, week) {
+      style();
+      this.week = week;
+      this.speed = 1;
+      const e = this.el = document.createElement("div");
+      e.className = "wkh";
+      e.innerHTML = `<div class="rib">${week.days.map((d) => `<i data-k="${d.key}">${esc(d.short || d.label.slice(0, 3))}</i>`).join("")}</div>
+      <div class="blk"><small></small><b></b></div>
+      <div class="meters">${meterHTML()}</div>
+      <button class="ff" aria-label="Acelerar">\u23E9<kbd>F</kbd></button>`;
+      e.querySelector(".ff").onclick = () => this.toggle();
+      this._key = (ev) => ev.code === "KeyF" && this.toggle();
+      addEventListener("keydown", this._key);
+      ui.root.appendChild(e);
+      this.tags = /* @__PURE__ */ new Map();
+      this.update();
+    }
+    toggle() {
+      this.speed = this.speed > 1 ? 1 : 3;
+      this.el.querySelector(".ff").classList.toggle("on", this.speed > 1);
+    }
+    day(key, small, big) {
+      let past = true;
+      for (const i of this.el.querySelectorAll(".rib i")) {
+        const now = i.dataset.k === key;
+        if (now) past = false;
+        i.classList.toggle("now", now);
+        i.classList.toggle("past", past && !now);
+      }
+      this.el.querySelector(".blk small").textContent = small || "";
+      this.el.querySelector(".blk b").textContent = big || "";
+    }
+    update(delta) {
+      setMeters(this.el, this.week.stats());
+      if (delta) popMeters(this.el, delta);
+    }
+    // labels over men's heads (the game HUD is hidden in this mode)
+    tag(key, s, text, cls = "") {
+      let t = this.tags.get(key);
+      if (!t) {
+        t = { el: document.createElement("div"), s };
+        t.el.className = "wtag " + cls;
+        this.el.appendChild(t.el);
+        this.tags.set(key, t);
+      }
+      t.s = s;
+      t.el.className = "wtag " + cls;
+      t.el.textContent = text;
+    }
+    untag(key) {
+      const t = this.tags.get(key);
+      if (t) t.el.remove();
+      this.tags.delete(key);
+    }
+    clearTags() {
+      for (const k of [...this.tags.keys()]) this.untag(k);
+    }
+    placeTags(G) {
+      for (const t of this.tags.values()) {
+        const [x, y] = G.project(t.s.x, t.s.y + 2.15, t.s.z);
+        t.el.style.left = x.toFixed(0) + "px";
+        t.el.style.top = y.toFixed(0) + "px";
+      }
+    }
+    remove() {
+      removeEventListener("keydown", this._key);
+      this.el.remove();
+    }
+  };
+
+  // src/engine/camp-audio.js
+  var H = { g: 392, c: 523.25, e: 659.25, G: 783.99, C: 1046.5 };
+  var CALLS = {
+    // first bars of Reveille
+    diana: [["g", 0.5], ["c", 0.5], ["e", 0.5], ["c", 0.5], ["g", 0.5], ["c", 0.5], ["e", 1], ["c", 0.5], ["e", 0.5], ["G", 0.5], ["e", 0.5], ["c", 1.5]],
+    // Mess call (shortened)
+    rancho: [["G", 0.5], ["G", 0.5], ["e", 0.5], ["c", 0.5], ["G", 0.5], ["G", 0.5], ["e", 1], ["c", 0.5], ["e", 0.5], ["G", 1.5]],
+    // Taps
+    retreta: [["g", 0.75], ["g", 0.25], ["c", 2], ["g", 0.75], ["c", 0.25], ["e", 2], ["g", 0.5], ["c", 0.5], ["e", 1], ["g", 0.5], ["c", 0.5], ["e", 1], ["c", 0.5], ["e", 0.5], ["G", 2.5]],
+    // Assembly (formar)
+    formar: [["c", 0.5], ["c", 0.5], ["e", 0.5], ["G", 0.5], ["e", 0.5], ["c", 0.5], ["g", 1.5]]
+  };
+  function bugle(audio, kind = "diana", { x, z, bpm = 112 } = {}) {
+    if (!audio.on || !CALLS[kind]) return 0;
+    const c = audio.ctx;
+    const p = x !== void 0 ? audio._pos(x, z) : { d: 30, pan: -0.3 };
+    const out = audio._out(Math.max(18, p.d), p.pan);
+    const spb = 60 / bpm;
+    let t = c.currentTime + 0.05;
+    for (const [n, beats] of CALLS[kind]) {
+      const f = H[n], dur = beats * spb;
+      const o = c.createOscillator();
+      o.type = "sawtooth";
+      o.frequency.setValueAtTime(f * 0.985, t);
+      o.frequency.exponentialRampToValueAtTime(f, t + 0.04);
+      const vib = c.createOscillator();
+      vib.frequency.value = 5.2;
+      const vg = c.createGain();
+      vg.gain.value = dur > 0.6 ? f * 6e-3 : 0;
+      vib.connect(vg).connect(o.frequency);
+      const lp = c.createBiquadFilter();
+      lp.type = "lowpass";
+      lp.Q.value = 1.2;
+      lp.frequency.setValueAtTime(900, t);
+      lp.frequency.exponentialRampToValueAtTime(f * 4.2, t + 0.05);
+      lp.frequency.exponentialRampToValueAtTime(f * 2.6, t + dur);
+      const g = c.createGain();
+      g.gain.setValueAtTime(1e-4, t);
+      g.gain.exponentialRampToValueAtTime(0.12, t + 0.03);
+      g.gain.setValueAtTime(0.1, t + dur * 0.75);
+      g.gain.exponentialRampToValueAtTime(1e-4, t + dur * 0.98);
+      o.connect(lp).connect(g).connect(out);
+      o.start(t);
+      vib.start(t);
+      o.stop(t + dur + 0.05);
+      vib.stop(t + dur + 0.05);
+      t += dur;
+    }
+    return t - c.currentTime;
+  }
+  function stamp(audio) {
+    if (!audio.on) return;
+    const o = audio._out(0, 0.05);
+    const t = audio.ctx.currentTime;
+    audio._tone(o, t, 0.12, 120, { f1: 55, gain: 0.5, attack: 2e-3 });
+    audio._noise(o, t, 0.09, { type: "lowpass", f0: 900, gain: 0.3 });
+    audio._noise(o, t + 0.01, 0.05, { type: "bandpass", f0: 2600, q: 1.5, gain: 0.06 });
+  }
+  function typewriter(audio, n = 14) {
+    if (!audio.on) return;
+    const o = audio._out(0, -0.1);
+    let t = audio.ctx.currentTime + 0.02;
+    for (let i = 0; i < n; i++) {
+      audio._noise(o, t, 0.035, { type: "bandpass", f0: 2200 + Math.random() * 900, q: 2.5, gain: 0.16 });
+      audio._tone(o, t, 0.03, 180 + Math.random() * 40, { gain: 0.08 });
+      t += 0.07 + Math.random() * 0.09 + (Math.random() < 0.15 ? 0.15 : 0);
+    }
+    audio._tone(o, t + 0.05, 0.6, 2350, { gain: 0.05 });
+    audio._noise(o, t + 0.12, 0.22, { type: "bandpass", f0: 1400, f1: 700, q: 1, gain: 0.08 });
+  }
+  function shovel(audio, x, z) {
+    if (!audio.on) return;
+    const p = audio._pos(x, z);
+    const o = audio._out(p.d, p.pan);
+    const t = audio.ctx.currentTime;
+    audio._noise(o, t, 0.16, { type: "bandpass", f0: 1800, f1: 700, q: 1.2, gain: 0.14 });
+    audio._noise(o, t + 0.2, 0.25, { type: "lowpass", f0: 500, gain: 0.12 });
+  }
+  var COUNT = [[["u", 0.12], ["o", 0.16, 1800]], [["o", 0.2, 2400]], [["e", 0.2, 1300]], [["u", 0.1, 2400], ["a", 0.1, 1300], ["o", 0.14, 2400]]];
+  function count(audio, i, { x, z, n = 10 } = {}) {
+    if (!audio.on) return;
+    audio.say(COUNT[i % 4], { x, z, voices: n, pitch: 140, gain: 0.2, spread: 0.015 });
+  }
+
+  // src/chapters/currahee/semana-data.js
+  var ACTS = {
+    // ---- Sobel's mornings
+    currahee: { label: "Currahee", icon: "\u25B2", fx: { fit: 0.9, fatigue: 12, morale: -1 }, line: "Tres millas arriba, tres abajo." },
+    pista: { label: "Pista", long: "Pista de obst\xE1culos", icon: "\u229E", fx: { fit: 1, fatigue: 10, morale: -1 }, line: "Muros, cuerdas y alambre. Y otra vez." },
+    calWin: { label: "Calistenia", icon: "\u2723", fx: { fit: 1, fatigue: 7 }, line: "La dirige el teniente Winters." },
+    inspeccion: { label: "Inspecci\xF3n", icon: "\u25C9", fx: {}, line: "Sobel pasa revista." },
+    pases: { label: "Pases", icon: "\u2709", fx: {}, line: "Fin de semana." },
+    prueba: { label: "Prueba f\xEDsica", icon: "\u2723", fx: { fit: 0.4, fatigue: 5 }, line: "Treinta flexiones. Para todos." },
+    // ---- the player's afternoons
+    calistenia: { label: "Calistenia", icon: "\u2723", hint: "Forma \u2191\u2191 \xB7 cansa mucho", fx: { fit: 2.8, fatigue: 10, morale: -1 } },
+    armas: { label: "Armas y t\xE1ctica", icon: "\u2316", hint: "Punter\xEDa y mando \u2191 \xB7 cansa poco", fx: { aim: 2.2, lead: 1.2, fit: 0.2, fatigue: 4 } },
+    taquillas: { label: "Preparar la inspecci\xF3n", icon: "\u25A4", hint: "Orden \u2191\u2191 \xB7 los hombres refunfu\xF1an", fx: { order: 24, fatigue: 3, morale: -2 } },
+    descanso: { label: "Descanso", icon: "\u263E", hint: "Fatiga \u2193\u2193 \xB7 se desordena el barrac\xF3n", fx: { fatigue: -16, morale: 3, order: -5 } },
+    hombres: { label: "Con los hombres", icon: "\u2042", hint: "Moral \u2191 \xB7 lazos con Winters", fx: { morale: 5, fatigue: -4 } }
+  };
+  var CHOICES = ["calistenia", "armas", "taquillas", "descanso", "hombres"];
+  var F = "free";
+  var WEEK1 = [
+    { key: "lun", label: "Lunes", short: "Lun", am: { act: "currahee", fixed: true }, pm: F },
+    { key: "mar", label: "Martes", short: "Mar", am: { act: "calWin", fixed: true, by: "WINTERS" }, pm: F },
+    { key: "mie", label: "Mi\xE9rcoles", short: "Mi\xE9", am: { act: "currahee", fixed: true }, pm: F },
+    { key: "jue", label: "Jueves", short: "Jue", am: { act: "pista", fixed: true }, pm: F },
+    { key: "vie", label: "Viernes", short: "Vie", am: { act: "currahee", fixed: true }, pm: F },
+    { key: "sab", label: "S\xE1bado", short: "S\xE1b", am: { act: "inspeccion", fixed: true }, pm: { act: "pases", fixed: true }, noNight: true }
+  ];
+  var WEEK2 = [
+    { key: "lun", label: "Lunes", short: "Lun", am: { act: "currahee", fixed: true }, pm: F },
+    { key: "mar", label: "Martes", short: "Mar", am: { act: "pista", fixed: true }, pm: F },
+    { key: "mie", label: "Mi\xE9rcoles", short: "Mi\xE9", am: { act: "currahee", fixed: true }, pm: F, night: "marcha" },
+    { key: "jue", label: "Jueves", short: "Jue", am: { act: "prueba", fixed: true }, pm: F }
+  ];
+  var CHATTER = {
+    calistenia: [["Winters", "\xA1Arriba esos brazos! \xA1Otra serie!"], ["", "(un recluta) Me tiemblan hasta las orejas."], ["Winters", "Respirad. Cuatro m\xE1s."]],
+    armas: [["Winters", "Desmontad el M1. Con los ojos cerrados. Otra vez."], ["", "(un recluta) \xBFY este muelle de d\xF3nde ha salido?"], ["Winters", "Norte es donde apunta la aguja, no donde os apetece."]],
+    taquillas: [["", "Sobel encontrar\xE1 polvo hasta en el cielo."], ["", "Saca brillo a esa bota, que el s\xE1bado est\xE1 cerca."], ["", "Las mantas tensas. Que rebote una moneda."]],
+    descanso: [["", "Por fin, sombra."], ["", "Escr\xEDbele a tu madre, que lleva dos cartas sin respuesta."], ["", "Cinco minutos m\xE1s. Solo cinco."]],
+    hombres: [],
+    away: [["", "(un recluta) \xBFY el teniente Winters?"], ["", "Sobel lo ha mandado a las letrinas. Otra vez."]]
+  };
+  var TALK = {
+    lipton: "Mi padre muri\xF3 cuando yo era un cr\xEDo, mi teniente. Aqu\xED siento que tengo familia otra vez.",
+    guarnere: "En el sur de Filadelfia nadie me hablaba as\xED y se iba de rositas. Pero me quedo. Quiero esas alas.",
+    malarkey: "Astoria huele a salm\xF3n y a lluvia. Aqu\xED todo huele a arcilla roja.",
+    toye: "Que me ponga Sobel otra monta\xF1a. Me la subo.",
+    muck: "Malarkey dice que la paga extra es para unas botas. Yo digo que para cerveza.",
+    tipper: "Perd\xED la apuesta, mi teniente. Currahee no fue lo \xFAltimo. Fue lo primero.",
+    christenson: "Le he hecho un dibujo a Sobel. No se lo ense\xF1e a nadie.",
+    gordon: "De momento, mi guerra es con ese hombre. Los alemanes pueden esperar.",
+    wynn: "Si un d\xEDa me pierdo en una marcha, no me busque muy deprisa.",
+    martin: "Cumplo, mi teniente. No me pida que encima sonr\xEDa.",
+    talbert: "Los chicos le escuchan a usted, mi teniente. A \xE9l lo obedecen. No es lo mismo."
+  };
+
+  // src/chapters/currahee/semana.js
+  var NAMED2 = ["lipton", "guarnere", "malarkey", "toye", "muck", "tipper", "christenson", "gordon", "wynn", "martin", "talbert"];
+  var FACE_CAM = ANG_RIGHT + Math.PI / 2;
+  var FACE_UP = FACE_CAM + Math.PI;
+  var POSES = ["jack", "push", "salute", "dig", "sit", "heal"];
+  var Camp = class {
+    constructor(ctx, hud2) {
+      const { G, shell: shell2, roster } = ctx;
+      this.ctx = ctx;
+      this.G = G;
+      this.hud = hud2;
+      this.clock = 0;
+      this.dph = 0;
+      this.r = rng(31 + (ctx.flags.weekN || 0));
+      G.soldiers.slice().forEach((s) => s.remove());
+      G.soldiers = [];
+      G.player = null;
+      const ids = NAMED2.concat(roster.activeRecruits().map((x) => x.id));
+      this.men = ids.map((id, i) => {
+        const c = cast(id) || roster.get(id);
+        const s = G.add({ id, name: c.name, short: c.short, side: "us", kit: "hbt", weapon: "none", skin: c.skin, mustache: c.mustache, seed: 200 + i });
+        s.named = !!cast(id);
+        s.st.phase = this.r() * 6;
+        s._off = this.r() * 0.25;
+        return s;
+      });
+      const mk = (id, seed, extra = {}) => {
+        const c = cast(id);
+        return G.add({ id, name: c.name, short: c.short, side: "us", kit: "hbt", rankKey: "lt", weapon: "none", skin: c.skin, seed, ...extra });
+      };
+      this.win = mk("winters", 1);
+      this.sobel = mk("sobel", 7);
+      this.extras = [];
+      this.moves = /* @__PURE__ */ new Map();
+      this.cam = { x: G.cam.x, z: G.cam.z };
+      this.off = shell2.hook((dt) => this.tick(dt));
+    }
+    get speed() {
+      return this.hud ? this.hud.speed : 1;
+    }
+    tick(dt) {
+      if (dt <= 0) return;
+      const G = this.G, sp = this.speed;
+      this.clock += dt * sp;
+      for (const [s, m] of this.moves) {
+        if (G.moveTo(s, m.x, m.z, dt * sp, m.k, 0.12)) {
+          s.st.move = 0;
+          if (m.ry != null) s.ry = m.ry;
+          this.moves.delete(s);
+          m.res();
+        }
+      }
+      this.dph += dt * sp * 5.2;
+      for (const s of this.G.soldiers) if (s.st.jack || s.st.push || s.st.dig) s.st.dph = this.dph * (s._rate || 1) - (s._off || 0);
+      G.cam.x = damp(G.cam.x, this.cam.x, 1.4, dt);
+      G.cam.z = damp(G.cam.z, this.cam.z, 1.4, dt);
+      this.hud && this.hud.placeTags(G);
+    }
+    wait(sec) {
+      const end = this.clock + sec;
+      return this.G.until(() => this.clock >= end);
+    }
+    look(u, v, span) {
+      const [x, z] = W(u, v);
+      this.cam.x = x;
+      this.cam.z = z;
+      if (Math.hypot(x - this.G.cam.x, z - this.G.cam.z) > 18) {
+        this.G.cam.x = x;
+        this.G.cam.z = z;
+      }
+      if (span) this.G.camSpan = span;
+    }
+    place(s, u, v, ry = FACE_CAM) {
+      const [x, z] = W(u, v);
+      s.x = x;
+      s.z = z;
+      s.y = this.G.world.height(x, z);
+      s.ry = ry;
+      s.st.move = 0;
+      this.moves.delete(s);
+      this.show([s], true);
+    }
+    walk(s, u, v, { k = 0.45, ry = null } = {}) {
+      const [x, z] = W(u, v);
+      this.show([s], true);
+      return new Promise((res) => this.moves.set(s, { x, z, k, ry, res }));
+    }
+    pose(list, st = {}) {
+      for (const s of list) {
+        for (const p of POSES) s.st[p] = 0;
+        s.proneLock = false;
+        Object.assign(s.st, st);
+        if (st.prone) s.proneLock = true;
+      }
+    }
+    show(list, on) {
+      for (const s of list) {
+        s.a.root.visible = on;
+        if (s.blob) s.blob.visible = on;
+      }
+    }
+    everyone() {
+      return this.men.concat([this.win, this.sobel], this.extras);
+    }
+    // the platoon in ranks of eight on the parade ground, facing the camera
+    ranks(list = this.men, u0 = -82, v0 = 3.4) {
+      list.forEach((s, i) => this.place(s, u0 + i % 8 * 1.9, v0 - Math.floor(i / 8) * 2.7, FACE_CAM));
+    }
+    scatter(list, u0, u1, v0, v1, ry) {
+      for (const s of list) this.place(s, u0 + this.r() * (u1 - u0), v0 + this.r() * (v1 - v0), ry ?? this.r() * 6.28);
+    }
+    pick(list) {
+      return list[Math.floor(this.r() * list.length)];
+    }
+    // a line from a random man (only at normal speed: fast-forward skips the chatter)
+    chat(lines) {
+      if (this.speed > 1 || !lines?.length) return;
+      const [who, text] = this.pick(lines);
+      this.ctx.ui.say(who || this.pick(this.men.filter((s) => s.named)).short, text, 2.4);
+    }
+    remove() {
+      this.off();
+      this.moves.clear();
+      this.pose(this.everyone());
+      this.show(this.everyone(), true);
+    }
+  };
+  async function calisthenics(camp, { leader = true } = {}) {
+    const { audio } = camp.ctx;
+    camp.ranks();
+    camp.pose(camp.men, { jack: 1 });
+    camp.place(camp.win, -75.3, -5.2, FACE_UP);
+    camp.pose([camp.win], { jack: leader ? 1 : 0 });
+    camp.show([camp.win], leader);
+    camp.show([camp.sobel], false);
+    camp.look(-75, 0, 15);
+    let last = -1;
+    const off = camp.ctx.shell.hook(() => {
+      const beat = Math.floor(camp.dph / Math.PI);
+      if (beat !== last) {
+        last = beat;
+        if (camp.speed === 1) count(audio, beat, { ...xz(-75, 0), n: 8 });
+      }
+    });
+    return () => {
+      off();
+      camp.pose(camp.men.concat(camp.win));
+    };
+  }
+  var xz = (u, v) => {
+    const [x, z] = W(u, v);
+    return { x, z };
+  };
+  async function afternoon(camp, act, away) {
+    const { ui, roster } = camp.ctx;
+    const men = camp.men;
+    camp.pose(camp.everyone());
+    camp.show([camp.sobel], false);
+    camp.show([camp.win], !away);
+    let stop = () => {
+    };
+    if (act === "calistenia") stop = await calisthenics(camp, { leader: !away });
+    else if (act === "armas") {
+      men.forEach((s, i) => camp.place(s, -80 + i % 12 * 1.3, -10 - Math.floor(i / 12) * 1.6, FACE_UP));
+      camp.pose(men, { sit: 1, heal: 0.6 });
+      camp.place(camp.win, -73, -6.2, FACE_CAM);
+      camp.look(-73, -9, 13);
+    } else if (act === "taquillas") {
+      men.forEach((s, i) => camp.place(s, -82 + i % 12 * 2.4 + camp.r() * 0.5, 15.5 + Math.floor(i / 12) * 1.4, FACE_CAM + (camp.r() - 0.5)));
+      camp.pose(men, { heal: 1 });
+      men.filter((_, i) => i % 3 === 0).forEach((s) => camp.pose([s], { sit: 1, heal: 1 }));
+      camp.place(camp.win, -70, 12.5, FACE_UP);
+      camp.look(-70, 12.5, 14);
+    } else if (act === "descanso") {
+      camp.scatter(men, -86, -56, 13, 17.5);
+      men.forEach((s, i) => camp.pose([s], i % 4 === 0 ? { prone: 1 } : { sit: 1 }));
+      camp.place(camp.win, -66, 13, FACE_CAM);
+      camp.pose([camp.win], { sit: 1 });
+      camp.look(-70, 12.5, 15);
+    } else if (act === "hombres") {
+      const ring = men.filter((s) => s.named).sort(() => camp.r() - 0.5).slice(0, 5);
+      const rest = men.filter((s) => !ring.includes(s));
+      camp.scatter(rest, -86, -60, 13, 17.5);
+      camp.pose(rest, { sit: 1 });
+      ring.forEach((s, i) => {
+        const a = i / ring.length * Math.PI * 2;
+        camp.place(s, -58 + Math.cos(a) * 2.2, -9 + Math.sin(a) * 2.2);
+        s.face(...W(-58, -9), 1, 1);
+      });
+      camp.pose(ring, { sit: 1 });
+      camp.place(camp.win, -58, -9);
+      camp.win.face(...W(-58, -12), 1, 1);
+      camp.look(-60, -6, 11);
+      const talker = ring.find((s) => TALK[s.id]);
+      for (const s of ring) roster.bond("winters", s.id, 5);
+      if (talker) {
+        await camp.wait(0.8);
+        ui.say(talker.short, TALK[talker.id], 4);
+        if (camp.speed === 1) await camp.ctx.G.until(() => !ui.talking);
+      }
+    }
+    if (away) camp.show([camp.win], false);
+    if (away) camp.chat(CHATTER.away);
+    else camp.chat(CHATTER[act]);
+    return stop;
+  }
+  async function morningAway(camp, act) {
+    const { audio } = camp.ctx;
+    camp.show(camp.everyone(), false);
+    if (act === "currahee") {
+      camp.look(-30, 2, 22);
+      if (camp.speed === 1) setTimeout(() => audio.chant("currahee", 10, ...W(40, 0)), 900);
+    } else camp.look(-104, 26, 16);
+  }
+  async function sink(camp, week) {
+    const { G, ui, roster, flags } = camp.ctx;
+    const sc = { id: "sink", name: "Cor. Robert Sink", short: "Sink", skin: 14065792 };
+    const s = G.add({ ...sc, side: "us", kit: "hbt", rankKey: "lt", weapon: "none", seed: 9 });
+    camp.extras.push(s);
+    camp.place(s, -86, 9, FACE_CAM);
+    await camp.walk(s, -80.5, -7.2, { k: 0.5 });
+    s.face(camp.win.x, camp.win.z, 1, 1);
+    await camp.wait(1.2);
+    camp.pose([camp.win]);
+    camp.win.face(s.x, s.z, 1, 1);
+    await G.lines([
+      ["Sink", "Teniente, \xBFcu\xE1ntas veces ha hecho ejercicios de calistenia esta compa\xF1\xEDa?", 3.4],
+      ["Winters", "Tres veces, se\xF1or.", 1.8],
+      ["Sink", "Muchas gracias.", 1.6]
+    ]);
+    camp.walk(s, -90, 26, { k: 0.4 }).then(() => camp.show([s], false));
+    await camp.wait(1);
+    await ui.card({
+      kicker: "Toccoa \xB7 Unos d\xEDas m\xE1s tarde",
+      title: "Teniente primero",
+      text: "Sin consultarlo con Sobel, el coronel Sink asciende a Winters a teniente primero.\n\nDesde aquel d\xEDa, Winters es para Sobel un hombre marcado. El jefe de la compa\xF1\xEDa le dar\xE1 todos los trabajos sucios que encuentre.",
+      next: "Seguir"
+    });
+    camp.ctx.audio.paper();
+    roster.tension(15);
+    flags.firstLt = true;
+    camp.hud.update({ sobel: 15 });
+  }
+  async function dirtyJob(camp, week, day, what) {
+    const { ui, audio, roster } = camp.ctx;
+    typewriter(audio, 22);
+    await ui.card({
+      kicker: "Compa\xF1\xEDa E \xB7 Orden del d\xEDa",
+      title: "Asunto: servicio",
+      text: `1. El teniente R. D. Winters ${what} esta tarde (${day.label.toLowerCase()}).
+
+H. M. Sobel, teniente primero, jefe de la compa\xF1\xEDa.`,
+      next: "A la orden",
+      cls: "order"
+    });
+    stamp(audio);
+    week.away[day.key] = true;
+    roster.tension(4);
+    camp.hud.update({ sobel: 4 });
+  }
+  async function pushups(camp) {
+    const { ui } = camp.ctx;
+    const vis = camp.men.filter((s2) => s2.a.root.visible);
+    const s = camp.pick(vis.filter((x) => x.named)) || vis[0];
+    if (!s) return;
+    camp.show([camp.sobel], true);
+    camp.place(camp.sobel, UV2(s).u - 1.2, UV2(s).v - 1.4, FACE_UP);
+    camp.sobel.face(s.x, s.z, 1, 1);
+    ui.say("Sobel", `\xA1${s.short}! \xBFEso es lo que usted llama firmes? \xA1Veinte flexiones!`, 2.6);
+    await camp.wait(1.2);
+    camp.pose([s], { push: 1 });
+    s._rate = 0.8;
+    camp.hud.tag("push", s, "20 flexiones");
+    await camp.wait(3.2);
+    camp.pose([s]);
+    s._rate = 1;
+    camp.hud.untag("push");
+    camp.show([camp.sobel], false);
+    camp.ctx.roster.mood(s.id, -3);
+  }
+  var UV2 = (s) => {
+    const [u, v] = UV(s.x, s.z);
+    return { u, v };
+  };
+  async function inspection(camp, week) {
+    const { G, ui, audio, roster, music } = camp.ctx;
+    camp.ranks();
+    camp.pose(camp.everyone());
+    camp.place(camp.win, -84.5, -5.2, FACE_UP + 0.5);
+    camp.pose([camp.win], { salute: 0 });
+    camp.place(camp.sobel, -86, -3.6, ANG_RIGHT);
+    camp.look(-80, 0, 13);
+    music.intensity(0.08);
+    audio.duck(30, 0.25, 0.8);
+    await ui.chapter("S\xE1bado \xB7 08:00", "Inspecci\xF3n", "Sobel pasa revista.", 2600);
+    const order = week.state.order;
+    const ears = 3 + (camp.r() < 0.5 ? 1 : 0);
+    const lockers = Math.round(clamp((72 - order) / 72, 0, 1) * 6);
+    const pool = camp.men.slice().sort(() => camp.r() - 0.5);
+    const denied = pool.slice(0, ears + lockers);
+    const reason = new Map(denied.map((s, i) => [s, i < ears ? "ears" : "locker"]));
+    const stops = camp.men.filter((s) => reason.has(s));
+    stops.forEach((s, i) => reason.set(s, i < ears ? "ears" : "locker"));
+    let interceded = false;
+    const pleaFor = stops.find((s) => reason.get(s) === "locker") || stops[stops.length - 1];
+    for (const s of stops) {
+      const { u, v } = UV2(s);
+      await camp.walk(camp.sobel, u, v - 1.15, { k: 0.6 });
+      camp.sobel.face(s.x, s.z, 1, 1);
+      camp.look(u, v, 12);
+      await camp.wait(0.4);
+      const why = reason.get(s) === "ears" ? "\xA1Orejas sucias!" : "\xA1Taquilla sucia!";
+      ui.say("Sobel", `${why} ${s.short}, sin pase este fin de semana.`, 2.2);
+      stamp(audio);
+      camp.hud.tag("d" + s.id, s, "Sin pase", "no");
+      roster.mood(s.id, -8);
+      await camp.wait(1.1);
+      if (!interceded && s === pleaFor) {
+        interceded = true;
+        const v2 = await ui.card({
+          kicker: "Inspecci\xF3n",
+          title: `Sobel apunta a ${s.short}`,
+          text: reason.get(s) === "locker" ? `Viste a ${s.short} anoche con la taquilla en orden. Sobel ya ha decidido.` : `${s.short} se lav\xF3 esta ma\xF1ana; lo viste en las duchas. Sobel ya ha decidido.`,
+          choices: [
+            { label: "Interceder", sub: "Hablar por \xE9l delante de la compa\xF1\xEDa. Sobel no ceder\xE1, pero los hombres lo ver\xE1n.", value: "speak" },
+            { label: "Callar", sub: "Es in\xFAtil discutir con \xE9l delante de la compa\xF1\xEDa.", value: "quiet" }
+          ]
+        });
+        audio.pencil();
+        if (v2 === "speak") {
+          await G.lines([
+            ["Winters", reason.get(s) === "locker" ? `Mi teniente, la taquilla de ${s.short} estaba en orden. Lo comprob\xE9 anoche.` : `Mi teniente, ${s.short} se lav\xF3 esta ma\xF1ana. Lo vi yo mismo.`, 2.8],
+            ["Sobel", "\xBFDiscute usted mis \xF3rdenes delante de la compa\xF1\xEDa, teniente? Sin pase. Y usted, tome nota.", 3.2]
+          ]);
+          roster.tension(8);
+          roster.mood(s.id, 10);
+          roster.bond("winters", s.id, 10);
+          for (const m of camp.men) roster.mood(m.id, 2);
+          camp.hud.update({ sobel: 8, moral: 2 });
+        } else {
+          roster.mood(s.id, -4);
+          camp.hud.update();
+        }
+      }
+    }
+    await camp.walk(camp.sobel, -66, -3.6, { k: 0.6 });
+    audio.whistle(camp.sobel.x, camp.sobel.z, false);
+    ui.say("Sobel", "\xA1Rompan filas!", 1.6);
+    await camp.wait(1.8);
+    camp.hud.clearTags();
+    music.intensity(0.35);
+    return denied;
+  }
+  async function weekend(camp, week, denied) {
+    const { ui, roster, flags } = camp.ctx;
+    const out = camp.men.filter((s) => !denied.includes(s));
+    for (const s of out) {
+      roster.mood(s.id, 6);
+      roster.rest(s.id, 20);
+    }
+    for (const s of denied) roster.rest(s.id, 12);
+    roster.rest("winters", 12);
+    const late = out.filter((s) => !s.named || camp.r() < 0.3).sort((a, b) => (roster.get(b.id).morale || 0) - (roster.get(a.id).morale || 0))[0];
+    flags.late = late && camp.r() < 0.75 ? late.id : null;
+    const lateS = flags.late ? camp.men.find((s) => s.id === flags.late) : null;
+    await ui.card({
+      kicker: "S\xE1bado por la tarde \xB7 Domingo",
+      title: "Pases de fin de semana",
+      text: [
+        `${out.length} hombres del pelot\xF3n salen de pase hacia Toccoa: un batido en la farmacia, una pel\xEDcula, una carta echada al correo. ${denied.length} se quedan en el barrac\xF3n por orden de Sobel.`,
+        lateS ? `El domingo por la noche, ${lateS.short} vuelve al campamento con retraso. Sobel lo apunta. Ma\xF1ana lo pagar\xE1.` : "El domingo por la noche, todos vuelven a su hora. Sobel lo comprueba igualmente."
+      ],
+      next: "Seguir"
+    });
+    camp.ctx.audio.paper();
+  }
+  async function hole(camp, id) {
+    const { ui, audio, roster } = camp.ctx;
+    const s = camp.men.find((m) => m.id === id);
+    if (!s) return;
+    camp.show(camp.everyone(), false);
+    camp.place(s, -58, 9, FACE_CAM);
+    camp.place(camp.sobel, -60.5, 7, FACE_CAM);
+    camp.sobel.face(s.x, s.z, 1, 1);
+    camp.pose([s], { dig: 1 });
+    camp.look(-59, 8, 10);
+    ui.say("Sobel", `Seis pies por seis por seis, ${s.short}. Con su herramienta de trinchera.`, 3);
+    for (let i = 0; i < 5; i++) {
+      shovel(audio, s.x, s.z);
+      await camp.wait(0.9);
+    }
+    ui.say("Sobel", "Bien. Ahora, rell\xE9nelo.", 2.2);
+    for (let i = 0; i < 3; i++) {
+      shovel(audio, s.x, s.z);
+      await camp.wait(0.9);
+    }
+    camp.pose([s]);
+    roster.mood(s.id, -10);
+    roster.tire(s.id, 15);
+  }
+  async function nightMarch(camp, week) {
+    const { ui, audio, roster } = camp.ctx;
+    bugle(audio, "retreta");
+    await ui.fade(true, 1200);
+    audio.cricket();
+    const v = await ui.card({
+      kicker: "Mi\xE9rcoles \xB7 21:00",
+      title: "La primera marcha nocturna",
+      text: "Dieciocho kil\xF3metros con el equipo completo. Sin descansos, sin cigarrillos y sin agua. Al llegar, Sobel comprobar\xE1 que cada cantimplora siga llena.",
+      choices: [
+        { label: "Cumplir la orden", sub: "Nadie bebe. Llegar\xE1n destrozados, pero con las cantimploras llenas.", value: "order" },
+        { label: "Hacer la vista gorda", sub: "Un trago a escondidas para los que no pueden m\xE1s. Si Sobel lo nota, lo pagar\xE1 el pelot\xF3n.", value: "drink" }
+      ]
+    });
+    audio.pencil();
+    let text;
+    if (v === "order") {
+      week.nudge({ fatigue: 14, morale: -3 });
+      roster.tension(-2);
+      text = "Llegan al amanecer arrastrando los pies. Sobel desenrosca las cantimploras una por una. Todas llenas. No dice nada.";
+    } else {
+      week.nudge({ fatigue: 8, morale: 3 });
+      const caught = camp.r() < 0.45 + (roster.d.company.sobelTension - 40) / 120;
+      if (caught) {
+        week.nudge({ fatigue: 10, morale: -6 });
+        roster.tension(6);
+        text = "Sobel sopesa una cantimplora, la vac\xEDa sobre la arcilla y ordena dos horas de marcha con la mochila cargada en el campo de revista. Para todo el pelot\xF3n.";
+      } else text = "Las cantimploras pesan lo justo. Sobel las desenrosca una por una y no encuentra nada. Los hombres no lo olvidan.";
+    }
+    await ui.card({
+      kicker: "Jueves \xB7 Amanecer",
+      title: "Las cantimploras",
+      text,
+      quote: { t: "Est\xE1bamos destrozados, hechos polvo y pens\xE1bamos que si no beb\xEDamos un poco de agua caer\xEDamos fulminados.", src: "Burton \xABPat\xBB Christenson" },
+      next: "Seguir"
+    });
+    audio.paper();
+    await ui.fade(false, 900);
+    camp.hud.update();
+  }
+  async function sobelTest(camp) {
+    const { G, ui, music } = camp.ctx;
+    camp.ranks();
+    camp.pose(camp.everyone());
+    camp.place(camp.sobel, -75.3, -6, FACE_UP);
+    camp.place(camp.win, -86, -4, FACE_UP + 0.6);
+    camp.look(-75, -3, 12);
+    music.intensity(0.06);
+    ui.say("", "Casi todos hacen cuarenta flexiones; la prueba pide treinta. Todos saben que Sobel se detiene siempre en veinte.", 4);
+    await camp.wait(2.5);
+    camp.pose([camp.sobel], { push: 1 });
+    camp.sobel._rate = 0.55;
+    for (const [n, d] of [["Veinte\u2026", 2.2], ["Veinticuatro\u2026 veinticinco\u2026", 2.6], ["\u2026veintiocho\u2026", 2.2], ["\xA1Treinta!", 1.4]]) {
+      ui.sayNow("", n, d);
+      await camp.wait(d);
+      camp.sobel._rate *= 0.82;
+    }
+    camp.pose([camp.sobel]);
+    camp.sobel._rate = 1;
+    await G.lines([
+      ["", "Lo consigue. Nadie sonr\xEDe.", 2.4],
+      ["Tipper", "(en voz baja) Nos consolamos con la idea de que segu\xEDa siendo un cabr\xF3n a pesar de todo.", 3.6]
+    ]);
+    music.intensity(0.35);
+  }
+  async function semana(ctx, n) {
+    const { G, ui, audio, music, roster, flags } = ctx;
+    flags.weekN = n;
+    const days = n === 1 ? WEEK1 : WEEK2;
+    const men = NAMED2.concat(roster.activeRecruits().map((x) => x.id));
+    const week = new Week({ roster, men, lead: "winters", days, acts: ACTS, state: { order: flags.order ?? 40 } });
+    const start = week.stats();
+    const hud2 = { speed: 1, placeTags() {
+    }, update() {
+    }, tag() {
+    }, untag() {
+    }, clearTags() {
+    } };
+    const camp = new Camp(ctx, hud2);
+    camp.scatter(camp.men, -86, -58, 13, 17.5);
+    camp.men.forEach((s, i) => camp.pose([s], i % 3 ? { sit: 1 } : {}));
+    camp.place(camp.win, -70, 10, FACE_CAM);
+    camp.show([camp.sobel], false);
+    camp.look(-72, 12, 16);
+    G.cam.x = camp.cam.x;
+    G.cam.z = camp.cam.z;
+    music.set("camp", 0.32);
+    if (n === 1) {
+      const r1 = flags.run1 || { lost: 0, helped: 0 };
+      await ui.card({
+        kicker: "Toccoa \xB7 La primera semana",
+        title: "Las tardes son tuyas",
+        text: [
+          `Aquel primer d\xEDa la compa\xF1\xEDa perdi\xF3 a varios hombres. ${r1.lost ? `De los reclutas que corr\xEDan contigo, ${r1.lost} ${r1.lost === 1 ? "subi\xF3" : "subieron"} a la ambulancia.` : "De los que corr\xEDan contigo, ninguno subi\xF3 a la ambulancia."} ${r1.helped ? `Volviste por ${r1.helped} ${r1.helped === 1 ? "hombre" : "hombres"}; ellos no lo olvidan.` : ""}`,
+          "Sobel manda la compa\xF1\xEDa y decide las ma\xF1anas: Currahee tres veces por semana, la pista de obst\xE1culos, la instrucci\xF3n. T\xFA mandas un pelot\xF3n. Las tardes son tuyas.\n\nEl s\xE1bado, Sobel pasa revista. Y la forma con que tus hombres lleguen a la pr\xF3xima carrera depende de lo que hagas ahora."
+        ],
+        next: "Planificar la semana"
+      });
+    } else {
+      await ui.card({
+        kicker: "Toccoa \xB7 La segunda semana",
+        title: "Otra semana de Sobel",
+        text: "Ya corren todo el camino de ida y vuelta. El mi\xE9rcoles hay marcha nocturna; el jueves, prueba f\xEDsica para todos, oficiales incluidos.\n\nCuidado con el cansancio: la pr\xF3xima carrera puede llegar antes de lo que esperas.",
+        next: "Planificar la semana"
+      });
+    }
+    audio.paper();
+    const plan = await planWeek(ui, week, {
+      kicker: n === 1 ? "Semana 1 \xB7 Julio de 1942" : "Semana 2 \xB7 Agosto de 1942",
+      title: "El horario del pelot\xF3n",
+      hint: n === 1 ? "Toca una tarde y elige qu\xE9 hace tu pelot\xF3n. La raya blanca de cada medidor marca c\xF3mo acabar\xE1 la semana." : "El mi\xE9rcoles por la noche hay marcha. El cansancio pasa a la pr\xF3xima carrera.",
+      choices: CHOICES,
+      audio
+    });
+    week.plan = plan;
+    const H2 = new WeekHUD(ui, week);
+    camp.hud = H2;
+    window.__week = { week, camp, H: H2 };
+    let denied = [];
+    try {
+      for (const d of days) {
+        if (n === 1 && flags.firstLt && d.key === "mie" && !week.away.mie) await dirtyJob(camp, week, d, "inspeccionar\xE1 las letrinas");
+        if (n === 1 && d.key === "vie" && roster.d.company.sobelTension >= 50) await dirtyJob(camp, week, d, "har\xE1 el servicio de oficial de comedor");
+        if (n === 2 && d.key === "mar" && roster.d.company.sobelTension >= 55) await dirtyJob(camp, week, d, "har\xE1 el servicio de oficial de comedor");
+        for (const half of ["am", "pm"]) {
+          const s = week.slot(d, half);
+          if (!s) continue;
+          const act = s.act, A = ACTS[act];
+          const away = half === "pm" && week.away[d.key];
+          H2.day(d.key, `${d.label} \xB7 ${half === "am" ? "ma\xF1ana" : "tarde"}${away ? " \xB7 Winters de servicio" : ""}`, A.label);
+          if (half === "am" && d.key === "lun" && camp.speed === 1) bugle(audio, "diana");
+          if (half === "am" && act === "inspeccion") {
+            denied = await inspection(camp, week);
+            continue;
+          }
+          if (act === "pases") {
+            await weekend(camp, week, denied);
+            continue;
+          }
+          let stop = () => {
+          };
+          if (act === "calWin") stop = await calisthenics(camp);
+          else if (act === "prueba") await sobelTest(camp);
+          else if (half === "am") await morningAway(camp, act);
+          else stop = await afternoon(camp, act, away);
+          if (A.line && half === "am" && camp.speed === 1 && act !== "prueba") ui.say("", A.line, 2.2);
+          await camp.wait(half === "am" ? 2.4 : 3);
+          H2.update(week.apply(act, away ? 0.6 : 1));
+          if (n === 1 && act === "calWin" && !flags.firstLt) await sink(camp, week);
+          if (n === 1 && d.key === "lun" && half === "pm") await pushups(camp);
+          await camp.wait(half === "am" ? 1.6 : 2.6);
+          stop();
+        }
+        if (n === 2 && d.key === "lun" && flags.late) {
+          H2.day(d.key, "Lunes \xB7 noche", "El hoyo");
+          await hole(camp, flags.late);
+          flags.late = null;
+        }
+        if (d.night === "marcha") {
+          H2.day(d.key, `${d.label} \xB7 noche`, "Marcha nocturna");
+          await nightMarch(camp, week);
+        }
+        if (!d.noNight) {
+          H2.update(week.night());
+          music.intensity(0.25 + week.stats().moral * 3e-3);
+        }
+      }
+    } finally {
+      camp.remove();
+      H2.remove();
+      window.__week = null;
+    }
+    flags.order = week.state.order;
+    const end = week.stats();
+    const rows = [["Forma", "forma"], ["Fatiga", "cansancio"], ["Moral", "moral"], ["Sobel", "sobel"]].map(([l, k]) => `${l}: ${Math.round(start[k])} \u2192 ${Math.round(end[k])}`).join("\n");
+    const tired = end.cansancio > 55 ? "Llegan reventados. Si ahora tocara correr, m\xE1s de uno flaquear\xEDa." : end.cansancio > 30 ? "Cansados, pero enteros." : "Descansados y en forma.";
+    await ui.card({ kicker: n === 1 ? "Fin de la primera semana" : "Jueves por la noche", title: "El pelot\xF3n", text: `${rows}
+
+${tired}`, next: "Seguir" });
+    audio.paper();
+    return { end };
   }
 
   // src/chapters/currahee/chapter.js
@@ -9483,30 +10619,24 @@ void main(){
         }
       },
       {
-        id: "semanas",
-        mode: "narrative",
+        id: "semana-1",
+        mode: "base",
         place: "toccoa",
         bed: "georgia",
-        music: { theme: "camp", level: 0.3 },
+        music: { theme: "camp", level: 0.32 },
         async run(ctx) {
-          const { G, ui, roster, flags, audio } = ctx;
-          muster(G, roster, "hbt");
-          const off = drift(ctx, W(-66, 4), W(-58, 2), 14);
-          G.camSpan = 17;
-          const r1 = flags.run1 || { lost: 0, helped: 0 };
-          const left = roster.activeRecruits().length;
-          await ui.card({
-            kicker: "Toccoa \xB7 La primera semana",
-            title: "Tres millas arriba, tres abajo",
-            text: [
-              `Aquel primer d\xEDa la compa\xF1\xEDa perdi\xF3 a varios hombres. ${r1.lost ? `De los reclutas que corr\xEDan contigo, ${r1.lost} ${r1.lost === 1 ? "subi\xF3" : "subieron"} a la ambulancia.` : "De los que corr\xEDan contigo, ninguno subi\xF3 a la ambulancia."} ${r1.helped ? `Volviste por ${r1.helped} ${r1.helped === 1 ? "hombre" : "hombres"}; ellos no lo olvidar\xE1n.` : ""}`,
-              "Una semana m\xE1s tarde ya corr\xEDan todo el camino de ida y vuelta. Y cada d\xEDa la pista de obst\xE1culos, las flexiones, la instrucci\xF3n en orden cerrado hasta que dol\xEDan los pies.",
-              `Quedan ${left} de los reclutas sin nombre de tu pelot\xF3n. A los hombres les dijeron que Currahee era una palabra india que significaba \xABestar solo\xBB. Se convirti\xF3 en el grito de guerra del 506.\xBA.`
-            ],
-            next: "Seguir"
-          });
-          audio.paper();
-          off();
+          await semana(ctx, 1);
+          return {};
+        }
+      },
+      {
+        id: "semana-2",
+        mode: "base",
+        place: "toccoa",
+        bed: "georgia",
+        music: { theme: "camp", level: 0.32 },
+        async run(ctx) {
+          await semana(ctx, 2);
           return {};
         }
       },
@@ -9714,6 +10844,7 @@ void main(){
         shell.ui.subT = 0;
         shell.ui.sub.classList.add("hidden");
         document.getElementById("runhud")?.remove();
+        document.querySelectorAll(".wkh, .wk").forEach((e) => e.remove());
         delete document.body.dataset.run;
         shell.audio.pauseMix(false);
         title();
@@ -9728,6 +10859,7 @@ void main(){
   if (qs.get("m")) {
     save = freshSave();
     if (qs.get("ate")) save.flags.ate = true;
+    if (qs.get("late")) save.flags.late = qs.get("late");
     shell.audio.init();
     shell.music.start();
     playChapter("currahee", qs.get("m"));

@@ -6153,6 +6153,53 @@ void main(){
       b[Bi.head].rotation.x = 0.35;
       b[Bi.gun].scale.setScalar(1e-3);
     } else b[Bi.gun].scale.setScalar(1);
+    const dp = st.dph ?? p;
+    if (st.jack > 0) {
+      const k2 = st.jack, o = (1 - Math.cos(dp)) / 2;
+      hips.position.y += Math.abs(Math.sin(dp)) * 0.07 * k2;
+      b[Bi.shL].rotation.set(0, 0, lerp(b[Bi.shL].rotation.z, 0.2 + o * 2.7, k2));
+      b[Bi.shR].rotation.set(0, 0, lerp(b[Bi.shR].rotation.z, -0.2 - o * 2.7, k2));
+      b[Bi.elL].rotation.x = lerp(b[Bi.elL].rotation.x, -0.1, k2);
+      b[Bi.elR].rotation.x = lerp(b[Bi.elR].rotation.x, -0.1, k2);
+      b[Bi.thL].rotation.set(0, 0, o * 0.34 * k2);
+      b[Bi.thR].rotation.set(0, 0, -o * 0.34 * k2);
+      b[Bi.knL].rotation.x = b[Bi.knR].rotation.x = 0;
+    }
+    if (st.push > 0) {
+      const k2 = st.push, down = (1 - Math.cos(dp)) / 2;
+      hips.rotation.x = 1.42 * k2;
+      hips.position.y = lerp(hips.position.y, 0.42 - down * 0.17, k2);
+      for (const i of [Bi.thL, Bi.thR, Bi.knL, Bi.knR]) b[i].rotation.x *= 1 - k2;
+      b[Bi.spine].rotation.x = 0;
+      b[Bi.shL].rotation.set(-1.45 * k2 - down * 0.35 * k2, 0, 0.18 * k2);
+      b[Bi.shR].rotation.set(-1.45 * k2 - down * 0.35 * k2, 0, -0.18 * k2);
+      b[Bi.elL].rotation.x = b[Bi.elR].rotation.x = down * 0.9 * k2;
+      b[Bi.head].rotation.x = -1.2 * k2;
+    }
+    if (st.salute > 0) {
+      const k2 = st.salute;
+      b[Bi.shR].rotation.set(lerp(b[Bi.shR].rotation.x, -1.75, k2), 0, lerp(b[Bi.shR].rotation.z, -0.95, k2));
+      b[Bi.elR].rotation.x = lerp(b[Bi.elR].rotation.x, -2.15, k2);
+    }
+    if (st.dig > 0) {
+      const k2 = st.dig, s2 = Math.sin(dp);
+      b[Bi.spine].rotation.x += (0.55 + s2 * 0.2) * k2;
+      b[Bi.shL].rotation.set(lerp(b[Bi.shL].rotation.x, -1 - s2 * 0.6, k2), 0, -0.25 * k2);
+      b[Bi.shR].rotation.set(lerp(b[Bi.shR].rotation.x, -1.1 - s2 * 0.6, k2), 0, 0.25 * k2);
+      b[Bi.elL].rotation.x = b[Bi.elR].rotation.x = -0.4 * k2;
+      b[Bi.thL].rotation.x = -0.35 * k2;
+      b[Bi.knL].rotation.x = 0.5 * k2;
+    }
+    if (st.sit > 0) {
+      const k2 = st.sit;
+      hips.position.y = lerp(hips.position.y, 0.16, k2);
+      b[Bi.thL].rotation.x = b[Bi.thR].rotation.x = -1.35 * k2;
+      b[Bi.knL].rotation.x = b[Bi.knR].rotation.x = 1.9 * k2;
+      b[Bi.spine].rotation.x = 0.25 * k2;
+      b[Bi.shL].rotation.set(-0.9 * k2, 0, -0.1);
+      b[Bi.shR].rotation.set(-0.9 * k2, 0, 0.1);
+      b[Bi.elL].rotation.x = b[Bi.elR].rotation.x = -0.9 * k2;
+    }
     if (st.dead > 0) {
       const d = st.dead;
       hips.position.y = lerp(hips.position.y, 0.16, d);

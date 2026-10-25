@@ -104,7 +104,8 @@ export async function currahee(ctx, opts) {
     const c = cast(id) || roster.get(id);
     const rec = roster.get(id);
     const sol = G.add({ id, name: c.name, short: c.short, side: "us", kit: "pt", weapon: "none", skin: c.skin, mustache: c.mustache, seed: 100 + i, speed: 5.2 });
-    const fit = (rec?.stats?.fit ?? 60) - (rec?.fatigue ?? 0) * 0.25;
+    // the week shows here: tiredness costs, spirit carries (see semana.js)
+    const fit = (rec?.stats?.fit ?? 60) - (rec?.fatigue ?? 0) * 0.22 + ((rec?.morale ?? 60) - 60) * 0.08;
     men.push({ sol, id, named: !!cast(id), fit });
   });
   const sobelC = cast("sobel");

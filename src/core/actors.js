@@ -287,6 +287,59 @@ export function animate(a, st, dt) {
     b[Bi.head].rotation.x = 0.35;
     b[Bi.gun].scale.setScalar(0.001);
   } else b[Bi.gun].scale.setScalar(1);
+  // ---- drill poses (Toccoa): driven by their own clock so a rank can move in unison ------------
+  const dp = st.dph ?? p;
+  // jumping jacks: arms swing from the thighs to over the head, feet jump apart
+  if (st.jack > 0) {
+    const k = st.jack, o = (1 - Math.cos(dp)) / 2; // 0 closed .. 1 open
+    hips.position.y += Math.abs(Math.sin(dp)) * 0.07 * k;
+    b[Bi.shL].rotation.set(0, 0, lerp(b[Bi.shL].rotation.z, 0.2 + o * 2.7, k));
+    b[Bi.shR].rotation.set(0, 0, lerp(b[Bi.shR].rotation.z, -0.2 - o * 2.7, k));
+    b[Bi.elL].rotation.x = lerp(b[Bi.elL].rotation.x, -0.1, k);
+    b[Bi.elR].rotation.x = lerp(b[Bi.elR].rotation.x, -0.1, k);
+    b[Bi.thL].rotation.set(0, 0, o * 0.34 * k);
+    b[Bi.thR].rotation.set(0, 0, -o * 0.34 * k);
+    b[Bi.knL].rotation.x = b[Bi.knR].rotation.x = 0;
+  }
+  // push-ups: body near horizontal, arms straight down to the ground, elbows bending on the count
+  if (st.push > 0) {
+    const k = st.push, down = (1 - Math.cos(dp)) / 2;
+    hips.rotation.x = 1.42 * k;
+    hips.position.y = lerp(hips.position.y, 0.42 - down * 0.17, k);
+    for (const i of [Bi.thL, Bi.thR, Bi.knL, Bi.knR]) b[i].rotation.x *= 1 - k;
+    b[Bi.spine].rotation.x = 0;
+    b[Bi.shL].rotation.set(-1.45 * k - down * 0.35 * k, 0, 0.18 * k);
+    b[Bi.shR].rotation.set(-1.45 * k - down * 0.35 * k, 0, -0.18 * k);
+    b[Bi.elL].rotation.x = b[Bi.elR].rotation.x = down * 0.9 * k;
+    b[Bi.head].rotation.x = -1.2 * k;
+  }
+  // salute: right hand to the brow
+  if (st.salute > 0) {
+    const k = st.salute;
+    b[Bi.shR].rotation.set(lerp(b[Bi.shR].rotation.x, -1.75, k), 0, lerp(b[Bi.shR].rotation.z, -0.95, k));
+    b[Bi.elR].rotation.x = lerp(b[Bi.elR].rotation.x, -2.15, k);
+  }
+  // digging with the entrenching tool: bent over, both arms swinging down and back
+  if (st.dig > 0) {
+    const k = st.dig, s2 = Math.sin(dp);
+    b[Bi.spine].rotation.x += (0.55 + s2 * 0.2) * k;
+    b[Bi.shL].rotation.set(lerp(b[Bi.shL].rotation.x, -1.0 - s2 * 0.6, k), 0, -0.25 * k);
+    b[Bi.shR].rotation.set(lerp(b[Bi.shR].rotation.x, -1.1 - s2 * 0.6, k), 0, 0.25 * k);
+    b[Bi.elL].rotation.x = b[Bi.elR].rotation.x = -0.4 * k;
+    b[Bi.thL].rotation.x = -0.35 * k;
+    b[Bi.knL].rotation.x = 0.5 * k;
+  }
+  // sitting on the ground, knees up, elbows on knees
+  if (st.sit > 0) {
+    const k = st.sit;
+    hips.position.y = lerp(hips.position.y, 0.16, k);
+    b[Bi.thL].rotation.x = b[Bi.thR].rotation.x = -1.35 * k;
+    b[Bi.knL].rotation.x = b[Bi.knR].rotation.x = 1.9 * k;
+    b[Bi.spine].rotation.x = 0.25 * k;
+    b[Bi.shL].rotation.set(-0.9 * k, 0, -0.1);
+    b[Bi.shR].rotation.set(-0.9 * k, 0, 0.1);
+    b[Bi.elL].rotation.x = b[Bi.elR].rotation.x = -0.9 * k;
+  }
   // death: crumple sideways
   if (st.dead > 0) {
     const d = st.dead;

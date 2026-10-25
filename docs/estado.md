@@ -1,5 +1,15 @@
 # Hermanos de Sangre · estado
 
+## Juego unificado · Capítulo I, Currahee (ronda 2: el modo base)
+**La semana en Toccoa** (`core/week.js`, `core/weekui.js`, `chapters/currahee/semana*.js`; diseño en `docs/diseno-semana.md`). Entre la primera carrera y los espaguetis hay dos semanas de campamento:
+- **Planificar:** Sobel fija las mañanas (Currahee, calistenia, pista, inspección) y tú eliges las tardes del pelotón: calistenia, armas y táctica, preparar la inspección, descanso o pasar la tarde con los hombres. Cinco medidores (Forma, Fatiga, Moral, Orden, Sobel) con una raya que marca cómo acabará la semana si nada se tuerce.
+- **Vivir la semana:** la cámara recorre el campamento y el pelotón hace lo que elegiste (calistenia al unísono, sentados con las armas, sacando brillo frente al barracón, a la sombra, en corro con Winters). ⏩ acelera ×3.
+- **Sucesos del libro:** Sink mira la calistenia de Winters y lo asciende sin consultar a Sobel; desde entonces, órdenes escritas a máquina mandan a Winters a las letrinas o al comedor y esa tarde el pelotón rinde menos; veinte flexiones; la inspección del sábado con «orejas sucias» y «taquillas sucias» (puedes interceder; Sobel no cede); los pases; el hoyo de 6 × 6 × 6 pies del que volvió tarde; la primera marcha nocturna sin agua y la revisión de cantimploras (decides si haces la vista gorda); las treinta flexiones de Sobel.
+- **Lo que pasa a la carrera:** la forma de cada hombre menos su fatiga, más su moral, decide quién flaquea en la carrera de los espaguetis. En la simulación, un plan equilibrado deja al pelotón en 75,7 de forma efectiva; solo calistenia, en 61 (llegan reventados); solo descanso, en 72.
+- **Sonido nuevo** (`engine/camp-audio.js`): toques de corneta de armónicos naturales (diana, retreta), sello de goma de Sobel, máquina de escribir de las órdenes, pala, conteo coral de la calistenia; la inspección casi en silencio.
+- **Poses nuevas** de los soldados: saltos de tijera, flexiones, saludo, cavar, sentado.
+- Capturas apaisadas: `docs/capturas/currahee-ronda-2/`.
+
 ## Juego unificado · Capítulo I, Currahee (ronda 1)
 `juego.html` es el comienzo del juego completo: un solo programa que recorre el libro y cambia de modo dentro de cada capítulo, con la misma cámara y sin pantallas de carga.
 

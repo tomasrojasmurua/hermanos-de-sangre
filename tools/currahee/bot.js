@@ -67,3 +67,23 @@ window.__meterStart = function () {
   }, 100);
 };
 window.__meterReport = () => JSON.stringify(Object.fromEntries(Object.entries(window.__meterAcc || {}).map(([k, a]) => [k, { peak: +a.peak.toFixed(1), rms: a.n ? +(a.rmsSum / a.n).toFixed(1) : null, clip: a.clip }])));
+// fills the week planner: a fixed plan (by activity index, cycling) then «Empezar»; ff=true fast-forwards
+window.__autoweek = function (order = [0, 3, 2, 1, 4], ff = false) {
+  setInterval(() => {
+    const w = document.querySelector(".wk");
+    if (w && !w.dataset.bot) {
+      w.dataset.bot = 1;
+      const acts = w.querySelectorAll(".act");
+      let i = 0;
+      const step = () => {
+        const go = w.querySelector(".go");
+        if (!go.disabled) return setTimeout(() => go.click(), 1500);
+        acts[order[i++ % order.length]].click();
+        setTimeout(step, 500);
+      };
+      setTimeout(step, 1500);
+    }
+    const f = document.querySelector(".wkh .ff");
+    if (ff && f && !f.classList.contains("on")) f.click();
+  }, 400);
+};
