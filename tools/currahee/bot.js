@@ -25,7 +25,6 @@ window.__bot = function (mode = "good") {
       inp.mx = (dx * 0.707 - dz * 0.707) * k;
       inp.my = (dx * 0.707 + dz * 0.707) * k;
     }
-    inp.held.sprint = mode === "good" && fl && d > 7 && col.p.stam > 0.45;
     const b = music.breath();
     if (mode === "good" && b.err < 0.08 && !window.__bb) { inp.press("breath"); window.__bb = 1; setTimeout(() => { inp.release("breath"); window.__bb = 0; }, 260); }
   });

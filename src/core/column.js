@@ -192,7 +192,7 @@ export class Column {
     if (this.dir < 0) P.rel = (amb - P.s) / (amb - head || 1);
   }
   // ---- tail mode: the player closes the column. He is driven along the road at the column's pace;
-  // the stick moves him up or back through the column and across the road; a sprint button spends breath.
+  // the stick moves him up or back through the column and across the road; at the rim he runs hard, which costs breath.
   // A man who flags drifts back through the ranks: touch him and he recovers; if he gets behind you,
   // he has passed you (cfg.onPass). Leaving the road is reported through P.off (metres from the centre).
   updateTail(dt, pace) {
@@ -211,11 +211,12 @@ export class Column {
     const along = wx * fx + wz * fz, across = wx * nx + wz * nz;
     // breath: low breath slows him below the column's pace (he starts to drop back)
     const spent = P.stam < 0.1 ? 0.88 : P.stam < 0.25 ? 0.95 : 1;
-    const sprint = inp && inp.held.sprint && P.stam > 0.04;
-    const rel = along * (sprint ? 3.2 : 1.6); // m/s relative to the column
-    const v = Math.max(0.4, pace * spent + (sprint && Math.abs(along) < 0.2 ? 2.4 : rel));
+    // the stick at the rim runs hard up the column (costs breath); part-way is a gentle shift
+    const rel = along > 0 ? along * (along > 0.85 && P.stam > 0.04 ? 2.6 : 1.6) : along * 1.6; // m/s relative to the column
+    const hard = along > 0.85 && P.stam > 0.04;
+    const v = Math.max(0.4, pace * spent + rel);
     P.s += v * dt * this.dir;
-    P.lat += across * (sprint ? 3.6 : 2.6) * dt;
+    P.lat += across * 2.8 * dt;
     const b = this.route.at(P.s);
     const bnx = -b.dz * this.dir, bnz = b.dx * this.dir;
     p.x = b.x + bnx * P.lat;
@@ -224,10 +225,10 @@ export class Column {
     p.face(p.x + b.dx * this.dir * 4 + bnx * across * 2, p.z + b.dz * this.dir * 4 + bnz * across * 2, dt, 8);
     p.st.move = clamp(v / 3.6, 0, 1.2);
     P.off = Math.abs(P.lat);
-    P.sprinting = sprint;
+    P.sprinting = hard;
     // breath: the hill and the sprint cost it, breathing on the beat gives it back (breathe())
     const climb = Math.max(0, this.cfg.grade ? this.cfg.grade(P.s, this.dir) : 0);
-    const cost = climb * 0.17 * (this.cfg.drain || 1) + (sprint ? 0.16 : 0) + (rel > 0.3 ? 0.03 : 0) + (this.cfg.sick?.({ id: p.id, player: true }) || 0);
+    const cost = climb * 0.17 * (this.cfg.drain || 1) + (hard ? 0.12 : rel > 0.3 ? 0.03 : 0) + (this.cfg.sick?.({ id: p.id, player: true }) || 0);
     P.stam = clamp(P.stam - cost * dt + (this.cfg.regen ?? 0.012) * dt, 0, 1);
     P.breathT = Math.max(0, P.breathT - dt);
     // where he is: 0 = at the ambulance, 1 = at the head

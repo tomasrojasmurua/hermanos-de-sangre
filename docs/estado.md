@@ -4,7 +4,7 @@
 El jugador sentía que no pasaba nada si no ayudaba, que costaba ir al paso y que cortar camino no tenía consecuencias. Ahora (`core/column.js` modo `tail`, `chapters/currahee/run.js`):
 - **Winters cierra la columna.** Sin tocar el stick va al paso; adelante sube por la columna, atrás se deja caer, de lado cruza el camino.
 - **Los rezagados** se quedan atrás tropezando hacia el borde del camino. Si Winters los toca, se rehacen (más fuerza y 25 s sin volver a flaquear) y vuelven a su sitio. Si se le pasan tres (cuatro en la de los espaguetis), Sobel manda a la compañía abajo, a empezar otra vez. Como mucho flaquean dos a la vez (tres en la segunda carrera).
-- **Esprint** (se mantiene pulsado): más velocidad a cambio de aliento.
+- **Correr a fondo:** con el stick al tope hacia adelante Winters corre más, a cambio de aliento (el botón de esprint se quitó: soltar el stick ya deja a Winters al paso).
 - **El camino:** fuera del sendero aparece «¡Al camino!»; a los 1,6 s Sobel pone una falta y quita aliento. Tres faltas y se vuelve a empezar.
 - **La ambulancia** tiene más hueco detrás de Winters; si lo alcanza, también se vuelve a empezar.
 - Bot de prueba: el que juega bien termina las dos carreras (5 a 8 rezagados atajados); el que no se mueve pierde por tres que se le pasan.

@@ -9,7 +9,7 @@ Juego para navegador inspirado en *Hermanos de sangre* de Stephen E. Ambrose. Pe
 - `hermanos-de-sangre.html`: **Bastogne**.
 - `dia-d.html`: **Día D, modo soldado** (prototipo vertical; se pasará al juego unificado).
 
-Controles en `juego.html`: arrastra a la izquierda para moverte; botón derecho para la acción del momento. En las carreras de Currahee Winters cierra la columna: sin tocar el stick va al paso; adelante o atrás para moverse por la columna, de lado para cruzar el camino; «Respirar» al compás y «Esprint» (se mantiene pulsado, gasta aliento). Teclado: WASD/flechas, Espacio o B para respirar, Mayús para esprintar.
+Controles en `juego.html`: arrastra a la izquierda para moverte; botón derecho para la acción del momento. En las carreras de Currahee Winters cierra la columna: sin tocar el stick va al paso; adelante o atrás para moverse por la columna, de lado para cruzar el camino; con el stick a fondo corre más, pero gasta aliento; «Respirar» al compás. Teclado: WASD/flechas, Espacio o B para respirar.
 En la semana (modo base): toca una tarde con el pulgar izquierdo y una actividad con el derecho; durante la semana, ⏩ acelera. Teclado: 1–5 elige actividad, Intro empieza, F acelera.
 
 Los dos juegos son archivos únicos autocontenidos, así que se pueden descargar y abrir en el celular. Solo necesitan internet para las fuentes de Google. Añade `?fps=1` a la URL para ver los fps.

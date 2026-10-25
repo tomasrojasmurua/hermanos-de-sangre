@@ -101,4 +101,4 @@ export class Input {
   }
 }
 
-const KEYMAP = { ShiftLeft: "sprint", ShiftRight: "sprint", KeyB: "breath", Space: "fire", KeyJ: "fire", KeyC: "crouch", KeyG: "grenade", KeyH: "heal", KeyE: "act", KeyR: "reload", Enter: "act", KeyQ: "call" };
+const KEYMAP = { KeyB: "breath", Space: "fire", KeyJ: "fire", KeyC: "crouch", KeyG: "grenade", KeyH: "heal", KeyE: "act", KeyR: "reload", Enter: "act", KeyQ: "call" };

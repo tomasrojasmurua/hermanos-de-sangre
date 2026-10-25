@@ -203,13 +203,6 @@ button{font:inherit;color:inherit}
 #runhud .breath.down{transform:scale(.95)}
 #runhud .breath.ok{background:rgba(111,143,90,.7)}
 #runhud .breath.miss{background:rgba(141,44,37,.7)}
-/* sprint: above the breath button, under the same thumb */
-#runhud .sprint{position:absolute;right:calc(146px + env(safe-area-inset-right,0px));bottom:calc(22px + var(--safe-b));width:82px;height:82px;border-radius:50%;pointer-events:auto;touch-action:none;border:2px solid rgba(233,224,203,.35);background:rgba(16,19,23,.62);color:#f4ecd9;cursor:pointer;font:600 15px/1 'Barlow Condensed';letter-spacing:.06em;text-transform:uppercase;padding:0}
-#runhud .sprint small{display:block;font-size:10.5px;color:#bcb29e;margin-top:3px;letter-spacing:.06em;text-transform:none}
-#runhud .sprint.down{background:rgba(227,194,122,.45);transform:scale(.95)}
-#runhud .sprint.off{opacity:.4}
-#runhud .sprint kbd{display:none;position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font:600 10px 'Barlow Condensed';color:#bcb29e}
-@media (pointer:fine){#runhud .sprint kbd{display:block}}
 /* who has got past you, and Sobel's faults for leaving the road */
 #runhud .tally{position:absolute;left:calc(12px + env(safe-area-inset-left,0px));top:calc(94px + var(--safe-t));display:flex;gap:12px;background:var(--hud);border:1px solid var(--line);border-radius:14px;padding:5px 12px;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:#d8cfbb}
 #runhud .tally b{font-weight:600;color:#f4ecd9;letter-spacing:.12em}
@@ -5977,7 +5970,7 @@ void main(){
       this.pressed = {};
     }
   };
-  var KEYMAP = { ShiftLeft: "sprint", ShiftRight: "sprint", KeyB: "breath", Space: "fire", KeyJ: "fire", KeyC: "crouch", KeyG: "grenade", KeyH: "heal", KeyE: "act", KeyR: "reload", Enter: "act", KeyQ: "call" };
+  var KEYMAP = { KeyB: "breath", Space: "fire", KeyJ: "fire", KeyC: "crouch", KeyG: "grenade", KeyH: "heal", KeyE: "act", KeyR: "reload", Enter: "act", KeyQ: "call" };
 
   // src/engine/ui.js
   var $ = (s, r = document) => r.querySelector(s);
@@ -9027,7 +9020,7 @@ void main(){
       if (this.dir < 0) P2.rel = (amb - P2.s) / (amb - head || 1);
     }
     // ---- tail mode: the player closes the column. He is driven along the road at the column's pace;
-    // the stick moves him up or back through the column and across the road; a sprint button spends breath.
+    // the stick moves him up or back through the column and across the road; at the rim he runs hard, which costs breath.
     // A man who flags drifts back through the ranks: touch him and he recovers; if he gets behind you,
     // he has passed you (cfg.onPass). Leaving the road is reported through P.off (metres from the centre).
     updateTail(dt, pace) {
@@ -9044,11 +9037,11 @@ void main(){
       const fx = a.dx * this.dir, fz = a.dz * this.dir, nx = -fz, nz = fx;
       const along = wx * fx + wz * fz, across = wx * nx + wz * nz;
       const spent = P2.stam < 0.1 ? 0.88 : P2.stam < 0.25 ? 0.95 : 1;
-      const sprint = inp && inp.held.sprint && P2.stam > 0.04;
-      const rel = along * (sprint ? 3.2 : 1.6);
-      const v = Math.max(0.4, pace * spent + (sprint && Math.abs(along) < 0.2 ? 2.4 : rel));
+      const rel = along > 0 ? along * (along > 0.85 && P2.stam > 0.04 ? 2.6 : 1.6) : along * 1.6;
+      const hard = along > 0.85 && P2.stam > 0.04;
+      const v = Math.max(0.4, pace * spent + rel);
       P2.s += v * dt * this.dir;
-      P2.lat += across * (sprint ? 3.6 : 2.6) * dt;
+      P2.lat += across * 2.8 * dt;
       const b = this.route.at(P2.s);
       const bnx = -b.dz * this.dir, bnz = b.dx * this.dir;
       p.x = b.x + bnx * P2.lat;
@@ -9057,9 +9050,9 @@ void main(){
       p.face(p.x + b.dx * this.dir * 4 + bnx * across * 2, p.z + b.dz * this.dir * 4 + bnz * across * 2, dt, 8);
       p.st.move = clamp(v / 3.6, 0, 1.2);
       P2.off = Math.abs(P2.lat);
-      P2.sprinting = sprint;
+      P2.sprinting = hard;
       const climb = Math.max(0, this.cfg.grade ? this.cfg.grade(P2.s, this.dir) : 0);
-      const cost = climb * 0.17 * (this.cfg.drain || 1) + (sprint ? 0.16 : 0) + (rel > 0.3 ? 0.03 : 0) + (this.cfg.sick?.({ id: p.id, player: true }) || 0);
+      const cost = climb * 0.17 * (this.cfg.drain || 1) + (hard ? 0.12 : rel > 0.3 ? 0.03 : 0) + (this.cfg.sick?.({ id: p.id, player: true }) || 0);
       P2.stam = clamp(P2.stam - cost * dt + (this.cfg.regen ?? 0.012) * dt, 0, 1);
       P2.breathT = Math.max(0, P2.breathT - dt);
       const head = this.s, amb = this.ambS();
@@ -9228,7 +9221,6 @@ void main(){
     </div>
     <div class="tally"><span>Se te pasan <b class="pas"></b></span><span>Faltas <b class="fal"></b></span></div>
     <div class="offroad">\xA1Al camino!</div>
-    <button class="sprint" data-b="sprint" aria-label="Esprintar">Esprint<small>gasta aliento</small><kbd>May\xFAs</kbd></button>
     <button class="breath" data-b="breath" aria-label="Respirar al comp\xE1s"><span class="target"></span><span class="ring"></span><span class="core"><b>Respirar</b><small class="hint">al comp\xE1s</small><em class="combo"></em></span><kbd>Espacio</kbd></button>`;
     ui.root.querySelector("#hud").appendChild(el2);
     const b = el2.querySelector(".breath");
@@ -9243,21 +9235,7 @@ void main(){
     };
     b.addEventListener("pointerup", up);
     b.addEventListener("pointercancel", up);
-    const sp = el2.querySelector(".sprint");
-    sp.addEventListener("pointerdown", (e) => {
-      e.preventDefault();
-      input.held.sprint = true;
-      sp.classList.add("down");
-    });
-    const spUp = () => {
-      input.held.sprint = false;
-      sp.classList.remove("down");
-    };
-    sp.addEventListener("pointerup", spUp);
-    sp.addEventListener("pointercancel", spUp);
-    sp.addEventListener("pointerleave", spUp);
     return {
-      sprint: sp,
       tally: el2.querySelector(".tally"),
       pas: el2.querySelector(".tally .pas"),
       fal: el2.querySelector(".tally .fal"),
@@ -9426,7 +9404,7 @@ void main(){
     const touch = matchMedia("(pointer: coarse)").matches;
     if (opts.variant === "first") {
       ui.toast("Cierras la columna. Los que flaquean se quedan atr\xE1s: alc\xE1nzalos antes de que te pasen.", 4200);
-      setTimeout(() => ui.toast(touch ? "Suelta el stick y vas al paso. Adelante para subir por la columna, atr\xE1s para dejarte caer. \xABRespirar\xBB al comp\xE1s; \xABEsprint\xBB gasta aliento." : "Sin teclas vas al paso \xB7 W/S sube o baja por la columna \xB7 A/D de lado \xB7 Espacio respira al comp\xE1s \xB7 May\xFAs esprinta", 5200), 4500);
+      setTimeout(() => ui.toast(touch ? "Suelta el stick y vas al paso. Adelante para subir por la columna (a fondo corres m\xE1s, pero gasta aliento), atr\xE1s para dejarte caer. \xABRespirar\xBB al comp\xE1s." : "Sin teclas vas al paso \xB7 W/S sube o baja por la columna \xB7 A/D de lado \xB7 Espacio respira al comp\xE1s", 5200), 4500);
       setTimeout(() => ui.toast("No te salgas del camino: Sobel lo ve todo.", 3e3), 10500);
     } else ui.toast("Cierras la columna. Que no se te pase nadie.", 3200);
     const fadeGap = opts.variant === "first" ? 40 : 30;
@@ -9532,7 +9510,6 @@ void main(){
       H2.fal.textContent = "\u2691".repeat(faults) + "\xB7".repeat(Math.max(0, maxFaults - faults));
       H2.pas.classList.toggle("hit", passed > 0);
       H2.fal.classList.toggle("hit", faults > 0);
-      H2.sprint.classList.toggle("off", P2.stam < 0.05);
       if (opts.variant === "spaghetti") {
         for (const m of col.men) {
           sickT[m.id] = Math.max(0, (sickT[m.id] || 0) - dt);
@@ -9599,7 +9576,6 @@ void main(){
       await G.until(() => failed || col.s >= route.total - 2);
     } finally {
       win.driven = false;
-      input.held.sprint = false;
       for (const m of col.men) if (m.sol) m.sol.faceAlong = null;
       sobel.faceAlong = null;
       unhook();
@@ -9623,7 +9599,7 @@ void main(){
       const why = {
         pasados: [`Se te han pasado ${passed} hombres`, "\xAB\xA1Compa\xF1\xEDa, alto! \xBFA esto le llaman correr? \xA1Abajo todos! \xA1Otra vez desde el principio!\xBB\n\nWinters cierra la columna: el que flaquea tiene que encontrarlo a \xE9l antes que a la ambulancia. Ve a su encuentro y t\xF3calo; suelta el stick para volver al paso."],
         faltas: ["Fuera del camino", "\xAB\xA1Winters! \xBFSe cree que esto es un paseo por el campo? \xA1Compa\xF1\xEDa, abajo! \xA1Desde el principio!\xBB\n\nSobel no perdona un atajo. Mantente en el sendero rojo."],
-        ambulancia: ["La ambulancia te alcanza", "\xAB\xA1Su teniente se ha dejado alcanzar por la ambulancia! \xA1Abajo todos! \xA1Otra vez!\xBB\n\nCuando te quedes sin aliento, respira al comp\xE1s; esprinta solo para alcanzar a un hombre."]
+        ambulancia: ["La ambulancia te alcanza", "\xAB\xA1Su teniente se ha dejado alcanzar por la ambulancia! \xA1Abajo todos! \xA1Otra vez!\xBB\n\nCuando te quedes sin aliento, respira al comp\xE1s; corre a fondo solo para alcanzar a un hombre."]
       }[failWhy || "ambulancia"];
       await ui.card({ kicker: "Currahee \xB7 Sobel", title: why[0], text: why[1], next: "Otra vez desde abajo" });
       G.lockMove = false;

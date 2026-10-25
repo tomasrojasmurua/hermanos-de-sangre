@@ -1,6 +1,6 @@
 // Las carreras a Currahee: modo acción. Tú eres Winters y cierras la columna de Sobel.
 // Vas al paso de la columna; los que flaquean se van quedando atrás entre las filas: alcánzalos antes de que
-// te pasen. Respira al compás, esprinta cuando haga falta (gasta aliento) y no te salgas del camino.
+// te pasen. Respira al compás, corre a fondo solo cuando haga falta (gasta aliento) y no te salgas del camino.
 // Si se te pasan demasiados o Sobel te pilla fuera del camino tres veces, la compañía vuelve a empezar.
 import { T, clamp, damp, rng } from "../../engine/util.js";
 import { Route, Column } from "../../core/column.js";
@@ -62,7 +62,6 @@ function hud(ui, input) {
     </div>
     <div class="tally"><span>Se te pasan <b class="pas"></b></span><span>Faltas <b class="fal"></b></span></div>
     <div class="offroad">¡Al camino!</div>
-    <button class="sprint" data-b="sprint" aria-label="Esprintar">Esprint<small>gasta aliento</small><kbd>Mayús</kbd></button>
     <button class="breath" data-b="breath" aria-label="Respirar al compás"><span class="target"></span><span class="ring"></span><span class="core"><b>Respirar</b><small class="hint">al compás</small><em class="combo"></em></span><kbd>Espacio</kbd></button>`;
   ui.root.querySelector("#hud").appendChild(el);
   const b = el.querySelector(".breath");
@@ -77,22 +76,7 @@ function hud(ui, input) {
   };
   b.addEventListener("pointerup", up);
   b.addEventListener("pointercancel", up);
-  // sprint is held, not tapped
-  const sp = el.querySelector(".sprint");
-  sp.addEventListener("pointerdown", (e) => {
-    e.preventDefault();
-    input.held.sprint = true;
-    sp.classList.add("down");
-  });
-  const spUp = () => {
-    input.held.sprint = false;
-    sp.classList.remove("down");
-  };
-  sp.addEventListener("pointerup", spUp);
-  sp.addEventListener("pointercancel", spUp);
-  sp.addEventListener("pointerleave", spUp);
   return {
-    sprint: sp,
     tally: el.querySelector(".tally"),
     pas: el.querySelector(".tally .pas"),
     fal: el.querySelector(".tally .fal"),
@@ -271,7 +255,7 @@ export async function currahee(ctx, opts) {
   const touch = matchMedia("(pointer: coarse)").matches;
   if (opts.variant === "first") {
     ui.toast("Cierras la columna. Los que flaquean se quedan atrás: alcánzalos antes de que te pasen.", 4200);
-    setTimeout(() => ui.toast(touch ? "Suelta el stick y vas al paso. Adelante para subir por la columna, atrás para dejarte caer. «Respirar» al compás; «Esprint» gasta aliento." : "Sin teclas vas al paso · W/S sube o baja por la columna · A/D de lado · Espacio respira al compás · Mayús esprinta", 5200), 4500);
+    setTimeout(() => ui.toast(touch ? "Suelta el stick y vas al paso. Adelante para subir por la columna (a fondo corres más, pero gasta aliento), atrás para dejarte caer. «Respirar» al compás." : "Sin teclas vas al paso · W/S sube o baja por la columna · A/D de lado · Espacio respira al compás", 5200), 4500);
     setTimeout(() => ui.toast("No te salgas del camino: Sobel lo ve todo.", 3000), 10500);
   } else ui.toast("Cierras la columna. Que no se te pase nadie.", 3200);
   const fadeGap = opts.variant === "first" ? 40 : 30;
@@ -387,7 +371,7 @@ export async function currahee(ctx, opts) {
     H.fal.textContent = "⚑".repeat(faults) + "·".repeat(Math.max(0, maxFaults - faults));
     H.pas.classList.toggle("hit", passed > 0);
     H.fal.classList.toggle("hit", faults > 0);
-    H.sprint.classList.toggle("off", P.stam < 0.05);
+
     // spaghetti: men retching by the road
     if (opts.variant === "spaghetti") {
       for (const m of col.men) {
@@ -462,7 +446,6 @@ export async function currahee(ctx, opts) {
     await G.until(() => failed || col.s >= route.total - 2);
   } finally {
     win.driven = false;
-    input.held.sprint = false;
     for (const m of col.men) if (m.sol) m.sol.faceAlong = null;
     sobel.faceAlong = null;
     unhook();
@@ -487,7 +470,7 @@ export async function currahee(ctx, opts) {
     const why = {
       pasados: [`Se te han pasado ${passed} hombres`, "«¡Compañía, alto! ¿A esto le llaman correr? ¡Abajo todos! ¡Otra vez desde el principio!»\n\nWinters cierra la columna: el que flaquea tiene que encontrarlo a él antes que a la ambulancia. Ve a su encuentro y tócalo; suelta el stick para volver al paso."],
       faltas: ["Fuera del camino", "«¡Winters! ¿Se cree que esto es un paseo por el campo? ¡Compañía, abajo! ¡Desde el principio!»\n\nSobel no perdona un atajo. Mantente en el sendero rojo."],
-      ambulancia: ["La ambulancia te alcanza", "«¡Su teniente se ha dejado alcanzar por la ambulancia! ¡Abajo todos! ¡Otra vez!»\n\nCuando te quedes sin aliento, respira al compás; esprinta solo para alcanzar a un hombre."],
+      ambulancia: ["La ambulancia te alcanza", "«¡Su teniente se ha dejado alcanzar por la ambulancia! ¡Abajo todos! ¡Otra vez!»\n\nCuando te quedes sin aliento, respira al compás; corre a fondo solo para alcanzar a un hombre."],
     }[failWhy || "ambulancia"];
     await ui.card({ kicker: "Currahee · Sobel", title: why[0], text: why[1], next: "Otra vez desde abajo" });
     G.lockMove = false;
