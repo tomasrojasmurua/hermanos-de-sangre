@@ -4934,6 +4934,15 @@ void main(){
       g.setTargetAtTime(depth, t, tc);
       g.setTargetAtTime(1, t + sec, 0.3);
     }
+    // end any duck now (a bugle call cut short by the next scene)
+    unduck() {
+      if (!this.on) return;
+      const t = this.ctx.currentTime;
+      this.duckUntil = 0;
+      if (this.paused) return;
+      this.duckGain.gain.cancelScheduledValues(t);
+      this.duckGain.gain.setTargetAtTime(1, t, 0.4);
+    }
     // paused: music sits far back, the world holds its breath
     pauseMix(on) {
       if (!this.on) return;
@@ -5433,15 +5442,19 @@ void main(){
         setTimeout(clink, 500);
       }
       if (kind === "night") {
-        const voices = Array.from({ length: 5 }, () => ({ f: 4200 + Math.random() * 900, pan: Math.random() * 1.6 - 0.8, lv: 6e-3 + Math.random() * 0.01 }));
+        const voices = Array.from({ length: 5 }, () => {
+          const v = { f: 4200 + Math.random() * 900, lv: 0.01 + Math.random() * 0.01, dest: g };
+          if (c.createStereoPanner) {
+            v.dest = c.createStereoPanner();
+            v.dest.pan.value = Math.random() * 1.6 - 0.8;
+            v.dest.connect(g);
+          }
+          return v;
+        });
         const chirp = (v) => {
           if (!this.bed || this.bed.g !== g) return;
           const t = this.ctx.currentTime;
-          if (!this.paused) {
-            const p = c.createStereoPanner ? c.createStereoPanner() : null;
-            const dest = p ? (p.pan.value = v.pan, p.connect(g), p) : g;
-            for (let k = 0; k < 3; k++) this._tone(dest, t + k * 0.045, 0.028, v.f, { gain: v.lv });
-          }
+          if (!this.paused) for (let k = 0; k < 3; k++) this._tone(v.dest, t + k * 0.045, 0.028, v.f, { gain: v.lv });
           setTimeout(() => chirp(v), 400 + Math.random() * 1200);
         };
         voices.forEach((v, i) => setTimeout(() => chirp(v), 200 + i * 230));
@@ -5454,7 +5467,7 @@ void main(){
       lp.type = "lowpass";
       lp.frequency.value = 300;
       const wg = c.createGain();
-      wg.gain.value = 0.12;
+      wg.gain.value = kind === "night" ? 0.07 : 0.12;
       s.connect(lp).connect(wg).connect(g);
       s.start();
       nodes.push(s);
@@ -6199,7 +6212,9 @@ void main(){
     }
     if (st.dig > 0) {
       const k2 = st.dig, s2 = Math.sin(dp);
-      b[Bi.spine].rotation.x += (0.55 + s2 * 0.2) * k2;
+      hips.position.y -= 0.14 * k2;
+      b[Bi.spine].rotation.x += (0.85 + s2 * 0.28) * k2;
+      b[Bi.knR].rotation.x = 0.45 * k2;
       b[Bi.shL].rotation.set(lerp(b[Bi.shL].rotation.x, -1 - s2 * 0.6, k2), 0, -0.25 * k2);
       b[Bi.shR].rotation.set(lerp(b[Bi.shR].rotation.x, -1.1 - s2 * 0.6, k2), 0, 0.25 * k2);
       b[Bi.elL].rotation.x = b[Bi.elR].rotation.x = -0.4 * k2;

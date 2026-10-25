@@ -4,7 +4,7 @@ import { T, clamp, damp, rng } from "../../engine/util.js";
 import { cast } from "../../core/roster.js";
 import { Week } from "../../core/week.js";
 import { planWeek, WeekHUD } from "../../core/weekui.js";
-import { bugle, stamp, typewriter, shovel, slosh, count } from "../../engine/camp-audio.js";
+import { bugle, bugleLen, stopBugle, stamp, typewriter, shovel, slosh, count, barracksNight, marchColumn, murmur } from "../../engine/camp-audio.js";
 import { W, UV, ANG_RIGHT } from "./places.js";
 import { ACTS, CHOICES, WEEK1, WEEK2, CHATTER, TALK, runFit } from "./semana-data.js";
 
@@ -23,7 +23,7 @@ class Camp {
     this.hud = hud;
     this.clock = 0;
     this.dph = 0;
-    this.r = rng(31 + (ctx.flags.weekN || 0) * 7 + (ctx.flags.talked?.length || 0));
+    this.r = rng((ctx.flags.seed || 31) + (ctx.flags.weekN || 0) * 7); // a seed fixed once per playthrough: replays differ between games
     G.soldiers.slice().forEach((s) => s.remove());
     G.soldiers = [];
     G.player = null;
@@ -50,6 +50,11 @@ class Camp {
   }
   get speed() {
     return this.hud ? this.hud.speed : 1;
+  }
+  // the camp theme follows the platoon's spirit (restored after every scene that changed the music)
+  music(boost = 0) {
+    const mor = this.week ? this.week.stats().moral : 60;
+    this.ctx.music.set("camp", clamp(0.1 + mor * 0.006 + boost, 0, 1));
   }
   tick(dt) {
     if (dt <= 0) return;
@@ -97,7 +102,7 @@ class Camp {
   }
   // a decision always comes at normal speed
   card(o) {
-    if (this.hud?.setSpeed && this.hud.speed > 3 && o.choices) this.hud.setSpeed(1);
+    if (this.hud?.setSpeed && this.hud.speed > 1 && o.choices) this.hud.setSpeed(1);
     return this.ctx.ui.card(o);
   }
   look(u, v, span) {
@@ -173,6 +178,36 @@ class Camp {
     if (this.plat) this.plat.visible = on;
     this.win.lift = on ? 0.7 : 0;
   }
+  // the hole itself: a dark patch in the clay where he digs
+  pitShow(u, v, on) {
+    if (on && !this.pit) {
+      const m = new T.Mesh(new T.CircleGeometry(0.85, 10).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ color: 0x2a1610, transparent: true, opacity: 0.85, depthWrite: false }));
+      m.renderOrder = 3;
+      this.G.scene.add(m);
+      this.pit = m;
+    }
+    if (!this.pit) return;
+    this.pit.visible = on;
+    if (on) {
+      const [x, z] = W(u, v);
+      this.pit.position.set(x, this.G.world.height(x, z) + 0.03, z);
+    }
+  }
+  // an upturned crate with a deck of cards: what the men do when the lieutenant isn't there
+  crate(on) {
+    if (on && !this.box) {
+      const m = new T.Mesh(new T.BoxGeometry(0.9, 0.5, 0.7), new T.MeshStandardMaterial({ color: 0x7a5a3a, roughness: 1, flatShading: true }));
+      const top = new T.Mesh(new T.BoxGeometry(0.5, 0.02, 0.3), new T.MeshStandardMaterial({ color: 0xe8e0cc, roughness: 1 }));
+      top.position.y = 0.26;
+      m.add(top);
+      const [x, z] = W(-58, -9);
+      m.position.set(x, this.G.world.height(x, z) + 0.25, z);
+      m.castShadow = true;
+      this.G.scene.add(m);
+      this.box = m;
+    }
+    if (this.box) this.box.visible = !!on;
+  }
   // a mound of red clay beside a man digging: grows, then shrinks as he fills it back in
   mound(u, v, k) {
     if (!this.dirt) {
@@ -192,6 +227,9 @@ class Camp {
     this.pose(this.everyone());
     this.platform(false);
     if (this.dirt) this.dirt.visible = false;
+    if (this.pit) this.pit.visible = false;
+    this.crate(false);
+    this.ctx.shell.fadeTo = 0;
     this.show(this.everyone(), true);
   }
 }
@@ -232,6 +270,7 @@ async function afternoon(camp, act, away) {
   const men = camp.men;
   camp.pose(camp.everyone());
   camp.show([camp.sobel], false);
+  camp.crate(false);
   let stop = () => {};
   if (act === "calistenia") stop = await calisthenics(camp, { leader: !away });
   else if (act === "armas") {
@@ -270,6 +309,7 @@ async function afternoon(camp, act, away) {
     });
     camp.pose(ring, { sit: 1 });
     camp.look(-60, -6.5, 11);
+    camp.crate(away);
     if (!away) {
       camp.place(camp.win, -58, -9);
       camp.win.face(...W(-58, -12), 1, 1);
@@ -316,18 +356,23 @@ async function sink(camp) {
     ["Sink", "Muchas gracias.", 1.6],
   ]);
   // he walks off and is gone (not left standing about the camp for the rest of the week)
-  camp.walk(s, -92, 24, { k: 0.5 }).then(() => {
+  const gone = () => {
+    if (s._gone) return;
+    s._gone = true;
+    camp.moves.delete(s);
     s.remove();
     G.soldiers = G.soldiers.filter((x) => x !== s);
-  });
+  };
+  camp.walk(s, -92, 24, { k: 0.5 }).then(gone);
   await camp.wait(1);
-  music.sting("arrival");
+  music.sting("promo");
   await ui.card({
     kicker: "Toccoa · Unos días más tarde",
     title: "Teniente primero",
     text: "Sin consultarlo con Sobel, el coronel Sink asciende a Winters a teniente primero.\n\nDesde aquel mismo día, Winters es para Sobel un hombre marcado. El jefe de la compañía le dará todos los trabajos sucios que encuentre.",
     next: "Seguir",
   });
+  gone(); // off the parade ground for good, not strolling through the next scene
   audio.paper();
   roster.tension(15);
   flags.firstLt = true;
@@ -339,17 +384,18 @@ async function dirtyJob(camp, week, day, what, signed) {
   const { audio, roster } = camp.ctx;
   camp.hud.day(day.key, `${day.label} · mañana`, "Orden del día");
   typewriter(audio, 22);
-  if (what.includes("comedor")) bugle(audio, "rancho", { ...xz(...FLAG), short: camp.speed > 1, level: 0.7 });
+  const planned = ACTS[week.plan[day.key]];
   const v = await camp.card({
     kicker: "Compañía E · Orden del día",
     title: "Asunto: servicio",
-    text: `1. El teniente R. D. Winters ${what} esta tarde (${day.label.toLowerCase()}).\n\n${signed}\n\nEl sargento del pelotón, del Ejército de siempre, se queda al mando. ¿A quién le pides que tire de los hombres?`,
+    text: `1. El teniente R. D. Winters ${what} esta tarde (${day.label.toLowerCase()}).\n\n${signed}\n\nEl sargento del pelotón, del Ejército de siempre, se queda al mando. Esta tarde toca: ${planned ? planned.label.toLowerCase() : "—"}. ¿A quién le pides que tire de los hombres?`,
     choices: [
       { label: "A Lipton", sub: "Sereno y ordenado. Los hombres trabajarán casi igual que contigo.", value: "lipton" },
       { label: "A Guarnere", sub: "Los hombres se reirán más. Puede acabar en pelea, y Sobel se enteraría.", value: "guarnere" },
     ],
   });
   stamp(audio);
+  if (what.includes("comedor")) bugle(audio, "rancho", { ...xz(...FLAG), short: camp.speed > 1, level: 0.7 });
   week.away[day.key] = true;
   if (v === "lipton") {
     week.awayK[day.key] = 0.8;
@@ -404,7 +450,7 @@ async function inspection(camp, week) {
   camp.pose(camp.everyone());
   camp.place(camp.win, -84.5, -5.2, FACE_UP + 0.5);
   camp.place(camp.sobel, -86, -3.6, ANG_RIGHT);
-  camp.look(-80, 1.6, 13);
+  camp.look(-80, 3.5, 13);
   // silence as a tool: no score, the cicadas pulled back, only boots and Sobel's voice
   music.set("silence", 0);
   audio.setBed(0.45);
@@ -428,11 +474,11 @@ async function inspection(camp, week) {
     const { u, v } = UV2(s);
     await camp.walk(camp.sobel, u, v - 1.15, { k: 0.6 });
     camp.sobel.face(s.x, s.z, 1, 1);
-    camp.look(u, v + 1.4, 12);
+    camp.look(u, v + 3, 12);
     await camp.wait(0.4);
     const why = reason.get(s) === "ears" ? "¡Orejas sucias!" : "¡Taquilla sucia!";
     camp.say("Sobel", `${why} ${s.short}, sin pase este fin de semana.`, 2.2);
-    stamp(audio, 0.8);
+    audio.pencil(); // into Sobel's notebook
     camp.hud.tag("d" + s.id, s, "Sin pase", "no");
     roster.mood(s.id, -8);
     await camp.wait(1.1);
@@ -444,7 +490,7 @@ async function inspection(camp, week) {
   camp.hud.clearTags();
   // afterwards, out of the men's sight: what Winters does about it (invented; he never defied Sobel openly)
   if (pleaFor) await plea(camp, week, pleaFor, reason.get(pleaFor));
-  music.set("camp", 0.3);
+  camp.music();
   audio.setBed(1);
   return denied;
 }
@@ -505,7 +551,7 @@ async function weekend(camp, week, denied) {
   const late = out.filter((s) => !s.named || camp.r() < 0.3).sort((a, b) => (roster.get(b.id).morale || 0) - (roster.get(a.id).morale || 0))[0];
   flags.late = late && camp.r() < 0.75 ? late.id : null;
   const lateS = flags.late ? camp.men.find((s) => s.id === flags.late) : null;
-  music.set("calm", 0.3);
+  camp.music(0.25); // beer and songs: the camp theme with its bugle line up
   await camp.card({
     kicker: "Sábado por la tarde · Domingo",
     title: "Pases de fin de semana",
@@ -516,7 +562,7 @@ async function weekend(camp, week, denied) {
     next: "Seguir",
   });
   audio.paper();
-  music.set("camp", 0.3);
+  camp.music();
 }
 
 // Monday: the late man digs a 6 × 6 × 6 ft hole after a full day's training, then fills it in (the book)
@@ -530,21 +576,27 @@ async function hole(camp, id) {
   camp.sobel.face(s.x, s.z, 1, 1);
   camp.pose([s], { dig: 1 });
   camp.look(-59, 9.5, 10);
+  camp.pitShow(-58.4, 10.2, true);
   camp.say("Sobel", `Seis pies por seis por seis, ${s.short}. Con su herramienta de trinchera.`, 3);
   const dig = async (n, from, to) => {
     for (let i = 0; i < n; i++) {
-      if (camp.speed === 1 || i % 2 === 0) shovel(audio, s.x, s.z);
+      if (camp.speed === 1 || (camp.speed === 3 && i % 2 === 0) || i === 0) shovel(audio, s.x, s.z);
       camp.mound(-56.8, 9.6, from + (to - from) * ((i + 1) / n));
       await camp.wait(0.8 + camp.r() * 0.6);
     }
   };
   await dig(6, 0, 1);
   camp.say("", "Horas después. Ya ha oscurecido.", 2);
+  camp.ctx.shell.fadeTo = 0.55; // dusk
+  audio.startBed("night");
   await camp.wait(1);
   camp.say("Sobel", "Bien. Ahora, rellénelo.", 2.2);
   await dig(4, 1, 0);
   camp.mound(-56.8, 9.6, 0);
+  camp.pitShow(0, 0, false);
   camp.pose([s]);
+  camp.ctx.shell.fadeTo = 0;
+  audio.startBed("georgia");
   roster.mood(s.id, -10);
   roster.tire(s.id, 15);
 }
@@ -568,8 +620,7 @@ async function nightMarch(camp, week) {
   // the march itself, in the dark: boots, breath getting harder
   await ui.fade(true, 700);
   if (camp.speed === 1) {
-    const t0 = audio.ctx.currentTime;
-    for (let i = 0; i < 26; i++) audio.stride(0.5, Math.random() * 1.4 - 0.7, t0 + i * (60 / 112) * 0.5 + Math.random() * 0.03);
+    marchColumn(audio, 3.6);
     for (let i = 0; i < 4; i++) setTimeout(() => audio.breath(0.3 + i * 0.17, Math.random() * 0.8 - 0.4, 1), i * 1000);
     await new Promise((r) => setTimeout(r, 3600));
   }
@@ -606,8 +657,9 @@ async function nightMarch(camp, week) {
 async function barracks(camp, week) {
   const { audio, roster } = camp.ctx;
   audio.startBed("night");
+  audio.space("room");
+  barracksNight(audio);
   const ok = week.state.order >= 55;
-  stamp(audio, 0.6);
   await camp.card({
     kicker: "Jueves · 22:30",
     title: "Revista de barracones",
@@ -623,6 +675,7 @@ async function barracks(camp, week) {
     roster.tension(3);
   }
   audio.paper();
+  audio.space("open");
   audio.startBed("georgia");
   camp.hud.update();
 }
@@ -645,8 +698,9 @@ async function sobelTest(camp) {
     const [n, d] = steps[i];
     ui.sayNow("", n, d / camp.speed);
     if (camp.speed === 1) {
-      audio.breath(0.4 + i * 0.15, 0, 1.2); // he's straining
-      count(audio, i, { ...xz(-80, 1), n: 12, gain: 0.05 }); // the men count under their breath
+      // he's straining: a breath on every push-up, harder each time
+      for (let k = 0; k < 3; k++) setTimeout(() => audio.breath(0.4 + i * 0.15 + k * 0.04, 0, 1.2), k * (d / 3) * 1000);
+      murmur(audio, i === 3 ? "treinta" : "veinte", { ...xz(-80, 1), n: 12, gain: 0.05 }); // the men count under their breath
     }
     await camp.wait(d);
     camp.sobel._rate *= 0.82;
@@ -658,18 +712,19 @@ async function sobelTest(camp) {
   await camp.card({
     kicker: "La prueba física",
     title: "Treinta",
-    text: "A los veinticuatro le temblaban los brazos y tenía la cara roja como un tomate, pero siguió. Era evidente que a Sobel no le faltaba determinación.",
+    text: "A los veinticuatro le temblaban los brazos y tenía la cara roja como un tomate, pero siguió. Era evidente que a Sobel no le faltaba determinación.\n\nWinters hace las suyas sin detenerse, como casi toda la compañía.",
     quote: { t: "Nos consolamos con la idea de que continuaba siendo un cabrón a pesar de todo.", src: "Ed Tipper" },
     next: "Seguir",
   });
   audio.paper();
-  music.set("camp", 0.3);
+  camp.music();
 }
 
 // ---- the week -----------------------------------------------------------------------------------------
 export async function semana(ctx, n) {
   const { G, ui, audio, music, roster, flags, save } = ctx;
   flags.weekN = n;
+  flags.seed = flags.seed ?? 1 + Math.floor(Math.random() * 1e6);
   // a pause-menu save during the week stores the week's starting state, never half a week
   save.frozen = JSON.stringify({ roster: roster.d, flags });
   const days = n === 1 ? WEEK1 : WEEK2;
@@ -685,9 +740,17 @@ export async function semana(ctx, n) {
         w.roster.tension(4);
       }
     };
+  // week 2: if the friction is already high, Monday's order is certain, so the board shows it and the projection counts it
+  if (n === 2 && roster.d.company.sobelTension >= 40) {
+    week.away.lun = true;
+    week.awayK.lun = 0.7;
+    week.preOrder = true;
+  }
   const start = week.stats();
+  const aim0 = week.avg((m) => m.stats.aim);
   const hud = { speed: 1, placeTags() {}, update() {}, tag() {}, untag() {}, clearTags() {}, day() {} };
   const camp = new Camp(ctx, hud);
+  camp.week = week;
   // backdrop while planning: the men loafing outside the huts
   camp.scatter(camp.men, -86, -58, 13, 17.5);
   camp.men.forEach((s, i) => camp.pose([s], i % 3 ? { sit: 1 } : {}));
@@ -724,6 +787,7 @@ export async function semana(ctx, n) {
     hint: n === 1 ? "Toca una tarde y elige qué hace tu pelotón. La raya ámbar de cada medidor marca cómo acabará la semana." : "El jueves por la noche, Sobel revisa los barracones: el Orden vuelve a contar.",
     choices: CHOICES,
     audio,
+    marks: n === 1 ? { orden: { at: 72, label: "sin taquillas sucias" } } : { orden: { at: 55, label: "revista" } },
   });
   week.plan = plan;
   const H = new WeekHUD(ui, week, audio);
@@ -735,7 +799,7 @@ export async function semana(ctx, n) {
       // Sobel's orders: the first from the day of the promotion, more if the friction keeps growing
       const ten = roster.d.company.sobelTension;
       if (n === 1 && flags.firstLt && d.key === "vie") await dirtyJob(camp, week, d, "inspeccionará las letrinas", "H. M. Sobel, teniente primero, jefe de la compañía.");
-      if (n === 2 && d.key === "lun" && ten >= 40) await dirtyJob(camp, week, d, "hará el servicio de oficial de comedor", "H. M. Sobel, jefe de la compañía.");
+      if (n === 2 && d.key === "lun" && week.preOrder) await dirtyJob(camp, week, d, "hará el servicio de oficial de comedor", "H. M. Sobel, jefe de la compañía.");
       if (n === 2 && d.key === "mie" && ten >= 48) await dirtyJob(camp, week, d, "inspeccionará las letrinas", "H. M. Sobel, jefe de la compañía.");
       for (const half of ["am", "pm"]) {
         const s = week.slot(d, half);
@@ -744,7 +808,11 @@ export async function semana(ctx, n) {
         const away = half === "pm" && week.away[d.key];
         H.day(d.key, `${d.label} · ${half === "am" ? "mañana" : "tarde"}${away ? " · Winters de servicio" : ""}`, A.long || A.label);
         // reveille every morning (the whole call on Monday, its opening on the other days)
-        if (half === "am" && act !== "inspeccion") bugle(audio, "diana", { ...xz(...FLAG), short: d.key !== "lun" || camp.speed > 1, level: d.key === "lun" ? 1 : 0.6 });
+        if (half === "am" && act !== "inspeccion") {
+          const full = d.key === "lun" && camp.speed === 1;
+          bugle(audio, "diana", { ...xz(...FLAG), short: !full, level: full ? 1 : 0.6 });
+          if (full) await camp.wait(bugleLen("diana") * 0.85); // Monday: the whole call before the company moves off
+        }
         if (half === "am" && act === "inspeccion") {
           denied = await inspection(camp, week);
           continue;
@@ -784,20 +852,20 @@ export async function semana(ctx, n) {
         H.day(d.key, `${d.label} · noche`, "Marcha nocturna");
         await nightMarch(camp, week);
       }
+      if (!d.noNight) {
+        H.update(week.night());
+        camp.music();
+      }
+      // the barracks check comes after the day's mess has set in (so it matches the projection on the board)
       if (d.night === "revista") {
         H.day(d.key, `${d.label} · noche`, "Revista de barracones");
         await barracks(camp, week);
-      }
-      if (!d.noNight) {
-        H.update(week.night());
-        music.intensity(0.1 + week.stats().moral * 0.006);
       }
     }
   } finally {
     camp.remove();
     H.remove();
     window.__week = null;
-    delete save.frozen;
   }
   flags.order = week.state.order;
   // the week in numbers, and what it means for the next run (same formula as the run itself)
@@ -808,9 +876,14 @@ export async function semana(ctx, n) {
     const m = roster.get(id);
     return m && !m.washedOut && runFit(m) < 56;
   }).length;
-  const tired = risk >= 6 ? `Llegan reventados: ${risk} hombres flaquearían si ahora tocara correr.` : risk > 0 ? `Cansados pero enteros. ${risk === 1 ? "Un hombre podría" : `${risk} hombres podrían`} flaquear en la próxima carrera.` : "Descansados y en forma: nadie debería flaquear en la próxima carrera.";
+  const when = n === 1 ? "si tocara correr ahora" : "en la próxima carrera";
+  const tired = risk >= 6 ? `Llegan reventados: ${risk} hombres podrían flaquear ${when}.` : risk > 0 ? `Cansados pero enteros. ${risk === 1 ? "Un hombre podría" : `${risk} hombres podrían`} flaquear ${when}.` : `Descansados y en forma: nadie debería flaquear ${when}.`;
+  const aim1 = week.avg((m) => m.stats.aim);
+  const aimRow = `\nPuntería: ${Math.round(aim0)} → ${Math.round(aim1)} (se notará en Normandía)`;
   bugle(audio, "retreta", { ...xz(...FLAG), level: 0.5 });
-  await ui.card({ kicker: n === 1 ? "Fin de la primera semana" : "Jueves por la noche", title: "El pelotón", text: `${rows}\n\n${tired}`, next: "Seguir" });
+  await ui.card({ kicker: n === 1 ? "Fin de la primera semana" : "Jueves por la noche", title: "El pelotón", text: `${rows}${aimRow}\n\n${tired}`, next: "Seguir" });
+  stopBugle(audio); // Taps doesn't follow the player into the next scene
   audio.paper();
+  delete save.frozen; // the week is over: from here the normal saves take the new state
   return { end };
 }

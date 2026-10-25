@@ -14,7 +14,9 @@ const CSS = `
 .wk .hd .t small{display:block;font:12px 'Special Elite',monospace;letter-spacing:.12em;text-transform:uppercase;color:#e3c27a}
 .wk .hd .t b{display:block;font:400 22px/1 'IM Fell English SC',serif;color:#f4ecd9}
 .wk .meters{flex:1;display:flex;gap:8px;justify-content:flex-end;min-width:0}
-.mtr{flex:0 1 96px;min-width:60px}
+.mtr{flex:0 1 106px;min-width:60px}
+.mtr i em.mk{position:absolute;top:-2px;width:2px;height:12px;margin-left:-1px;background:rgba(255,255,255,.75)}
+.mtr i em.mk::after{content:attr(data-t);position:absolute;top:13px;left:-12px;font:600 10px 'Barlow Condensed';font-style:normal;color:#cfc6b2;white-space:nowrap}
 .mtr span{display:flex;justify-content:space-between;gap:4px;font:600 12.5px 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#d8cfbb;white-space:nowrap}
 .mtr span em{font-style:normal;color:#f4ecd9}
 .mtr span em s{text-decoration:none;color:#e3c27a}
@@ -31,14 +33,15 @@ const CSS = `
   font:400 14.5px/1.05 'IM Fell English',Georgia,serif;color:#2a241b;background:radial-gradient(ellipse at 30% 20%,#f1eadb,#d9cdb3);box-shadow:0 2px 6px rgba(0,0,0,.45);overflow:hidden}
 .cell small{display:block;margin-top:3px;font:12px 'Special Elite',monospace;letter-spacing:.02em;color:#6d6252}
 .cell .ic{font-size:19px;line-height:1;margin-bottom:2px}
-.cell.fixed{background:rgba(201,188,159,.55);color:#2a241b;box-shadow:none;font-size:13.5px}
-.cell.fixed small{color:#3d352a;margin-bottom:12px}
-.cell.fixed::after{content:'SOBEL';position:absolute;right:2px;bottom:3px;transform:rotate(-12deg);font:700 10.5px 'Special Elite';letter-spacing:.08em;color:#a3302a;border:1.5px solid #a3302a;padding:0 3px;opacity:.8}
+.cell.fixed{background:rgba(214,203,177,.8);color:#2a241b;box-shadow:none;font-size:13.5px}
+.cell.fixed small{color:#2a241b}
+.cell.fixed::after{content:'SOBEL';position:absolute;right:2px;top:3px;transform:rotate(12deg);font:700 10.5px 'Special Elite';letter-spacing:.08em;color:#a3302a;border:1.5px solid #a3302a;padding:0 3px;opacity:.8}
 .cell.free{cursor:pointer;border:2px dashed rgba(35,29,22,.45);background:rgba(241,234,219,.92)}
 .cell.free.empty{color:#6d6252}
 .cell.free.sel{outline:3px solid #e3c27a;outline-offset:1px;border-style:solid}
+.cell.free .duty{position:absolute;left:0;right:0;top:0;background:#7b2a22;color:#f4ecd9;font:600 11px 'Barlow Condensed';letter-spacing:.04em;padding:1px 0}
 .cell.none{background:rgba(241,234,219,.18);box-shadow:none;color:#bfb6a2}
-.night{margin:0;text-align:center;font:600 12px/1.1 'Barlow Condensed';letter-spacing:.04em;color:#b9c4d8;min-height:14px}
+.wk .day .nt{margin:0;text-align:center;font:600 12px/1.1 'Barlow Condensed';letter-spacing:.04em;color:#b9c4d8;min-height:14px}
 .wk .pal{grid-row:2/4;grid-column:2;display:flex;flex-direction:column;gap:6px;min-height:0}
 .act{appearance:none;display:grid;grid-template-columns:30px 1fr;align-items:center;gap:2px 8px;text-align:left;padding:5px 10px;min-height:46px;border-radius:3px;cursor:pointer;
   border:1px solid rgba(241,234,219,.35);background:rgba(241,234,219,.08);color:#f4ecd9}
@@ -59,6 +62,7 @@ const CSS = `
 .wkh .blk b{font:400 19px/1.1 'IM Fell English SC',serif}
 .wkh .meters{position:absolute;right:calc(64px + env(safe-area-inset-right,0px));top:calc(10px + var(--safe-t));display:flex;gap:8px;background:rgba(14,12,9,.5);padding:5px 9px;border-radius:3px;opacity:.88}
 .wkh .meters .mtr{flex:0 0 74px;min-width:0}
+.wkh .meters .mtr:last-child .pop,.wk .mtr:last-child .pop{left:auto;right:2px;top:-17px}
 .wkh .ff{position:absolute;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(14px + var(--safe-b));width:58px;height:58px;border-radius:50%;pointer-events:auto;cursor:pointer;
   border:2px solid rgba(241,234,219,.5);background:rgba(14,12,9,.6);color:#f4ecd9;font:600 15px/1 'Barlow Condensed';letter-spacing:.02em}
 .wkh .ff.on{background:#e9e0cb;color:#1d1a16}
@@ -76,8 +80,12 @@ function style() {
   document.head.appendChild(s);
 }
 
-function meterHTML() {
-  return METERS.map((m) => `<div class="mtr" data-m="${m.id}"><span>${m.label}<em></em></span><i><b></b><u></u></i></div>`).join("");
+function meterHTML(marks = {}) {
+  return METERS.map((m) => {
+    const k = marks[m.id];
+    const mk = k ? `<em class="mk" style="left:${k.at}%" data-t="${esc(k.label)}"></em>` : "";
+    return `<div class="mtr" data-m="${m.id}"><span>${m.label}<em></em></span><i><b></b>${mk}<u></u></i></div>`;
+  }).join("");
 }
 function setMeters(root, st, proj) {
   for (const m of METERS) {
@@ -125,15 +133,15 @@ export function popMeters(root, d, audio) {
 
 // ---- the planner ----------------------------------------------------------------------------------
 // resolves with the plan {dayKey: actId} once every free afternoon has something
-export function planWeek(ui, week, { title, kicker, hint, choices, audio }) {
+export function planWeek(ui, week, { title, kicker, hint, choices, audio, marks = {} }) {
   style();
   return new Promise((resolve) => {
     const w = document.createElement("div");
     w.className = "wk";
     const days = week.days;
     w.innerHTML = `
-      <div class="hd"><div class="t"><small>${esc(kicker)}</small><b>${esc(title)}</b></div><div class="meters">${meterHTML()}</div></div>
-      <div class="board" style="--n:${days.length}">${days.map((d) => `<div class="day" data-k="${d.key}"><h4>${esc(d.short || d.label)}</h4>${cellHTML(d, "am")}${cellHTML(d, "pm")}<p class="night">${esc(d.nightLabel || "")}</p></div>`).join("")}</div>
+      <div class="hd"><div class="t"><small>${esc(kicker)}</small><b>${esc(title)}</b></div><div class="meters">${meterHTML(marks)}</div></div>
+      <div class="board" style="--n:${days.length}">${days.map((d) => `<div class="day" data-k="${d.key}"><h4>${esc(d.short || d.label)}</h4>${cellHTML(d, "am")}${cellHTML(d, "pm")}<p class="nt">${esc(d.nightLabel || "")}</p></div>`).join("")}</div>
       <div class="pal">${choices.map((id) => { const a = week.acts[id]; return `<button class="act" data-a="${id}"><span class="ic">${a.icon}</span><b>${esc(a.label)}</b><small>${esc(a.hint)}</small></button>`; }).join("")}
         <button class="go off">Empezar la semana</button></div>
       <div class="hint">${esc(hint || "")}</div>`;
@@ -153,7 +161,8 @@ export function planWeek(ui, week, { title, kicker, hint, choices, audio }) {
         const a = week.acts[week.plan[k]];
         c.classList.toggle("empty", !a);
         c.classList.toggle("sel", k === sel && !done());
-        c.innerHTML = a ? `<span class="ic">${a.icon}</span>${esc(a.label)}<small>tarde</small>` : `<span class="ic">·</span>Tarde libre<small>elige</small>`;
+        const duty = week.away[k] ? `<span class="duty">Winters de servicio</span>` : "";
+        c.innerHTML = duty + (a ? `<span class="ic">${a.icon}</span>${esc(a.label)}<small>tarde</small>` : `<span class="ic">·</span>Tarde libre<small>elige</small>`);
       }
       w.querySelector(".go").classList.toggle("off", !done());
       setMeters(w, week.stats(), week.project());
@@ -280,7 +289,7 @@ export class WeekHUD {
     for (const t of this.tags.values()) {
       const [x, y] = G.project(t.s.x, t.s.y + 2.15, t.s.z);
       t.el.style.left = x.toFixed(0) + "px";
-      t.el.style.top = y.toFixed(0) + "px";
+      t.el.style.top = Math.max(y, 96).toFixed(0) + "px"; // never over the ribbon and the meters
     }
   }
   remove() {

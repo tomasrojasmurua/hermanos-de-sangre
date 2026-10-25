@@ -39,6 +39,8 @@ export function bugle(audio, kind = "diana", { x, z, short = false, level = 1 } 
   // the bugler is at the flagpole, across the camp: far, panned, with the hill answering
   const p = x !== undefined ? audio._pos(x, z) : { d: 30, pan: -0.3 };
   const out = audio._out(Math.max(18, p.d), p.pan);
+  const oscs = [];
+  audio._bugle = { out, oscs };
   // the score steps aside for the real bugle (two bugles in two keys is the worst thing in a camp)
   audio.duck(len + 1.5, 0.15, 0.3);
   const spb = 60 / call.bpm;
@@ -81,9 +83,21 @@ export function bugle(audio, kind = "diana", { x, z, short = false, level = 1 } 
     vib.start(t);
     o.stop(end + 0.05);
     vib.stop(end + 0.05);
+    oscs.push(o, vib);
     t += dur;
   }
   return len;
+}
+
+// the scene moved on: let the call die away now and give the music back
+export function stopBugle(audio) {
+  const b = audio._bugle;
+  if (!audio.on || !b) return;
+  const t = audio.ctx.currentTime;
+  b.out.gain.setTargetAtTime(0, t, 0.35);
+  for (const o of b.oscs) try { o.stop(t + 1.5); } catch {}
+  audio._bugle = null;
+  audio.unduck();
 }
 
 // Sobel's rubber stamp: a thud, with a mid-range body so a phone speaker still hears it
@@ -123,31 +137,69 @@ export function shovel(audio, x, z) {
   if (Math.random() < 0.25) audio._tone(o, t + 0.02, 0.05, 2800, { gain: 0.04 });
 }
 
-// a canteen weighed in the hand: silence if it's full; a slosh if someone drank
+// a canteen weighed in the hand: silence if it's full; three irregular gulps of water if someone drank
 export function slosh(audio) {
   if (!audio.on) return;
-  const c = audio.ctx;
   const o = audio._out(0, 0.1);
-  const t = c.currentTime;
-  const s = c.createBufferSource();
-  s.buffer = audio.noise;
+  const t = audio.ctx.currentTime;
+  for (const k of [0, 0.17, 0.31]) {
+    audio._noise(o, t + k, 0.12, { type: "bandpass", f0: 350, f1: 900, q: 6, gain: 0.15 * (1 - k) });
+    audio._tone(o, t + k, 0.06, 220, { f1: 460, gain: 0.05 });
+  }
+}
+
+// a man in the barracks at night: boots on the plank floor, the door, a flashlight's click
+export function barracksNight(audio) {
+  if (!audio.on) return;
+  const o = audio._out(2, -0.2);
+  const t = audio.ctx.currentTime;
+  // the door hinge
+  const c = audio.ctx;
+  const h = c.createOscillator();
+  h.type = "sawtooth";
+  h.frequency.setValueAtTime(380, t);
+  h.frequency.linearRampToValueAtTime(520, t + 0.35);
   const bp = c.createBiquadFilter();
   bp.type = "bandpass";
+  bp.frequency.value = 1000;
   bp.Q.value = 3;
-  bp.frequency.setValueAtTime(600, t);
-  bp.frequency.exponentialRampToValueAtTime(300, t + 0.5);
   const g = c.createGain();
-  g.gain.value = 0;
-  const lfo = c.createOscillator();
-  lfo.frequency.value = 6;
-  const lg = c.createGain();
-  lg.gain.value = 0.12;
-  lfo.connect(lg).connect(g.gain);
-  s.connect(bp).connect(g).connect(o);
-  s.start(t);
-  lfo.start(t);
-  s.stop(t + 0.55);
-  lfo.stop(t + 0.55);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.03, t + 0.05);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.38);
+  h.connect(bp).connect(g).connect(o);
+  h.start(t);
+  h.stop(t + 0.42);
+  // boots on wood: brighter and hollower than clay
+  for (let i = 0; i < 5; i++) {
+    const tt = t + 0.6 + i * 0.55 + Math.random() * 0.05;
+    audio._noise(o, tt, 0.06, { type: "bandpass", f0: 1100 + Math.random() * 300, q: 1.4, gain: 0.22 });
+    audio._tone(o, tt, 0.05, 160 + Math.random() * 30, { gain: 0.08 });
+  }
+  audio._noise(o, t + 0.45, 0.01, { type: "bandpass", f0: 3000, q: 2, gain: 0.08 }); // flashlight click
+}
+
+// a column on the march in the dark: a few fixed files of boots, out of step with each other, and kit rattling
+export function marchColumn(audio, secs = 3.6) {
+  if (!audio.on) return;
+  const t0 = audio.ctx.currentTime, spb = 60 / 112;
+  for (const [pan, lag] of [[-0.5, 0.05], [-0.15, 0.12], [0.2, 0.08], [0.55, 0.1]]) {
+    for (let i = 0; i * spb < secs; i++) {
+      const t = t0 + lag + i * spb + Math.random() * 0.025;
+      audio.stride(0.3, pan, t);
+      if (Math.random() < 0.12) audio._tone(audio._out(0, pan), t + 0.03, 0.04, 1600 + Math.random() * 800, { type: "triangle", gain: 0.015 });
+    }
+  }
+}
+
+// the men murmuring Sobel's count: «veinte», «veinticuatro», «veintiocho», «treinta»
+const NUM = {
+  veinte: [["e", 0.12, 1700], ["i", 0.08], ["e", 0.14, 2400]],
+  treinta: [["e", 0.1, 2400], ["i", 0.08], ["a", 0.18, 2400]],
+};
+export function murmur(audio, word, { x, z, n = 12, gain = 0.05 } = {}) {
+  if (!audio.on || !NUM[word]) return;
+  audio.say(NUM[word], { x, z, voices: n, pitch: 130, gain, spread: 0.03 });
 }
 
 // the rank counting a drill aloud: «¡Uno! ¡Dos! ¡Tres! ¡Cuatro!» as a choir of formant shouts

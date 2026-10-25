@@ -279,7 +279,7 @@ export class Music {
     const c = this.a.ctx;
     const t = c.currentTime + 0.05;
     const dest = this.a.musicBus;
-    const seq = { summit: [62, 66, 69, 74], arrival: [62, 69, 67, 66], grief: [57, 60, 64, 62], wash: [57, 56] }[kind] || [62];
+    const seq = { summit: [62, 66, 69, 74], arrival: [62, 69, 67, 66], grief: [57, 60, 64, 62], wash: [57, 56], promo: [62, 67, 71, 74] }[kind] || [62]; // promo: the G bugle's own notes, home on the tonic
     seq.forEach((n, i) => this._horn(dest, t + i * 0.42, i === seq.length - 1 ? 1.8 : 0.4, NOTE(n)));
   }
 }

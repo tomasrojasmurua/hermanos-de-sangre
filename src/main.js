@@ -131,6 +131,11 @@ shell.ui.onPause = async () => {
       continue;
     }
     if (v === "title") {
+      // leaving mid-moment (a week being lived): put back the state the moment started from
+      if (save.frozen) {
+        Object.assign(save, JSON.parse(save.frozen));
+        delete save.frozen;
+      }
       G.abortScripts();
       shell.hooks.clear();
       shell.music.onBeat = null;

@@ -322,7 +322,9 @@ export function animate(a, st, dt) {
   // digging with the entrenching tool: bent over, both arms swinging down and back
   if (st.dig > 0) {
     const k = st.dig, s2 = Math.sin(dp);
-    b[Bi.spine].rotation.x += (0.55 + s2 * 0.2) * k;
+    hips.position.y -= 0.14 * k;
+    b[Bi.spine].rotation.x += (0.85 + s2 * 0.28) * k;
+    b[Bi.knR].rotation.x = 0.45 * k;
     b[Bi.shL].rotation.set(lerp(b[Bi.shL].rotation.x, -1.0 - s2 * 0.6, k), 0, -0.25 * k);
     b[Bi.shR].rotation.set(lerp(b[Bi.shR].rotation.x, -1.1 - s2 * 0.6, k), 0, 0.25 * k);
     b[Bi.elL].rotation.x = b[Bi.elR].rotation.x = -0.4 * k;
