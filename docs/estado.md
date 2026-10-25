@@ -8,7 +8,19 @@
 - **Lo que pasa a la carrera:** la forma de cada hombre menos su fatiga, más su moral, decide quién flaquea en la carrera de los espaguetis. En la simulación, un plan equilibrado deja al pelotón en 75,7 de forma efectiva; solo calistenia, en 61 (llegan reventados); solo descanso, en 72.
 - **Sonido nuevo** (`engine/camp-audio.js`): toques de corneta de armónicos naturales (diana, retreta), sello de goma de Sobel, máquina de escribir de las órdenes, pala, conteo coral de la calistenia; la inspección casi en silencio.
 - **Poses nuevas** de los soldados: saltos de tijera, flexiones, saludo, cavar, sentado.
+- **Decisiones durante la semana:** a quién le pides que tire de los hombres cuando Sobel manda a Winters a las letrinas (Lipton o Guarnere); qué hace Winters después de la inspección (hablar con Sobel en privado, ayudar al castigado, dejarlo estar); la marcha nocturna (cumplir la orden o hacer la vista gorda); las treinta flexiones de Winters, que se juegan con los dos pulgares; y la revista de barracones del jueves de la semana 2.
+- **Pausa y guardado:** la pausa funciona en todo el modo; si guardas o sales a mitad de semana, se conserva la semana tal como empezó (nunca a medias).
 - Capturas apaisadas: `docs/capturas/currahee-ronda-2/`.
+
+**Crítica (subagentes, Playwright apaisado 844×390 táctil):**
+| Crítico | Ronda 1 | Ronda 2 | Ronda 3 | Ronda 4 |
+|---|---|---|---|---|
+| Diseño y jugabilidad móvil | 5 | 7 | 7,5 | **8** |
+| Música y sonido | 5 | 7 | **8** | |
+| Fidelidad histórica | 7,5 | **9** | | |
+Sin errores de consola en el capítulo completo (llegada → dos semanas → espaguetis → segunda carrera → cierre).
+
+**Pendiente del modo base:** calibrar con el bot el umbral de «hombres en riesgo»; bus de interfaz seco para el papel y los sellos; llamada y respuesta de Winters en el conteo; un evento de aborto común para quitar escuchas de teclado; comparar la marca de Sobel de la semana 2 con el valor del miércoles. Probar en un teléfono real.
 
 ## Juego unificado · Capítulo I, Currahee (ronda 1)
 `juego.html` es el comienzo del juego completo: un solo programa que recorre el libro y cambia de modo dentro de cada capítulo, con la misma cámara y sin pantallas de carga.
@@ -43,7 +55,7 @@ Sin errores de consola en el capítulo completo.
 
 **Cambio de regla en el Día D:** Winters sobrevive a la guerra en el libro, así que si cae en Brécourt se vuelve al punto de control. Se quitó la rama «Lipton toma el mando».
 
-**Pendiente en el Capítulo I (rondas siguientes):** base (horario semanal, permisos y tensión con Sobel), pista de obstáculos y campo de tiro, maniobras nocturnas (sigilo), casa de prácticas (asalto), ejercicios de defensa (línea), marcha a Atlanta y salto en Fort Benning.
+**Pendiente en el Capítulo I (rondas siguientes):** pista de obstáculos y campo de tiro, maniobras nocturnas (sigilo), casa de prácticas (asalto), ejercicios de defensa (línea), marcha a Atlanta y salto en Fort Benning.
 
 ---
 

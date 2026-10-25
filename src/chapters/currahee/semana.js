@@ -741,14 +741,14 @@ async function sobelTest(camp) {
 function pushGame(camp) {
   const { ui, audio, roster, G } = camp.ctx;
   if (camp.hud?.setSpeed) camp.hud.setSpeed(1);
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const win = camp.win;
-    camp.place(win, -75.3, -6, FACE_UP);
+    camp.place(win, -75.3, -6, ANG_RIGHT); // side-on to the camera, so the push-up reads as one
     camp.place(camp.sobel, -78, -6.6, FACE_UP + 0.4);
     camp.pose([win], { push: 1 });
     win._manual = true;
     win.st.dph = 0;
-    camp.look(-75.3, -3.5, 9);
+    camp.look(-75.3, -4.5, 8);
     const fat = roster.get("winters")?.fatigue || 0;
     const grace = 1.5 - Math.min(0.7, fat / 120); // how long he can hold a position before his arms give out
     const w = document.createElement("div");
@@ -756,7 +756,7 @@ function pushGame(camp) {
     w.innerHTML = `<div class="pg-top"><b>Winters · prueba física</b><span class="n">0 / 30</span><i><u></u></i><small>Toca ▼ y ▲ por turnos, con los dos pulgares. Si te paras, se le van los brazos.</small></div>
       <button class="pg-b dn" aria-label="Abajo">▼<small>abajo</small></button><button class="pg-b up" aria-label="Arriba">▲<small>arriba</small></button>`;
     ui.root.appendChild(w);
-    if (camp.hud?.el) camp.hud.el.style.visibility = "hidden"; // the test has the screen to itself
+    if (camp.hud?.el) camp.hud.el.style.display = "none"; // the test has the screen to itself
     let reps = 0, next = "dn", last = performance.now(), t0 = null, done = false, raf = 0;
     const n = w.querySelector(".n"), bar = w.querySelector("u");
     const press = (side) => {
@@ -782,15 +782,18 @@ function pushGame(camp) {
       next = side === "dn" ? "up" : "dn";
       w.querySelectorAll(".pg-b").forEach((b) => b.classList.toggle("want", b.classList.contains(next)));
     };
-    const finish = () => {
+    const cleanup = () => {
       done = true;
       cancelAnimationFrame(raf);
       removeEventListener("keydown", key);
       win._manual = false;
+      w.remove();
+      if (camp.hud?.el) camp.hud.el.style.display = "";
+    };
+    const finish = () => {
+      cleanup();
       camp.pose([win]);
       const time = t0 == null ? 99 : (performance.now() - t0) / 1000;
-      w.remove();
-      if (camp.hud?.el) camp.hud.el.style.visibility = "";
       // the men notice an officer who can do what he asks of them (invented)
       if (reps >= 30) {
         for (const m of camp.men) roster.mood(m.id, time < 11 ? 3 : 2);
@@ -802,9 +805,15 @@ function pushGame(camp) {
     // his arms give out if he stalls
     const loop = () => {
       if (done) return;
+      if (G.paused) {
+        last = performance.now(); // the pause menu doesn't count against his arms
+        raf = requestAnimationFrame(loop);
+        return;
+      }
       const held = (performance.now() - last) / 1000;
-      bar.style.transform = `scaleX(${Math.max(0, 1 - held / grace).toFixed(3)})`;
-      if (t0 != null && held > grace) return finish();
+      const g = grace * (1 - (reps / 30) * 0.45); // his arms tire as the count climbs
+      bar.style.transform = `scaleX(${Math.max(0, 1 - held / g).toFixed(3)})`;
+      if (t0 != null && held > g) return finish();
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -816,7 +825,12 @@ function pushGame(camp) {
     };
     addEventListener("keydown", key);
     w.querySelector(".dn").classList.add("want");
-    G.until(() => done).catch(() => !done && finish()); // aborted (exit to title): clean up
+    // aborted (exit to title): clean up and let the week's finally run, without showing the result
+    G.until(() => done).catch((e) => {
+      if (done) return;
+      cleanup();
+      reject(e);
+    });
   });
 }
 

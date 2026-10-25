@@ -16,6 +16,7 @@ const CSS = `
 .wk .meters{flex:1;display:flex;gap:8px;justify-content:flex-end;min-width:0}
 .mtr{flex:0 1 106px;min-width:60px}
 .mtr i em.mk{position:absolute;top:-2px;width:2px;height:12px;margin-left:-1px;background:rgba(255,255,255,.75)}
+.mtr[data-m=sobel] i em.mk::after{top:auto;bottom:13px}
 .mtr i em.mk::after{content:attr(data-t);position:absolute;top:13px;left:50%;transform:translateX(-50%);font:600 11px 'Barlow Condensed';font-style:normal;color:#cfc6b2;white-space:nowrap}
 .mtr span{display:flex;justify-content:space-between;gap:4px;font:600 12.5px 'Barlow Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#d8cfbb;white-space:nowrap}
 .mtr span em{font-style:normal;color:#f4ecd9}
