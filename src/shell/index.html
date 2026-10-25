@@ -220,6 +220,13 @@ body[data-run] .ghost{bottom:calc(64px + var(--safe-b))}
 @media (pointer:fine){.ghost{display:none}}
 /* narrative mode: no HUD, cards and subtitles only */
 body[data-mode=narrative] #sub{bottom:calc(16px + var(--safe-b))}
+/* base mode (the week): the game HUD is hidden but the pause button stays, above the planner */
+body[data-mode=base] #hud.hidden{display:block!important}
+body[data-mode=base] #hud>:not(#pauseBtn){display:none!important}
+body[data-mode=base] #pauseBtn{z-index:26}
+body[data-mode=base] #sub{bottom:calc(14px + var(--safe-b));left:calc(14px + env(safe-area-inset-left,0px));transform:none;max-width:min(60vw,520px)}
+/* a card at night: the scene goes dark behind the paper */
+.dim.night{background:radial-gradient(ellipse at center,rgba(8,10,18,.88),rgba(2,3,6,.98))}
 /* portrait on a phone: ask to rotate */
 #rotate{display:none}
 @media (orientation:portrait) and (pointer:coarse){

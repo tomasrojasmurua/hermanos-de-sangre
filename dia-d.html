@@ -5002,6 +5002,7 @@ void main(){
       return { d: Math.hypot(dx, dz), pan: (dx - dz) * 0.03 };
     }
     _noise(dest, t0, dur, { type = "lowpass", f0 = 1e3, f1 = null, q: q2 = 0.8, gain = 1, attack = 2e-3, rate = 1 } = {}) {
+      if (!(gain > 1e-4)) return;
       const c = this.ctx;
       const s = c.createBufferSource();
       s.buffer = this.noise;
@@ -5020,6 +5021,7 @@ void main(){
       s.stop(t0 + dur + 0.05);
     }
     _tone(dest, t0, dur, freq, { type = "sine", gain = 0.3, f1 = null, attack = 5e-3 } = {}) {
+      if (!(gain > 1e-4)) return;
       const c = this.ctx;
       const o = c.createOscillator();
       o.type = type;
@@ -5429,6 +5431,20 @@ void main(){
           setTimeout(clink, 300 + Math.random() * 1400);
         };
         setTimeout(clink, 500);
+      }
+      if (kind === "night") {
+        const voices = Array.from({ length: 5 }, () => ({ f: 4200 + Math.random() * 900, pan: Math.random() * 1.6 - 0.8, lv: 6e-3 + Math.random() * 0.01 }));
+        const chirp = (v) => {
+          if (!this.bed || this.bed.g !== g) return;
+          const t = this.ctx.currentTime;
+          if (!this.paused) {
+            const p = c.createStereoPanner ? c.createStereoPanner() : null;
+            const dest = p ? (p.pan.value = v.pan, p.connect(g), p) : g;
+            for (let k = 0; k < 3; k++) this._tone(dest, t + k * 0.045, 0.028, v.f, { gain: v.lv });
+          }
+          setTimeout(() => chirp(v), 400 + Math.random() * 1200);
+        };
+        voices.forEach((v, i) => setTimeout(() => chirp(v), 200 + i * 230));
       }
       const s = c.createBufferSource();
       s.buffer = this.noise;
@@ -7067,7 +7083,7 @@ void main(){
     // ---- bodies -----------------------------------------------------------------------------------
     updateBody(s, dt) {
       s.flashT = Math.max(0, s.flashT - dt);
-      s.y = damp(s.y, this.world.height(s.x, s.z), 20, dt);
+      s.y = damp(s.y, this.world.height(s.x, s.z) + (s.lift || 0), 20, dt);
       if (!s.alive) s.st.dead = Math.min(1, s.st.dead + dt * 2.6);
       s.st.throw = Math.max(0, s.st.throw - dt * 2.2);
       s.st.stab = Math.max(0, s.st.stab - dt * 3);

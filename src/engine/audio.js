@@ -181,6 +181,7 @@ export class Audio {
     return { d: Math.hypot(dx, dz), pan: (dx - dz) * 0.03 };
   }
   _noise(dest, t0, dur, { type = "lowpass", f0 = 1000, f1 = null, q = 0.8, gain = 1, attack = 0.002, rate = 1 } = {}) {
+    if (!(gain > 1e-4)) return; // an exponential ramp cannot reach zero: a silent burst is simply not played
     const c = this.ctx;
     const s = c.createBufferSource();
     s.buffer = this.noise;
@@ -199,6 +200,7 @@ export class Audio {
     s.stop(t0 + dur + 0.05);
   }
   _tone(dest, t0, dur, freq, { type = "sine", gain = 0.3, f1 = null, attack = 0.005 } = {}) {
+    if (!(gain > 1e-4)) return;
     const c = this.ctx;
     const o = c.createOscillator();
     o.type = type;
@@ -617,6 +619,21 @@ export class Audio {
         setTimeout(clink, 300 + Math.random() * 1400);
       };
       setTimeout(clink, 500);
+    }
+    if (kind === "night") {
+      // a Georgia night: field crickets from several places in the grass, each with its own rate and pitch
+      const voices = Array.from({ length: 5 }, () => ({ f: 4200 + Math.random() * 900, pan: Math.random() * 1.6 - 0.8, lv: 0.006 + Math.random() * 0.01 }));
+      const chirp = (v) => {
+        if (!this.bed || this.bed.g !== g) return;
+        const t = this.ctx.currentTime;
+        if (!this.paused) {
+          const p = c.createStereoPanner ? c.createStereoPanner() : null;
+          const dest = p ? (p.pan.value = v.pan, p.connect(g), p) : g;
+          for (let k = 0; k < 3; k++) this._tone(dest, t + k * 0.045, 0.028, v.f, { gain: v.lv });
+        }
+        setTimeout(() => chirp(v), 400 + Math.random() * 1200);
+      };
+      voices.forEach((v, i) => setTimeout(() => chirp(v), 200 + i * 230));
     }
     const s = c.createBufferSource();
     s.buffer = this.noise;

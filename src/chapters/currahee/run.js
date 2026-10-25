@@ -5,6 +5,7 @@ import { Route, Column } from "../../core/column.js";
 import { cast } from "../../core/roster.js";
 import { routeWorld, W, UV, SUMMIT } from "./places.js";
 import { esc } from "../../engine/ui.js";
+import { runFit } from "./semana-data.js";
 
 const NAMED = ["lipton", "guarnere", "malarkey", "toye", "muck", "tipper", "christenson", "gordon", "wynn", "martin", "talbert", "nixon"];
 
@@ -104,8 +105,7 @@ export async function currahee(ctx, opts) {
     const c = cast(id) || roster.get(id);
     const rec = roster.get(id);
     const sol = G.add({ id, name: c.name, short: c.short, side: "us", kit: "pt", weapon: "none", skin: c.skin, mustache: c.mustache, seed: 100 + i, speed: 5.2 });
-    // the week shows here: tiredness costs, spirit carries (see semana.js)
-    const fit = (rec?.stats?.fit ?? 60) - (rec?.fatigue ?? 0) * 0.22 + ((rec?.morale ?? 60) - 60) * 0.08;
+    const fit = runFit(rec); // the week in camp shows here (semana-data.js)
     men.push({ sol, id, named: !!cast(id), fit });
   });
   const sobelC = cast("sobel");
@@ -113,6 +113,11 @@ export async function currahee(ctx, opts) {
   const winC = cast("winters");
   const win = G.add({ ...winC, id: "winters", side: "us", kit: "pt", weapon: "none", seed: 1, speed: 4.6 });
   win.portrait = { rank: "lt", skin: "#dba886", helmet: "#3b2a1e" };
+  if (ctx.flags.firstLt) {
+    // promoted by Sink in the first week (semana.js)
+    win.name = "Tte. Richard Winters";
+    win.rank = "Teniente primero · jefe de pelotón";
+  }
   G.setPlayer(win);
   // ambulances
   const ambMat = new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, flatShading: true });

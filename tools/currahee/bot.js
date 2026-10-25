@@ -77,13 +77,13 @@ window.__autoweek = function (order = [0, 3, 2, 1, 4], ff = false) {
       let i = 0;
       const step = () => {
         const go = w.querySelector(".go");
-        if (!go.disabled) return setTimeout(() => go.click(), 1500);
+        if (!go.classList.contains("off")) return setTimeout(() => go.click(), 1500);
         acts[order[i++ % order.length]].click();
         setTimeout(step, 500);
       };
       setTimeout(step, 1500);
     }
     const f = document.querySelector(".wkh .ff");
-    if (ff && f && !f.classList.contains("on")) f.click();
+    if (ff && f && !f.classList.contains("on")) f.click(); // ×3
   }, 400);
 };

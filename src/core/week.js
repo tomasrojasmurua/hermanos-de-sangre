@@ -22,6 +22,7 @@ export class Week {
     this.state = cfg.state || { order: 40 };
     this.plan = {}; // day key -> act id for free afternoons
     this.away = {}; // day key -> true when the leader is taken off his men (dirty jobs)
+    this.awayK = {}; // day key -> how well the men train without him (who he left in charge)
     this.log = [];
   }
   freeDays() {
@@ -64,7 +65,8 @@ export class Week {
       sobel: fx.tension || 0,
     };
   }
-  // run one block on the roster; k scales it (a leader away on a dirty job: the men train at 60 %)
+  // run one block on the roster. k scales only what the leader teaches (fit, aim, lead): with Winters
+  // away on a dirty job the men still rest, tidy and grumble the same
   apply(actId, k = 1, { who = null } = {}) {
     const fx = this.acts[actId]?.fx || {};
     const before = this.stats();
@@ -75,13 +77,17 @@ export class Week {
       if (fx.fit) this.roster.train(id, "fit", fx.fit * k);
       if (fx.aim) this.roster.train(id, "aim", fx.aim * k);
       if (fx.lead && !m.invented) this.roster.train(id, "lead", fx.lead * k);
-      if (fx.fatigue) this.roster.tire(id, fx.fatigue * (fx.fatigue > 0 ? 1 : k));
-      if (fx.morale) this.roster.mood(id, fx.morale * k);
+      if (fx.fatigue) this.roster.tire(id, fx.fatigue);
+      if (fx.morale) this.roster.mood(id, fx.morale);
     }
     if (fx.fatigue && this.lead) this.roster.tire(this.lead, fx.fatigue * 0.8);
-    if (fx.order) this.state.order = clamp(this.state.order + fx.order * k, 0, 100);
+    if (fx.order) this.state.order = clamp(this.state.order + fx.order, 0, 100);
     if (fx.tension) this.roster.tension(fx.tension);
     return this.delta(before);
+  }
+  // how much of an afternoon's teaching lands: 1 with Winters there, less when he's been sent off
+  k(dayKey) {
+    return this.away[dayKey] ? this.awayK[dayKey] ?? 0.6 : 1;
   }
   // overnight: the men sleep some of it off and the barracks get a little untidier
   night({ rest = 12, mess = 6 } = {}) {
@@ -100,10 +106,14 @@ export class Week {
     const R = new this.roster.constructor(JSON.parse(JSON.stringify(this.roster.d)));
     const w = new Week({ ...this, roster: R, state: { ...this.state } });
     w.plan = { ...plan };
+    w.away = { ...this.away };
+    w.awayK = { ...this.awayK };
     for (const d of this.days) {
+      // events that will happen whatever the plan (Sink's visit, Sobel's first order)
+      if (this.scripted) this.scripted(d, w);
       for (const half of ["am", "pm"]) {
         const s = w.slot(d, half);
-        if (s && w.acts[s.act]?.fx) w.apply(s.act, this.away[d.key] && half === "pm" ? 0.6 : 1);
+        if (s && w.acts[s.act]?.fx) w.apply(s.act, half === "pm" ? w.k(d.key) : 1);
       }
       if (!d.noNight) w.night();
     }
